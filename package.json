@@ -1,7 +1,7 @@
 {
   "name": "todayhistory",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "expo-router/entry.js",
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
@@ -15,7 +15,10 @@
     "react-native": "0.79.5",
     "react-dom": "19.0.0",
     "react-native-web": "^0.20.0",
-    "@expo/metro-runtime": "~5.0.4"
+    "@expo/metro-runtime": "~5.0.4",
+    "expo-router": "~5.1.5",
+    "react-native-screens": "~4.11.1",
+    "react-native-safe-area-context": "5.4.0"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
