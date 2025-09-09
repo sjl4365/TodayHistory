@@ -1,11 +1,10 @@
-// Display for the /settings path
-// Renders a setting UI such as Language toggle, data source
 import { View, Text, StyleSheet } from 'react-native';
 
-export default function Settings() {
+export default function Share() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Settings</Text>
+      <Text style={styles.title}>Favorites</Text>
+      <Text style={styles.subtitle}>Your favorite items go here</Text>
     </View>
   );
 }
