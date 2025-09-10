@@ -1,20 +1,18 @@
 // app/(tabs)/home.js
-// Main screen for the /home route
-// Renders content (history entries by date), supports country selection, external wiki fetch, and caching
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Text, View, Pressable, Linking, ScrollView  } from "react-native";
+import { ActivityIndicator, Text, View, Pressable, Linking, ScrollView } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchSheetRows } from "../../lib/sheets";
 import { makeQueriesFromBody, makeKeyword, fetchSummaryMultiLang } from "../../lib/wiki";
 
-// Country-specific config
+// 국가 설정
 const COUNTRY_CFG = {
   korea: {
     label: "한국",
     lang: "ko",
-    sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg", 
-    gid: "219522591", // 예시
+    sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg",
+    gid: "219522591",
     bodyCol: "한국어",
     dateCol: "Date",
     yearCol: "Year",
@@ -22,8 +20,8 @@ const COUNTRY_CFG = {
   usa: {
     label: "미국",
     lang: "en",
-    sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg", 
-    gid: "2056769855", // 예시
+    sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg",
+    gid: "2056769855",
     bodyCol: "English",
     dateCol: "Date",
     yearCol: "Year",
@@ -31,8 +29,9 @@ const COUNTRY_CFG = {
 };
 
 const ALL_COUNTRIES = Object.keys(COUNTRY_CFG);
+const STORAGE_KEY_SELECTED = "selectedCountries";
 
-// CountrySelector component
+// 국가 선택 UI
 function CountrySelector({ value, onChange }) {
   const isAll = value.size === ALL_COUNTRIES.length;
   const setAll = () => onChange(new Set(ALL_COUNTRIES));
@@ -75,42 +74,8 @@ function CountrySelector({ value, onChange }) {
   );
 }
 
-// Utility: timeout for async operations
-const timeout = (p, ms = 5000) =>
-  Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error("Timeout")), ms))]);
-
-// In-memory LRU cache
-function createLRU(max = 200) {
-  const map = new Map();
-  return {
-    get(k) {
-      if (!map.has(k)) return;
-      const v = map.get(k);
-      map.delete(k);
-      map.set(k, v);
-      return v;
-    },
-    set(k, v) {
-      if (map.has(k)) map.delete(k);
-      if (map.size > max) map.delete(map.keys().next().value);
-      map.set(k, v);
-    },
-  };
-}
-
-const wikiCache = createLRU(200); // Note: not useRef — it's used directly
-
-// Get device time zone
-function getDeviceTimeZone() {
-  try {
-    return Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC";
-  } catch {
-    return "UTC";
-  }
-}
-
-// Get today's info in given time zone
-function todayInTZ(timeZone) {
+// 오늘 날짜 구하기
+function getToday(timeZone) {
   try {
     const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone,
@@ -123,9 +88,12 @@ function todayInTZ(timeZone) {
         if (p.type !== "literal") acc[p.type] = p.value;
         return acc;
       }, {});
-    const md = `${parts.month}-${parts.day}`;
-    const dcode = `D${parts.month}${parts.day}`;
-    return { md, dcode, y: parts.year, m: parts.month, d: parts.day };
+
+    return {
+      md: `${parts.month}-${parts.day}`,
+      dcode: `D${parts.month}${parts.day}`,
+      y: parts.year,
+    };
   } catch {
     const now = new Date();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
@@ -134,35 +102,26 @@ function todayInTZ(timeZone) {
       md: `${mm}-${dd}`,
       dcode: `D${mm}${dd}`,
       y: String(now.getFullYear()),
-      m: mm,
-      d: dd,
     };
   }
 }
 
-// Check if row matches today's date
-function matchesToday(row, { md, dcode }) {
-  const dateStr = row?.__DATE ?? "";
+// 오늘 날짜와 일치하는지 확인
+function isTodayRow(row, today) {
+  const dateStr = row?.__DATE || "";
+  const md = today.md;
+  const mmdd = today.dcode.slice(1);
 
   if (typeof dateStr === "string") {
-    const mmddOnly = dcode.slice(1);
-    const dcodeRe = new RegExp(`(^|[^0-9A-Za-z])d\\s*${mmddOnly}([^0-9A-Za-z]|$)`, "i");
-
-    if (dcodeRe.test(dateStr.trim())) return true;
-    if (/^\d{2}-\d{2}$/.test(dateStr) && dateStr === md) return true;
-
-    if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(dateStr)) {
-      const norm = dateStr.replace(/\//g, "-").slice(5, 10);
-      if (norm === md) return true;
-    }
+    if (dateStr.trim().toLowerCase().includes(`d${mmdd.toLowerCase()}`)) return true;
+    if (dateStr === md) return true;
+    if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(dateStr)) return dateStr.slice(5, 10) === md;
   }
 
   const iso = row?.isoDate || row?.dateISO || row?.dateString || "";
-  if (typeof iso === "string" && /^\d{4}-\d{2}-\d{2}/.test(iso)) {
-    return iso.slice(5, 10) === md;
-  }
+  if (typeof iso === "string" && /^\d{4}-\d{2}-\d{2}/.test(iso)) return iso.slice(5, 10) === md;
 
-  if (row?.month != null && row?.day != null) {
+  if (row?.month && row?.day) {
     const mm = String(row.month).padStart(2, "0");
     const dd = String(row.day).padStart(2, "0");
     return `${mm}-${dd}` === md;
@@ -171,86 +130,66 @@ function matchesToday(row, { md, dcode }) {
   return false;
 }
 
-// Normalize row for easier internal use
-function normalizeRow(raw, countryId) {
+// 시트 행 정리
+function cleanRow(raw, countryId) {
   const cfg = COUNTRY_CFG[countryId];
-  const body = String(raw?.[cfg.bodyCol] ?? "")
-    .replace(/<[^>]*>/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  const date = String(raw?.[cfg.dateCol] ?? raw?.date ?? "");
-  const year = String(raw?.[cfg.yearCol] ?? raw?.year ?? "");
+  const body = String(raw?.[cfg.bodyCol] || "").replace(/<[^>]+>/g, "").trim();
+  const date = String(raw?.[cfg.dateCol] || raw?.date || "");
+  const year = String(raw?.[cfg.yearCol] || raw?.year || "");
   return { ...raw, __country: countryId, __BODY: body, __DATE: date, __YEAR: year };
 }
 
+// ID 생성
 function rowId(r) {
-  return `${r.__country}|${r.__YEAR}|${r.__DATE}|${r.title ?? r.event ?? r.__BODY.slice(0, 20)}`;
+  return `${r.__country}|${r.__YEAR}|${r.__DATE}|${r.title || r.event || r.__BODY.slice(0, 20)}`;
 }
 
-function getBody(r) {
-  return r.__BODY || "";
-}
+// 날짜 포맷
+function formatDate(row, today) {
+  const y = row.__YEAR && /\d{1,4}/.test(row.__YEAR) ? row.__YEAR.padStart(4, "0") : "XXXX";
+  const d = row.__DATE || "";
+  let mm, dd;
 
-function formatKoreanDate(row, today) {
-  const yStr = row.__YEAR && /\d{1,4}/.test(row.__YEAR) ? row.__YEAR.padStart(4, "0") : "XXXX";
-  let mm = null,
-    dd = null,
-    d = row.__DATE || "";
-
-  if (typeof d === "string") {
-    const t = d.trim();
-    if (/^d\s*\d{4}$/i.test(t)) {
-      const mmdd = t.replace(/[^0-9]/g, "");
-      mm = mmdd.slice(0, 2);
-      dd = mmdd.slice(2, 4);
-    } else if (/^\d{2}-\d{2}$/.test(t)) {
-      [mm, dd] = t.split("-");
-    } else if (/^\d{4}-\d{2}-\d{2}/.test(t)) {
-      [, mm, dd] = t.slice(0, 10).split("-");
-    } else if (/^\d{4}\/\d{2}\/\d{2}$/.test(t)) {
-      [, mm, dd] = t.split("/");
-    }
+  if (/^d\s*\d{4}$/i.test(d)) {
+    mm = d.replace(/\D/g, "").slice(0, 2);
+    dd = d.replace(/\D/g, "").slice(2, 4);
+  } else if (/^\d{2}-\d{2}$/.test(d)) {
+    [mm, dd] = d.split("-");
+  } else if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(d)) {
+    [, mm, dd] = d.replace(/\//g, "-").split("-");
   }
 
-  if (!mm || !dd) {
-    const mmdd = today.md.replace("-", "");
-    mm = mm || mmdd.slice(0, 2);
-    dd = dd || mmdd.slice(2, 4);
-  }
+  mm = mm || today.md.slice(0, 2);
+  dd = dd || today.md.slice(3, 5);
 
-  return `${yStr}년 ${mm}월 ${dd}일`;
+  return `${y}년 ${mm}월 ${dd}일`;
 }
 
-// AsyncStorage keys for tracking shown entries
-const SHOWN_KEY = (dcode) => `shown:${dcode}`;
+// 본문 가져오기
+const getBody = (r) => r.__BODY || "";
 
-async function getShownSet(dcode) {
-  try {
-    const raw = await AsyncStorage.getItem(SHOWN_KEY(dcode));
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch {
-    return new Set();
-  }
+// AsyncStorage 키
+const SEEN_KEY = (dcode) => `seen:${dcode}`;
+
+// 본문 본 것 저장
+async function getSeen(dcode) {
+  const raw = await AsyncStorage.getItem(SEEN_KEY(dcode)).catch(() => null);
+  return raw ? new Set(JSON.parse(raw)) : new Set();
 }
 
-async function addShownId(dcode, id) {
-  try {
-    const set = await getShownSet(dcode);
-    set.add(id);
-    await AsyncStorage.setItem(SHOWN_KEY(dcode), JSON.stringify([...set]));
-  } catch {}
+async function addSeen(dcode, id) {
+  const set = await getSeen(dcode);
+  set.add(id);
+  await AsyncStorage.setItem(SEEN_KEY(dcode), JSON.stringify([...set]));
 }
 
-async function resetShown(dcode) {
-  try {
-    await AsyncStorage.removeItem(SHOWN_KEY(dcode));
-  } catch {}
+async function resetSeen(dcode) {
+  await AsyncStorage.removeItem(SEEN_KEY(dcode)).catch(() => {});
 }
 
-// Main component
 export default function Home() {
-  const [tz] = useState(getDeviceTimeZone());
-  const today = useMemo(() => todayInTZ(tz), [tz]);
+  const [tz] = useState(Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC");
+  const today = useMemo(() => getToday(tz), [tz]);
 
   const [rows, setRows] = useState(null);
   const [one, setOne] = useState(null);
@@ -260,169 +199,151 @@ export default function Home() {
   const [wikiLoading, setWikiLoading] = useState(false);
   const wikiReqGen = useRef(0);
 
-  // Load selected countries from AsyncStorage
+  const wikiCache = useRef({}).current;
+
+  // 선택 국가 불러오기
   useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY_SELECTED);
-        if (raw) {
-          const arr = JSON.parse(raw);
-          const valid = Array.isArray(arr) ? arr.filter((id) => COUNTRY_CFG[id]) : [];
-          if (valid.length > 0) setSelectedCountries(new Set(valid));
-        }
-      } catch {}
-    })();
+    AsyncStorage.getItem(STORAGE_KEY_SELECTED).then((raw) => {
+      if (raw) {
+        const arr = JSON.parse(raw);
+        const valid = Array.isArray(arr) ? arr.filter((id) => COUNTRY_CFG[id]) : [];
+        if (valid.length > 0) setSelectedCountries(new Set(valid));
+      }
+    });
   }, []);
 
-  // Save selected countries
+  // 선택 국가 저장
   useEffect(() => {
-    (async () => {
-      try {
-        await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...selectedCountries]));
-      } catch {}
-    })();
+    AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...selectedCountries]));
   }, [selectedCountries]);
 
-  // Load sheet data and pick an entry
+  // 시트 로드
   useEffect(() => {
     let canceled = false;
+
     (async () => {
       try {
         const tasks = [...selectedCountries].map(async (cid) => {
           const cfg = COUNTRY_CFG[cid];
-          const data = await timeout(fetchSheetRows({ sheetId: cfg.sheetId, gid: cfg.gid }), 7000);
-          return (Array.isArray(data) ? data : []).map((r) => normalizeRow(r, cid));
+          const data = await fetchSheetRows({ sheetId: cfg.sheetId, gid: cfg.gid });
+          return (Array.isArray(data) ? data : []).map((r) => cleanRow(r, cid));
         });
-        const merged = (await Promise.all(tasks)).flat();
-        const todayRows = merged.filter((r) => matchesToday(r, today));
-        const top10 = todayRows.slice(0, 10);
-        const shown = await getShownSet(today.dcode);
-        let candidates = top10.filter((r) => !shown.has(rowId(r)));
 
-        if (top10.length > 0 && candidates.length === 0) {
-          await resetShown(today.dcode);
-          candidates = top10;
+        const merged = (await Promise.all(tasks)).flat();
+        const allToday = merged.filter((r) => isTodayRow(r, today));
+
+        const seen = await getSeen(today.dcode);
+        let candidates = allToday.filter((r) => !seen.has(rowId(r)));
+
+        if (allToday.length > 0 && candidates.length === 0) {
+          await resetSeen(today.dcode);
+          candidates = allToday;
         }
 
         const withBody = candidates.filter((r) => getBody(r).length > 0);
-        const pool = withBody.length ? withBody : candidates;
-        const pick = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null;
+        const pickPool = withBody.length ? withBody : candidates;
+        const pick = pickPool.length ? pickPool[Math.floor(Math.random() * pickPool.length)] : null;
 
         if (!canceled) {
-          setRows(top10);
+          setRows(allToday);
           setOne(pick);
-          if (pick) await addShownId(today.dcode, rowId(pick));
+          if (pick) await addSeen(today.dcode, rowId(pick));
         }
       } catch (e) {
         if (!canceled) setErr(String(e?.message || e));
       }
     })();
+
     return () => {
       canceled = true;
     };
   }, [today, selectedCountries]);
 
-  // Fetch Wikipedia summary
+  // 위키 요약
   useEffect(() => {
     let canceled = false;
+
     (async () => {
       if (!one) return setWiki({ title: "", snippet: "", url: "", lang: "" });
 
       const body = getBody(one);
       if (!body) return setWiki({ title: "", snippet: "", url: "", lang: "" });
 
-      const preferredLang = COUNTRY_CFG[one.__country]?.lang || "ko";
-      const cacheKey = `${preferredLang}|${body.slice(0, 120)}`;
-      const cached = wikiCache.get(cacheKey);
+      const lang = COUNTRY_CFG[one.__country]?.lang || "ko";
+      const cacheKey = `${lang}|${body.slice(0, 120)}`;
+      const cached = wikiCache[cacheKey];
       if (cached) return setWiki(cached);
 
       setWikiLoading(true);
-      const myGen = ++wikiReqGen.current;
-      const outdated = () => myGen !== wikiReqGen.current || canceled;
+      const gen = ++wikiReqGen.current;
 
-      let queries = makeQueriesFromBody(body, preferredLang, 16).slice(0, 5);
+      const queries = makeQueriesFromBody(body, lang, 16).slice(0, 5);
       let found = null;
 
-      try {
-        for (const q of queries) {
-          const r = await timeout(fetchSummaryMultiLang(preferredLang, q, 900), 10000).catch(() => null);
-          if (r) {
-            found = r;
-            break;
-          }
-          if (outdated()) return;
+      for (const q of queries) {
+        const r = await fetchSummaryMultiLang(lang, q).catch(() => null);
+        if (wikiReqGen.current !== gen || canceled) return;
+        if (r) {
+          found = r;
+          break;
         }
+      }
 
-        if (!found) {
-          const fb = makeKeyword(body, 18);
-          if (fb) {
-            const r = await timeout(fetchSummaryMultiLang(preferredLang, fb, 700), 10000).catch(() => null);
-            if (r) found = r;
-          }
-        }
+      if (!found) {
+        const fb = makeKeyword(body, 18);
+        const r = await fetchSummaryMultiLang(lang, fb).catch(() => null);
+        if (wikiReqGen.current !== gen || canceled) return;
+        if (r) found = r;
+      }
 
-        if (outdated()) return;
-        setWikiLoading(false);
+      setWikiLoading(false);
 
-        if (found) {
-          setWiki(found);
-          wikiCache.set(cacheKey, found);
-        } else {
-          const searchLang = preferredLang;
-          const q = encodeURIComponent((queries[0] || makeKeyword(body, 16) || "").trim());
-          const searchUrl = q ? `https://${searchLang}.wikipedia.org/w/index.php?search=${q}` : "";
-          setWiki({
-            title: "",
-            snippet: "(요약을 불러올 수 없습니다)",
-            url: searchUrl,
-            lang: searchLang,
-          });
-        }
-      } catch {
-        if (outdated()) return;
-        setWikiLoading(false);
-        setWiki({ title: "", snippet: "(요약을 불러올 수 없습니다)", url: "", lang: "" });
+      if (found) {
+        setWiki(found);
+        wikiCache[cacheKey] = found;
+      } else {
+        const searchUrl = `https://${lang}.wikipedia.org/w/index.php?search=${encodeURIComponent(queries[0] || makeKeyword(body, 16) || "")}`;
+        setWiki({ title: "", snippet: "요약 정보를 찾을 수 없습니다.", url: searchUrl, lang });
       }
     })();
+
     return () => {
       canceled = true;
     };
   }, [one]);
 
+  // 다음 항목 보기
   const handleNext = async () => {
     if (!rows || rows.length === 0) return;
-    const shown = await getShownSet(today.dcode);
-    let candidates = rows.filter((r) => !shown.has(rowId(r)));
+
+    const seen = await getSeen(today.dcode);
+    let candidates = rows.filter((r) => !seen.has(rowId(r)));
+
     if (rows.length > 0 && candidates.length === 0) {
-      await resetShown(today.dcode);
+      await resetSeen(today.dcode);
       candidates = rows;
     }
+
     const withBody = candidates.filter((r) => getBody(r).length > 0);
-    const pool = withBody.length ? withBody : candidates;
-    if (pool.length === 0) return;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
+    const pickPool = withBody.length ? withBody : candidates;
+    if (pickPool.length === 0) return;
+
+    const pick = pickPool[Math.floor(Math.random() * pickPool.length)];
     setOne(pick);
-    await addShownId(today.dcode, rowId(pick));
+    await addSeen(today.dcode, rowId(pick));
   };
 
+  // 화면 출력
   if (!rows && !err) return <ActivityIndicator style={{ marginTop: 24 }} />;
-  if (err)
-    return (
-      <View style={{ padding: 16 }}>
-        <Text style={{ color: "crimson" }}>문제가 발생했습니다: {err}</Text>
-      </View>
-    );
+  if (err) return <View style={{ padding: 16 }}><Text style={{ color: "crimson" }}>문제가 발생했습니다: {err}</Text></View>;
 
-  const dateStr = one ? formatKoreanDate(one, today) : "";
+  const dateStr = one ? formatDate(one, today) : "";
   const body = one ? getBody(one) : "";
 
- return (
-    <ScrollView
-      contentContainerStyle={{ padding: 16, gap: 12, maxWidth: 360, alignSelf: "center", paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
+  return (
+    <ScrollView contentContainerStyle={{ padding: 16, gap: 12, maxWidth: 360, alignSelf: "center", paddingBottom: 40 }}>
       <CountrySelector value={selectedCountries} onChange={setSelectedCountries} />
+
       {!one ? (
         <Text>오늘 날짜의 데이터가 없습니다.</Text>
       ) : (
@@ -430,26 +351,27 @@ export default function Home() {
           <Text accessibilityRole="header" style={{ fontWeight: "600", color: "#908f8f" }}>
             {dateStr} · {COUNTRY_CFG[one.__country]?.label || one.__country}
           </Text>
+
           <Text style={{ lineHeight: 32, fontWeight: "900", fontSize: 24 }}>{body}</Text>
+
           {wikiLoading ? (
             <ActivityIndicator style={{ marginTop: 8 }} />
           ) : (
             <Text style={{ lineHeight: 28, fontSize: 18, marginTop: 12 }}>
-              {wiki.snippet || "(위키 요약 없음)"}{" "}
+              {wiki.snippet}{" "}
               {!!wiki.url && (
-                <Text
-                  style={{ textDecorationLine: "underline" }}
-                  accessibilityRole="link"
-                  onPress={() => Linking.openURL(wiki.url).catch(() => {})}
-                >
+                <Text style={{ textDecorationLine: "underline" }} accessibilityRole="link" onPress={() => Linking.openURL(wiki.url).catch(() => {})}>
                   원문 보기
                 </Text>
               )}
             </Text>
           )}
+
+          {/* <Pressable onPress={handleNext} style={{ marginTop: 16, alignSelf: "flex-start", paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, backgroundColor: "#201d6aff" }}>
+            <Text style={{ color: "white", fontWeight: "700" }}>다음 보기</Text>
+          </Pressable> */}
         </>
       )}
-    
     </ScrollView>
   );
 }
