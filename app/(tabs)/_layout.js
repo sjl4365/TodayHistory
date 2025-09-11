@@ -2,6 +2,7 @@
 // Declare the <Tabs> and register the screens to display
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'react-native';
 
 
 export default function TabLayout() {
@@ -37,16 +38,24 @@ export default function TabLayout() {
     ),
   }}
 /> 
-      
-      <Tabs.Screen
+
+<Tabs.Screen
   name="forward"
   options={{
     title: 'Forward',
     tabBarIcon: ({ color, size }) => (
-      <Ionicons name="chevron-forward" size={size} color={color} />
+      <Image 
+        source={require('../../assets/images/next.png')} 
+        style={{ 
+          width: size, 
+          height: size,
+          tintColor: color // This will apply the tab bar color to the image
+        }} 
+      />
     ),
   }}
 />
+
 <Tabs.Screen
   name="share"
   options={{
@@ -60,6 +69,7 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: 'Settings',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="settings" size={size} color={color} />
           ),
