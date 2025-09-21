@@ -6,7 +6,7 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  Switch, 
+
   ScrollView 
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -28,12 +28,18 @@ export default function SettingsIndex() {
 
   return (
     <ScrollView style={styles.container}>
-      {/* First Section */}
+
       <View style={styles.section}>
 
         <SettingItem
           title="Look & Feel"
           onPress={() => router.push('/settings/look-and-feel')}
+        />
+      </View>
+      <View style={styles.section}>
+        <SettingItem
+          title="Notification"
+          onPress={() => router.push('/settings/notification')}
         />
       </View>
     </ScrollView>
@@ -48,9 +54,7 @@ const styles = StyleSheet.create({
   section: {
     backgroundColor: '#2a2a2a',
     marginHorizontal: 0,
-    marginBottom: 20,
     borderTopWidth: 1,
-    borderBottomWidth: 1,
     borderColor: 'grey',
   },
   settingItem: {
