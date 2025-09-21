@@ -4,9 +4,5 @@
 import { View, Text, StyleSheet } from 'react-native';
 
 export default function Back() {
-  return (
-    <View >
-      <Text >Back</Text>
-    </View>
-  );
+  return null; // 또는 return ( <View><Text>Back</Text></View> );
 }
