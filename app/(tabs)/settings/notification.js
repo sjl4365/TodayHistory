@@ -1,5 +1,4 @@
-// notification.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Platform, Switch, Alert
@@ -16,30 +15,29 @@ Notifications.setNotificationHandler({
 });
 
 const CHANNEL_ID = 'default';
-const REMINDER_TYPE = 'DAILY_PRE_SCHEDULED';
-const PRE_SCHEDULE_DAYS = 14;
-const TOP_UP_THRESHOLD = 5;
+const TAG = 'DAILY_REMINDER';
 
 export default function Notification() {
   const [isNotificationOn, setIsNotificationOn] = useState(false);
   const [date, setDate] = useState(new Date());
   const [savedTime, setSavedTime] = useState(null);
-  const [scheduledIds, setScheduledIds] = useState([]); 
+
+  const scheduledIdRef = useRef(null);
+  const [hasPermission, setHasPermission] = useState(false);
 
   useEffect(() => {
-    requestPermissions();
-    ensureAndroidChannel();
+    init();
   }, []);
 
-
-  const requestPermissions = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Required', 'Notification permission is required to use this feature.');
+  async function init() {
+    const perm = await Notifications.getPermissionsAsync();
+    let granted = perm.status === 'granted';
+    if (!granted) {
+      const req = await Notifications.requestPermissionsAsync();
+      granted = req.status === 'granted';
     }
-  };
+    setHasPermission(granted);
 
-  async function ensureAndroidChannel() {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
         name: 'Default',
@@ -47,158 +45,194 @@ export default function Notification() {
         sound: true,
       });
     }
-  }
 
-  const handleTimeChange = (event, selectedDate) => {
-    if (Platform.OS === 'android') {
-      if (event.type === 'set' && selectedDate) setDate(selectedDate);
-    } else {
-      if (selectedDate) setDate(selectedDate);
-    }
-  };
 
-  async function listOurReminders() {
-    const all = await Notifications.getAllScheduledNotificationsAsync();
-    return all.filter(n => n?.content?.data?.type === REMINDER_TYPE);
-  }
-
-  async function cancelAllOurReminders() {
-    const ours = await listOurReminders();
-    await Promise.all(
-      ours.map(n => Notifications.cancelScheduledNotificationAsync(n.identifier))
-    );
-  }
-
-  async function scheduleForNextNDays(notificationTime, days = PRE_SCHEDULE_DAYS) {
-    const ids = [];
-    const now = new Date();
-
-    for (let i = 0; i < days; i++) {
-      const fire = new Date();
-      fire.setDate(fire.getDate() + i);
-      fire.setHours(notificationTime.getHours(), notificationTime.getMinutes(), 0, 0);
-
-      if (fire.getTime() <= now.getTime() + 1000) continue;
-
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Daily Reminder 📱',
-          body: "It's time for your daily check-in!",
-          sound: true,
-          data: { type: REMINDER_TYPE },
-        },
-        trigger: fire, 
-      });
-
-      ids.push(id);
-    }
-    return ids;
-  }
-
-  async function topUpIfLow(notificationTime /* Date */) {
-    const ours = await listOurReminders();
-    if (ours.length < TOP_UP_THRESHOLD) {
-      await cancelAllOurReminders();
-      const newIds = await scheduleForNextNDays(notificationTime, PRE_SCHEDULE_DAYS);
-      setScheduledIds(newIds);
-    }
-  }
-
-  const scheduleNotification = async (notificationTime) => {
     try {
-      await ensureAndroidChannel();
-
-      await cancelAllOurReminders();
-      const ids = await scheduleForNextNDays(notificationTime, PRE_SCHEDULE_DAYS);
-      return ids;
-    } catch (e) {
-      console.error('노티 스케줄 실패:', e);
-      Alert.alert('Error', 'Failed to schedule notification.');
-      return null;
-    }
-  };
-
-  const cancelNotification = async () => {
-    try {
-      if (scheduledIds.length) {
-        await Promise.all(
-          scheduledIds.map(id => Notifications.cancelScheduledNotificationAsync(id))
-        );
-        setScheduledIds([]);
+      const all = await Notifications.getAllScheduledNotificationsAsync();
+      const mine = all.find(n => n?.content?.data?.__tag === TAG);
+      if (mine) {
+        scheduledIdRef.current = mine.identifier || null;
+        setIsNotificationOn(true);
       }
-      await cancelAllOurReminders();
+    } catch {}
+  }
 
-      setSavedTime(null);
-    } catch (error) {
-      console.error('노티피케이션 취소 실패:', error);
+  async function scheduleDailyAt(time) {
+    if (!hasPermission) {
+      Alert.alert('Permission Required', 'Please allow notifications first.');
+      setIsNotificationOn(false);
+      return false;
     }
-  };
-  const handleSaveTime = async () => {
-    if (!isNotificationOn) return;
+    if (scheduledIdRef.current) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(scheduledIdRef.current);
+      } catch {}
+      scheduledIdRef.current = null;
+    }
 
-    const ids = await scheduleNotification(date);
-    if (ids && ids.length) {
-      setScheduledIds(ids);
+    const hours = time.getHours();
+    const minutes = time.getMinutes();
+
+    const trigger = Platform.select({
+      ios: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: hours,
+        minute: minutes,
+        repeats: true,
+      },
+      android: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: hours,
+        minute: minutes,
+        repeats: true,
+        channelId: CHANNEL_ID,
+      },
+    });
+
+    const id = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: 'Daily Reminder',
+        body: "It's time for your daily check-in!",
+        sound: true,
+        data: { __tag: TAG },
+      },
+      trigger,
+    });
+
+    scheduledIdRef.current = id;
+    return true;
+  }
+
+  async function cancelDaily() {
+    if (scheduledIdRef.current) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(scheduledIdRef.current);
+      } catch {}
+      scheduledIdRef.current = null;
+    }
+  }
+
+
+  const handleSaveTime = async () => {
+    if (!isNotificationOn) return; 
+    const ok = await scheduleDailyAt(date);
+    if (ok) {
       setSavedTime(date);
       const timeString = date.toLocaleTimeString([], {
         hour: '2-digit', minute: '2-digit', hour12: false
       });
-      Alert.alert('Notification Scheduled! ✅', `Pre-scheduled for ${ids.length} days at ${timeString}.`);
+      Alert.alert('Notification Scheduled!', `Daily at ${timeString}`);
     } else {
-      Alert.alert('Schedule Failed', 'No notifications were scheduled.');
+      Alert.alert('Schedule Failed', 'Could not schedule the reminder.');
     }
   };
 
   const handleToggleNotification = async (value) => {
-    setIsNotificationOn(value);
-    if (!value) {
-      await cancelNotification();
-      Alert.alert('Notification Disabled', 'Daily notifications have been turned off.');
+    if (value) {
+      if (!hasPermission) {
+        const req = await Notifications.requestPermissionsAsync();
+        if (req.status !== 'granted') {
+          Alert.alert('Permission Required', 'Notification permission is required.');
+          return;
+        }
+        setHasPermission(true);
+      }
+      setIsNotificationOn(true);
     } else {
-      await topUpIfLow(savedTime ?? date);
+      setIsNotificationOn(false);
+      await cancelDaily();
+      setSavedTime(null);
+      Alert.alert('Notification Disabled', 'Daily notifications have been turned off.');
     }
   };
 
-  useEffect(() => {
-    if (isNotificationOn) {
-      topUpIfLow(savedTime ?? date);
+  const handleChange = (evt, d) => {
+    if (Platform.OS === 'android') {
+      const ts = evt?.nativeEvent?.timestamp;
+      const next = d ?? (typeof ts === 'number' ? new Date(ts) : null);
+      if (evt?.type === 'set' && next) {
+        requestAnimationFrame(() => {
+          next.setSeconds(0, 0);
+          setDate(next);
+        });
+      }
+    } else {
+      if (d) {
+        const t = new Date(d);
+        t.setSeconds(0, 0);
+        setDate(t);
+      }
     }
-  }, [isNotificationOn]);
+  };
 
-  // UI
-  const NotificationItem = ({ title, value, onToggle, selectedDate, onTimeChange }) => (
-    <View style={styles.notificationSection}>
-      <View style={styles.notificationHeader}>
-        <Text style={styles.notificationTitle}>{title}</Text>
-        <Switch
-          value={value}
-          onValueChange={onToggle}
-          trackColor={{ false: "#767577", true: "#8B5CF6" }}
-          thumbColor={value ? "#ffffff" : "#f4f3f4"}
-        />
-      </View>
+  const NotificationItem = ({ title, value, onToggle }) => {
+    const [showTimePicker, setShowTimePicker] = useState(Platform.OS === 'ios');
 
-      {isNotificationOn && (
-        <View style={styles.timePickerContainer}>
-          <View style={styles.timePickerWrapper}>
-            <DateTimePicker
-              value={selectedDate}
-              mode="time"
-              is24Hour={true}
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={onTimeChange}
-              style={styles.timePicker}
-              textColor={Platform.OS === 'ios' ? '#000000' : undefined}
-            />
-          </View>
+    useEffect(() => {
+      if (!value && Platform.OS === 'android') setShowTimePicker(false);
+    }, [value]);
 
-          <TouchableOpacity style={styles.doneButton} onPress={handleSaveTime}>
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
+    return (
+      <View style={styles.notificationSection}>
+        <View className="header" style={styles.notificationHeader}>
+          <Text style={styles.notificationTitle}>{title}</Text>
+          <Switch
+            value={value}
+            onValueChange={onToggle}
+            trackColor={{ false: "#767577", true: "#8B5CF6" }}
+            thumbColor={value ? "#ffffff" : "#f4f3f4"}
+          />
         </View>
-      )}
-    </View>
-  );
+
+        {value && (
+          <View style={styles.timePickerContainer}>
+            <View style={styles.timePickerWrapper}>
+              {Platform.OS === 'ios' ? (
+                <DateTimePicker
+                  value={date}
+                  mode="time"
+                  is24Hour
+                  display="spinner"
+                  onChange={handleChange}
+                  style={styles.timePicker}
+                  textColor="#000000"
+                />
+              ) : (
+                <>
+                  <TouchableOpacity
+                    style={{ paddingVertical: 12 }}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <Text style={{ fontSize: 16 }}>
+                      {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                    </Text>
+                    <Text style={{ color: '#8B5CF6', marginTop: 6 }}>Change time</Text>
+                  </TouchableOpacity>
+
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={date}
+                      mode="time"
+                      is24Hour
+                      display="clock" // or 'spinner'
+                      onChange={(e, d) => {
+                        setShowTimePicker(false);
+                        handleChange(e, d);
+                      }}
+                    />
+                  )}
+                </>
+              )}
+            </View>
+
+            <TouchableOpacity style={styles.doneButton} onPress={handleSaveTime}>
+              <Text style={styles.doneButtonText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
 
   return (
     <ScrollView style={styles.container}>
@@ -207,8 +241,6 @@ export default function Notification() {
           title="Allow Notification"
           value={isNotificationOn}
           onToggle={handleToggleNotification}
-          selectedDate={date}
-          onTimeChange={handleTimeChange}
         />
       </View>
     </ScrollView>
