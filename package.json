@@ -33,5 +33,10 @@
     "@babel/core": "^7.20.0",
     "@react-native-community/cli": "latest"
   },
+  
+  "engines": { "node": ">=18 <21" },
+  "packageManager": "npm@10"  
+,
   "private": true
+  
 }
