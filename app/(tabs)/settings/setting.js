@@ -36,6 +36,7 @@ export default function SettingsIndex() {
           onPress={() => router.push('/settings/look-and-feel')}
         />
       </View>
+      
       <View style={styles.section}>
         <SettingItem
           title="Notification"
