@@ -306,6 +306,95 @@ function CountrySelector({ value, onChange, uiLang }) {
   );
 }
 
+export async function loadOnePickForDay({ today, selectedCountries, uiLang }) {
+  const selHash = hashSelected(selectedCountries);
+  const globalSeen = await getSeenAll(today.dcode, uiLang, selHash);
+
+  const pool = [];
+  for (const cid of selectedCountries) {
+    const cfg = COUNTRY_CFG[cid];
+    const data = await fetchSheetRows({ sheetId: cfg.sheetId, gid: cfg.gid }).catch(() => []);
+    const todayRows = (Array.isArray(data) ? data : []).filter((r) => isTodayRow(r, today));
+
+    await getSeenCountry(today.dcode, cid, uiLang);
+
+    for (const r of todayRows) {
+      const body = bodyOfRowByLang(r, uiLang);
+      if (!hasAnyText(body)) continue;
+      const key = rowKeyWithCid(cid, r);
+      if (globalSeen.has(key)) continue;
+      pool.push({ cid, row: r, key, body });
+    }
+  }
+
+  let workingPool = pool;
+  if (workingPool.length === 0) {
+    await resetSeenAll(today.dcode, uiLang, selHash);
+    workingPool = [];
+    for (const cid of selectedCountries) {
+      const cfg = COUNTRY_CFG[cid];
+      const data = await fetchSheetRows({ sheetId: cfg.sheetId, gid: cfg.gid }).catch(() => []);
+      const todayRows = (Array.isArray(data) ? data : []).filter((r) => isTodayRow(r, today));
+      for (const r of todayRows) {
+        const body = bodyOfRowByLang(r, uiLang);
+        if (!hasAnyText(body)) continue;
+        workingPool.push({ cid, row: r, key: rowKeyWithCid(cid, r), body });
+      }
+    }
+  }
+
+  let picks = [];
+  if (workingPool.length > 0) {
+    const first = workingPool[Math.floor(Math.random() * workingPool.length)];
+    picks.push(first);
+    if (wantTwoByLang(first.body, uiLang) && workingPool.length > 1) {
+      const rest = workingPool.filter((x) => x.key !== first.key);
+      if (rest.length > 0) {
+        const second = rest[Math.floor(Math.random() * rest.length)];
+        picks.push(second);
+      }
+    }
+    const selHash2 = hashSelected(selectedCountries);
+    await addSeenAll(today.dcode, uiLang, selHash2, picks.map((p) => p.key));
+    for (const p of picks) await addSeenCountry(today.dcode, p.cid, uiLang, [rowKey(p.row)]);
+  }
+
+  return picks;
+}
+
+// home parameter extract하는 helper
+export async function getLastHomeParams() {
+  const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || 'UTC';
+
+  // baseDate 복원 (없으면 오늘 00:00 in tz)
+  const baseISO = await AsyncStorage.getItem('BASE_DATE_ISO').catch(() => null);
+  const baseDate = baseISO ? new Date(baseISO) : startOfDayInTz(new Date(), tz);
+
+  // uiLang 복원 (없으면 'ko')
+  const storedLang = await AsyncStorage.getItem('uiLang').catch(() => null);
+  const uiLang = (storedLang === 'ko' || storedLang === 'en' || storedLang === 'ja') ? storedLang : 'ko';
+
+  // selectedCountries 복원 (없으면 언어 기본값)
+  const storedSel = await AsyncStorage.getItem('selectedCountries').catch(() => null);
+  let selectedCountries;
+  if (storedSel) {
+    try {
+      const arr = JSON.parse(storedSel);
+      selectedCountries = new Set(Array.isArray(arr) && arr.length ? arr : DEFAULT_COUNTRIES_BY_LANG[uiLang]);
+    } catch {
+      selectedCountries = new Set(DEFAULT_COUNTRIES_BY_LANG[uiLang]);
+    }
+  } else {
+    selectedCountries = new Set(DEFAULT_COUNTRIES_BY_LANG[uiLang]);
+  }
+
+  // today 계산 (Home과 동일 로직)
+  const today = getDayPartsFrom(baseDate, tz);
+
+  return { today, selectedCountries, uiLang, tz, baseDate };
+}
+
+
 /* 메인 */
 export default function Home() {
   const [tz] = useState(Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC");
@@ -315,6 +404,12 @@ export default function Home() {
 
   // 자정 경계 자동 갱신
   const [now, setNow] = useState(new Date());
+
+  // baseDate로 바뀔때 ISO로 저장. 
+  useEffect(() => {
+    AsyncStorage.setItem('BASE_DATE_ISO', baseDate.toISOString());
+  }, [baseDate]);
+
   useEffect(() => {
     const nextMidnight = (() => {
       const t = startOfDayInTz(new Date(), tz);
@@ -437,80 +532,81 @@ export default function Home() {
         setLoading(true);
         setOnePick([]);
         setErr("");
+        const picks = await loadOnePickForDay({ today, selectedCountries, uiLang });
 
-        const selHash = hashSelected(selectedCountries);
-        const globalSeen = await getSeenAll(today.dcode, uiLang, selHash);
+        // const selHash = hashSelected(selectedCountries);
+        // const globalSeen = await getSeenAll(today.dcode, uiLang, selHash);
 
-        const pool = [];
-        for (const cid of selectedCountries) {
-          const cfg = COUNTRY_CFG[cid];
-          const data = await fetchSheetRows({
-            sheetId: cfg.sheetId,
-            gid: cfg.gid,
-          }).catch(() => []);
-          const todayRows = (Array.isArray(data) ? data : []).filter((r) =>
-            isTodayRow(r, today)
-          );
+        // const pool = [];
+        // for (const cid of selectedCountries) {
+        //   const cfg = COUNTRY_CFG[cid];
+        //   const data = await fetchSheetRows({
+        //     sheetId: cfg.sheetId,
+        //     gid: cfg.gid,
+        //   }).catch(() => []);
+        //   const todayRows = (Array.isArray(data) ? data : []).filter((r) =>
+        //     isTodayRow(r, today)
+        //   );
 
-          await getSeenCountry(today.dcode, cid, uiLang);
+        //   await getSeenCountry(today.dcode, cid, uiLang);
 
-          for (const r of todayRows) {
-            const body = bodyOfRowByLang(r, uiLang);
-            if (!hasAnyText(body)) continue;
-            const key = rowKeyWithCid(cid, r);
-            if (globalSeen.has(key)) continue;
-            pool.push({ cid, row: r, key, body });
-          }
-        }
+        //   for (const r of todayRows) {
+        //     const body = bodyOfRowByLang(r, uiLang);
+        //     if (!hasAnyText(body)) continue;
+        //     const key = rowKeyWithCid(cid, r);
+        //     if (globalSeen.has(key)) continue;
+        //     pool.push({ cid, row: r, key, body });
+        //   }
+        // }
 
-        let workingPool = pool;
-        if (workingPool.length === 0) {
-          await resetSeenAll(today.dcode, uiLang, selHash);
-          workingPool = [];
-          for (const cid of selectedCountries) {
-            const cfg = COUNTRY_CFG[cid];
-            const data = await fetchSheetRows({
-              sheetId: cfg.sheetId,
-              gid: cfg.gid,
-            }).catch(() => []);
-            const todayRows = (Array.isArray(data) ? data : []).filter((r) =>
-              isTodayRow(r, today)
-            );
-            for (const r of todayRows) {
-              const body = bodyOfRowByLang(r, uiLang);
-              if (!hasAnyText(body)) continue;
-              workingPool.push({
-                cid,
-                row: r,
-                key: rowKeyWithCid(cid, r),
-                body,
-              });
-            }
-          }
-        }
+        // let workingPool = pool;
+        // if (workingPool.length === 0) {
+        //   await resetSeenAll(today.dcode, uiLang, selHash);
+        //   workingPool = [];
+        //   for (const cid of selectedCountries) {
+        //     const cfg = COUNTRY_CFG[cid];
+        //     const data = await fetchSheetRows({
+        //       sheetId: cfg.sheetId,
+        //       gid: cfg.gid,
+        //     }).catch(() => []);
+        //     const todayRows = (Array.isArray(data) ? data : []).filter((r) =>
+        //       isTodayRow(r, today)
+        //     );
+        //     for (const r of todayRows) {
+        //       const body = bodyOfRowByLang(r, uiLang);
+        //       if (!hasAnyText(body)) continue;
+        //       workingPool.push({
+        //         cid,
+        //         row: r,
+        //         key: rowKeyWithCid(cid, r),
+        //         body,
+        //       });
+        //     }
+        //   }
+        // }
 
-        let picks = [];
-        if (workingPool.length > 0) {
-          const first =
-            workingPool[Math.floor(Math.random() * workingPool.length)];
-          picks.push(first);
-          if (wantTwoByLang(first.body, uiLang) && workingPool.length > 1) {
-            const rest = workingPool.filter((x) => x.key !== first.key);
-            if (rest.length > 0) {
-              const second = rest[Math.floor(Math.random() * rest.length)];
-              picks.push(second);
-            }
-          }
-          const selHash2 = hashSelected(selectedCountries);
-          await addSeenAll(
-            today.dcode,
-            uiLang,
-            selHash2,
-            picks.map((p) => p.key)
-          );
-          for (const p of picks)
-            await addSeenCountry(today.dcode, p.cid, uiLang, [rowKey(p.row)]);
-        }
+        // let picks = [];
+        // if (workingPool.length > 0) {
+        //   const first =
+        //     workingPool[Math.floor(Math.random() * workingPool.length)];
+        //   picks.push(first);
+        //   if (wantTwoByLang(first.body, uiLang) && workingPool.length > 1) {
+        //     const rest = workingPool.filter((x) => x.key !== first.key);
+        //     if (rest.length > 0) {
+        //       const second = rest[Math.floor(Math.random() * rest.length)];
+        //       picks.push(second);
+        //     }
+        //   }
+        //   const selHash2 = hashSelected(selectedCountries);
+        //   await addSeenAll(
+        //     today.dcode,
+        //     uiLang,
+        //     selHash2,
+        //     picks.map((p) => p.key)
+        //   );
+        //   for (const p of picks)
+        //     await addSeenCountry(today.dcode, p.cid, uiLang, [rowKey(p.row)]);
+        // }
 
         if (!canceled) setOnePick(picks);
       } catch (e) {

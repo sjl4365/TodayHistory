@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
+import { getLastHomeParams, loadOnePickForDay } from '../home';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -13,6 +14,12 @@ Notifications.setNotificationHandler({
     shouldSetBadge: false,
   }),
 });
+
+async function doWork() {
+  const { today, selectedCountries, uiLang } = await getLastHomeParams();
+  const picks = await loadOnePickForDay({ today, selectedCountries, uiLang });
+  console.log(picks);
+}
 
 const CHANNEL_ID = 'default';
 const TAG = 'DAILY_REMINDER';
@@ -29,6 +36,11 @@ export default function Notification() {
     init();
   }, []);
 
+  useEffect(() => {
+    console.log("test")
+    doWork().catch(console.error);
+}, []);
+
   async function init() {
     const perm = await Notifications.getPermissionsAsync();
     let granted = perm.status === 'granted';
@@ -41,8 +53,9 @@ export default function Notification() {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
         name: 'Default',
-        importance: Notifications.AndroidImportance.DEFAULT,
+        importance: Notifications.AndroidImportance.MAX,
         sound: true,
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
     }
 
@@ -94,6 +107,7 @@ export default function Notification() {
         title: 'Daily Reminder',
         body: "It's time for your daily check-in!",
         sound: true,
+        priority: Notifications.AndroidNotificationPriority.MAX,
         data: { __tag: TAG },
       },
       trigger,
