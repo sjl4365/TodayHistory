@@ -1,13 +1,15 @@
+// This file defines the tab navigation layout
+// Declare the <Tabs> and register the screens to display
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { emitRefresh, emitGoPrevDay, emitGoNextDay, emitCopyShare } from "../../lib/bus"; // ✅ emitCopyShare 가져오기
+import { emitRefresh, emitGoPrevDay, emitGoNextDay } from "../../lib/bus";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         initialRouteName: "home",
-        tabBarShowLabel: false,
+        tabBarShowLabel: false, // 라벨 숨겨서 탭 간격 균일
         tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "black",
         tabBarStyle: {
@@ -17,7 +19,7 @@ export default function TabLayout() {
         },
       }}
     >
-      {/* Back */}
+      {/* Back: 어제 */}
       <Tabs.Screen
         name="back"
         options={{
@@ -29,13 +31,13 @@ export default function TabLayout() {
         }}
         listeners={{
           tabPress: (e) => {
-            e.preventDefault();
-            emitGoPrevDay();
+            e.preventDefault(); // 라우팅 막고
+            emitGoPrevDay();    // 이벤트만 발행
           },
         }}
       />
 
-      {/* Refresh */}
+      {/* Refresh: 새로고침 */}
       <Tabs.Screen
         name="refresh"
         options={{
@@ -52,7 +54,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Forward */}
+      {/* Forward: 내일 */}
       <Tabs.Screen
         name="forward"
         options={{
@@ -70,7 +72,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Share → 라우팅 막고 복사만 수행 */}
+      {/* Share: 실제 페이지가 있다면 라우팅 허용 */}
       <Tabs.Screen
         name="share"
         options={{
@@ -78,12 +80,6 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="share-social" size={size} color={color} />
           ),
-        }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();     // 라우팅 금지
-            emitCopyShare();        // 복사 이벤트 발행
-          },
         }}
       />
 
@@ -99,7 +95,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Home (탭에서 숨김) */}
+      {/* 홈은 탭에 표시하지 않음 */}
       <Tabs.Screen name="home" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
