@@ -2,6 +2,7 @@
 // Settings stack navigation within the settings tab
 import React from 'react';
 import { Stack } from 'expo-router';
+import { TouchableOpacity, Image } from 'react-native';
 
 export default function SettingsLayout() {
   return (
@@ -20,9 +21,21 @@ export default function SettingsLayout() {
       {/* Main settings screen */}
       <Stack.Screen 
         name="setting" 
-        options={{ 
+        options={({ navigation }) => ({ 
           title: 'Settings',
-        }} 
+          headerLeft: () => (
+            <TouchableOpacity 
+              onPress={() => navigation.navigate('home')} // Navigate to home tab
+              style={{ marginRight: 15 }}
+            >
+              <Image 
+                source={require('../../../assets/images/prev.png')} // Correct path from settings folder
+                style={{ width: 24, height: 24, tintColor: 'white' }}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          ),
+        })} 
       />
       
       <Stack.Screen 
