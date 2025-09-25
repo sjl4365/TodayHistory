@@ -21,20 +21,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.tyktyk.TodayHistory"
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router"
-    ],
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "4513b76c-c72d-4109-b701-95cb48571fb7"
-      }
-    }
+    ]
   }
 }
