@@ -46,6 +46,13 @@ export default function SettingsLayout() {
         }} 
       />
 
+      <Stack.Screen 
+        name="language" 
+        options={{ 
+          title: 'Language',
+          presentation: 'card',
+        }} 
+      />
     </Stack>
   );
 }
