@@ -1,15 +1,21 @@
+// app/(tabs)/_layout.tsx
 // This file defines the tab navigation layout
 // Declare the <Tabs> and register the screens to display
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { emitRefresh, emitGoPrevDay, emitGoNextDay } from "../../lib/bus";
+import {
+  emitRefresh,
+  emitGoPrevDay,
+  emitGoNextDay,
+  emitShareAttach,   // ⬅️ 추가
+} from "../../lib/bus";
 
 export default function TabLayout() {
   return (
     <Tabs
+      initialRouteName="home"           // ⬅️ 여기에 두는 게 정석 (screenOptions 아님)
       screenOptions={{
-        initialRouteName: "home",
-        tabBarShowLabel: false, // 라벨 숨겨서 탭 간격 균일
+        tabBarShowLabel: false,
         tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "black",
         tabBarStyle: {
@@ -31,8 +37,8 @@ export default function TabLayout() {
         }}
         listeners={{
           tabPress: (e) => {
-            e.preventDefault(); // 라우팅 막고
-            emitGoPrevDay();    // 이벤트만 발행
+            e.preventDefault();   // 라우팅 막기
+            emitGoPrevDay();      // 이벤트만 발행
           },
         }}
       />
@@ -72,18 +78,25 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Share: 실제 페이지가 있다면 라우팅 허용 */}
+      {/* Share: 파일첨부 버튼처럼 동작 (라우팅 X, 이벤트만) */}
       <Tabs.Screen
         name="share"
         options={{
           title: "",
+          headerShown: false,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="share-social" size={size} color={color} />
           ),
         }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();   // 라우팅 막기
+            emitShareAttach();    // ⬅️ 홈 화면이 이 신호를 구독해 '복사+첨부' 실행
+          },
+        }}
       />
 
-      {/* Settings */}
+      {/* Settings (실제 화면으로 이동하고 싶다면 라우팅 유지) */}
       <Tabs.Screen
         name="settings"
         options={{
