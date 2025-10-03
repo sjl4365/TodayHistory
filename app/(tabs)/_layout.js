@@ -91,7 +91,7 @@ export default function TabLayout() {
         listeners={{
           tabPress: (e) => {
             e.preventDefault();   // 라우팅 막기
-            emitShareAttach();    // ⬅️ 홈 화면이 이 신호를 구독해 '복사+첨부' 실행
+            emitShareAttach();    // 홈 화면이 이 신호를 구독해 '복사+첨부' 실행
           },
         }}
       />
