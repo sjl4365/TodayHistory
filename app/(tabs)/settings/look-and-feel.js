@@ -17,9 +17,6 @@ export default function LookAndFeel() {
   const [fontColor, setFontColor] = useState('black');
   const [backgroundColor, setBackgroundColor] = useState('white');
   
-  // Modal states
-  const [showFontColorModal, setShowFontColorModal] = useState(false);
-  const [showBackgroundColorModal, setShowBackgroundColorModal] = useState(false);
   const [showFontModal, setShowFontModal] = useState(false);
 
   const fonts = [
@@ -31,63 +28,78 @@ export default function LookAndFeel() {
     'Georgia',
   ];
 
-  // Font Dropdown Modal Component (add this with your other components)
-const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts, getFontFamily }) => (
-  <Modal
-    visible={visible}
-    transparent={true}
-    animationType="slide"
-  >
-    <View style={styles.modalOverlay}>
-      <View style={styles.modalContent}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Select Font</Text>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.closeButton}>✕</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <ScrollView style={styles.fontOptionsContainer}>
-          {fonts.map((font) => (
-            <TouchableOpacity
-              key={font}
-              style={[
-                styles.fontDropdownOption,
-                selectedFont === font && styles.selectedFontDropdownOption,
-              ]}
-              onPress={() => {
-                onFontSelect(font);
-                onClose();
-              }}
-            >
-              <Text
-                style={[
-                  styles.fontDropdownText,
-                  { fontFamily: getFontFamily(font) },
-                  selectedFont === font && styles.selectedFontDropdownText,
-                ]}
-              >
-                {font}
-              </Text>
-              {selectedFont === font && (
-                <Text style={styles.fontCheckmark}>✓</Text>
-              )}
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-    </View>
-  </Modal>
-);
-
-  // Color options
+  // Rainbow color options only
   const colorOptions = [
-    { name: 'Black', value: 'black' },
-    { name: 'Red', value: 'red' },
-    { name: 'Green', value: 'green' },
-    { name: 'Blue', value: 'blue' },
-    { name: 'White', value: 'white' },
+    // Basic colors (keeping black and white for contrast)
+    { name: 'Black', value: '#000000' },
+    { name: 'White', value: '#FFFFFF' },
+    
+    // Rainbow colors in order: ROYGBIV
+    { name: 'Red', value: '#FF0000' },
+    { name: 'Orange', value: '#FF8000' },
+    { name: 'Yellow', value: '#FFFF00' },
+    { name: 'Green', value: '#00FF00' },
+    { name: 'Blue', value: '#0000FF' },
+    { name: 'Indigo', value: '#4B0082' },
+    { name: 'Violet', value: '#8A2BE2' },
+    
+    // Additional rainbow variations
+    { name: 'Pink', value: '#FF69B4' },
+    { name: 'Cyan', value: '#00FFFF' },
+    { name: 'Magenta', value: '#FF00FF' },
+    { name: 'Lime', value: '#32CD32' },
   ];
+
+  // Removed checkmark helper function - no longer needed
+
+  // Font Dropdown Modal Component
+  const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts, getFontFamily }) => (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="slide"
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Select Font</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.closeButton}>✕</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.fontOptionsContainer}>
+            {fonts.map((font) => (
+              <TouchableOpacity
+                key={font}
+                style={[
+                  styles.fontDropdownOption,
+                  selectedFont === font && styles.selectedFontDropdownOption,
+                ]}
+                onPress={() => {
+                  onFontSelect(font);
+                  onClose();
+                }}
+              >
+                <Text
+                  style={[
+                    styles.fontDropdownText,
+                    { fontFamily: getFontFamily(font) },
+                    selectedFont === font && styles.selectedFontDropdownText,
+                  ]}
+                >
+                  {font}
+                </Text>
+                {selectedFont === font && (
+                  <Text style={styles.fontCheckmark}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const getFontFamily = (font) => {
     switch (font) {
@@ -108,87 +120,25 @@ const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts
     }
   };
 
-  // Color picker modal component
-  const ColorPickerModal = ({ visible, onClose, title, selectedColor, onColorSelect }) => (
-    <Modal
-      visible={visible}
-      transparent={true}
-      animationType="slide"
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{title}</Text>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
-          
-          <View style={styles.colorOptionsContainer}>
-            {colorOptions.map((color) => (
-              <TouchableOpacity
-                key={color.value}
-                style={[
-                  styles.colorOption,
-                  { backgroundColor: color.value },
-                  selectedColor === color.value && styles.selectedColorOption,
-                  color.value === 'white' && styles.whiteColorBorder,
-                ]}
-                onPress={() => {
-                  onColorSelect(color.value);
-                  onClose();
-                }}
-              >
-                {selectedColor === color.value && (
-                  <Text style={[
-                    styles.checkmark,
-                    { color: color.value === 'white' || color.value === 'yellow' ? 'black' : 'white' }
-                  ]}>
-                    ✓
-                  </Text>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          
-          <Text style={styles.selectedColorText}>
-            Selected: {colorOptions.find(c => c.value === selectedColor)?.name || selectedColor}
-          </Text>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  // Color picker component
-  const ColorPicker = ({ title, selectedColor, onColorChange }) => (
+  // Inline Color Palette Component
+  const ColorPalette = ({ title, selectedColor, onColorChange }) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <View style={styles.colorOptionsContainer}>
+      <View style={styles.inlineColorContainer}>
         {colorOptions.map((color) => (
           <TouchableOpacity
             key={color.value}
             style={[
-              styles.colorOption,
+              styles.inlineColorOption,
               { backgroundColor: color.value },
-              selectedColor === color.value && styles.selectedColorOption,
-              color.value === 'white' && styles.whiteColorBorder,
+              (color.value === '#FFFFFF' && selectedColor !== color.value) && styles.whiteColorBorder,
+              selectedColor === color.value && styles.selectedInlineColorOption,
             ]}
             onPress={() => onColorChange(color.value)}
           >
-            {selectedColor === color.value && (
-              <Text style={[
-                styles.checkmark,
-                { color: color.value === 'white' || color.value === 'yellow' ? 'black' : 'white' }
-              ]}>
-                ✓
-              </Text>
-            )}
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.selectedColorText}>
-        Selected: {colorOptions.find(c => c.value === selectedColor)?.name || selectedColor}
-      </Text>
     </View>
   );
 
@@ -214,32 +164,25 @@ const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts
       <ScrollView style={styles.controlsContainer} showsVerticalScrollIndicator={false}>
         {/* Font Selection */}
         <View style={styles.section}>
-  <Text style={styles.sectionTitle}>Font</Text>
-  <TouchableOpacity 
-    style={styles.fontDropdownButton}
-    onPress={() => setShowFontModal(true)}
-  >
-    <View style={styles.fontDropdownContent}>
-      <Text
-        style={[
-          styles.fontDropdownButtonText,
-          { fontFamily: getFontFamily(selectedFont) }
-        ]}
-      >
-        {selectedFont}
-      </Text>
-      <Text style={styles.dropdownArrow}>▼</Text>
-    </View>
-  </TouchableOpacity>
-</View>
-<FontDropdownModal
-  visible={showFontModal}
-  onClose={() => setShowFontModal(false)}
-  selectedFont={selectedFont}
-  onFontSelect={setSelectedFont}
-  fonts={fonts}
-  getFontFamily={getFontFamily}
-/>
+          <Text style={styles.sectionTitle}>Font</Text>
+          <TouchableOpacity 
+            style={styles.fontDropdownButton}
+            onPress={() => setShowFontModal(true)}
+          >
+            <View style={styles.fontDropdownContent}>
+              <Text
+                style={[
+                  styles.fontDropdownButtonText,
+                  { fontFamily: getFontFamily(selectedFont) }
+                ]}
+              >
+                {selectedFont}
+              </Text>
+              <Text style={styles.dropdownArrow}>▼</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Size Slider */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Size</Text>
@@ -254,76 +197,36 @@ const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts
               step={1}
               minimumTrackTintColor="#006AFF"
               maximumTrackTintColor="#D1D1D1"
-              thumbStyle={styles.sliderThumb}
             />
             <Text style={styles.sizeLabel}>48</Text>
           </View>
           <Text style={styles.currentSize}>{Math.round(fontSize)}pt</Text>
         </View>
 
-        {/* Color Selection - Side by Side */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Colors</Text>
-          <View style={styles.colorButtonRow}>
-            {/* Font Color Button */}
-            <View style={styles.colorButtonContainer}>
-              <Text style={styles.colorSubTitle}>Font Color</Text>
-              <TouchableOpacity 
-                style={styles.colorButton}
-                onPress={() => setShowFontColorModal(true)}
-              >
-                <View style={styles.colorButtonContent}>
-                  <View style={[
-                    styles.colorPreview, 
-                    { backgroundColor: fontColor },
-                    fontColor === 'white' && styles.whiteColorBorder,
-                  ]} />
-                  <Text style={styles.colorButtonText}>
-                    {colorOptions.find(c => c.value === fontColor)?.name || fontColor}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+        {/* Font Color Palette */}
+        <ColorPalette 
+          title="Font Color"
+          selectedColor={fontColor}
+          onColorChange={setFontColor}
+        />
 
-            {/* Background Color Button */}
-            <View style={styles.colorButtonContainer}>
-              <Text style={styles.colorSubTitle}>Background Color</Text>
-              <TouchableOpacity 
-                style={styles.colorButton}
-                onPress={() => setShowBackgroundColorModal(true)}
-              >
-                <View style={styles.colorButtonContent}>
-                  <View style={[
-                    styles.colorPreview, 
-                    { backgroundColor: backgroundColor },
-                    backgroundColor === 'white' && styles.whiteColorBorder,
-                  ]} />
-                  <Text style={styles.colorButtonText}>
-                    {colorOptions.find(c => c.value === backgroundColor)?.name || backgroundColor}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        {/* Background Color Palette */}
+        <ColorPalette 
+          title="Background Color"
+          selectedColor={backgroundColor}
+          onColorChange={setBackgroundColor}
+        />
 
       </ScrollView>
 
-      {/* Color Picker Modals */}
-      <ColorPickerModal
-        visible={showFontColorModal}
-        onClose={() => setShowFontColorModal(false)}
-        title="Select Font Color"
-        selectedColor={fontColor}
-        onColorSelect={setFontColor}
-      />
-
-      <ColorPickerModal
-        visible={showBackgroundColorModal}
-        onClose={() => setShowBackgroundColorModal(false)}
-        title="Select Background Color"
-        selectedColor={backgroundColor}
-        onColorSelect={setBackgroundColor}
+      {/* Font Modal */}
+      <FontDropdownModal
+        visible={showFontModal}
+        onClose={() => setShowFontModal(false)}
+        selectedFont={selectedFont}
+        onFontSelect={setSelectedFont}
+        fonts={fonts}
+        getFontFamily={getFontFamily}
       />
     </View>
   );
@@ -392,8 +295,43 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // Color picker styles
-  colorButton: {
+  inlineColorContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 12,
+  },
+  inlineColorOption: {
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+    margin: 2,
+  },
+  selectedInlineColorOption: {
+    borderColor: '#007AFF',
+    borderWidth: 3,
+  },
+  whiteColorBorder: {
+    borderColor: '#ddd',
+    borderWidth: 2,
+  },
+  inlineCheckmark: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  selectedColorText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+
+
+  fontDropdownButton: {
     backgroundColor: 'white',
     borderRadius: 8,
     borderWidth: 1,
@@ -401,25 +339,22 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
   },
-  colorButtonContent: {
+  fontDropdownContent: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
   },
-  colorPreview: {
-    width: 30,
-    height: 20,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: 'grey',
-  },
-  colorButtonText: {
+  fontDropdownButtonText: {
     fontSize: 16,
     color: 'black',
-    fontWeight: '550',
+    fontWeight: '500',
+  },
+  dropdownArrow: {
+    fontSize: 12,
+    color: '#666',
   },
 
-  // Modal styles
+  // Modal styles (for font only)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -448,74 +383,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: '#666',
     fontWeight: 'bold',
-  },
-
-  colorOptionsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 8,
-    justifyContent: 'center',
-  },
-  colorOption: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  selectedColorOption: {
-    borderColor: '#007AFF',
-    borderWidth: 3,
-  },
-  whiteColorBorder: {
-    borderColor: '#ddd',
-    borderWidth: 2,
-  },
-  checkmark: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  selectedColorText: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  colorButtonRow: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  colorButtonContainer: {
-    flex: 1,
-  },
-  colorSubTitle: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginBottom: 8,
-    color: '#666',
-  },
-  fontDropdownButton: {
-    backgroundColor: 'white',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    padding: 16,
-    marginBottom: 8,
-  },
-  fontDropdownContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  fontDropdownButtonText: {
-    fontSize: 16,
-    color: 'black',
-    fontWeight: '500',
-  },
-  dropdownArrow: {
-    fontSize: 12,
-    color: '#666',
   },
   fontOptionsContainer: {
     maxHeight: 300,
