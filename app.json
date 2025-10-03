@@ -2,7 +2,9 @@
   "expo": {
     "name": "TodayHistory",
     "slug": "TodayHistory",
+    "owner": "todayhistory",
     "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
     "scheme": "todayhistory",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -17,12 +19,13 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.todayhistory.TodayHistory",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "package": "com.todayhistory.TodayHistory"
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
