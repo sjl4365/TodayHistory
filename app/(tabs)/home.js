@@ -434,7 +434,7 @@ const goBy = useCallback((delta) => {
         for (const { cid, rows } of datasets) {
           const todayRows = rows.filter((r) => isTodayRow(r, todayParts));
           for (const r of todayRows) {
-            const body = bodyOfRowByLang(r, uiLang);
+            const body = bodyOfRowByLang(r, uiLang, cid);
             if (!hasAnyText(body)) continue;
             const key = `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50)}`;
             pool.push({ cid, row: r, key, body });
