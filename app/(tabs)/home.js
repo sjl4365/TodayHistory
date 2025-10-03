@@ -388,7 +388,6 @@ export default function Home() {
   const [now, setNow] = useState(new Date());
 
   // 자정 경계 자동 갱신
-  const [now, setNow] = useState(new Date());
   useEffect(() => {
     const nextMidnight = (() => {
       const t = startOfDayInTz(new Date(), tz);
@@ -482,10 +481,9 @@ export default function Home() {
         setLoading(true);
         setOnePick([]);
         setErr("");
-        const picks = await loadOnePickForDay({ today, selectedCountries, uiLang });
-
-        // const selHash = hashSelected(selectedCountries);
-        // const globalSeen = await getSeenAll(today.dcode, uiLang, selHash);
+        const initialPicks = await loadOnePickForDay({ today, selectedCountries, uiLang });
+        const selHash = hashSelected(selectedCountries);
+        const globalSeen = await getSeenAll(today.dcode, uiLang, selHash);
 
         const pool = [];
         for (const cid of selectedCountries) {
@@ -498,7 +496,7 @@ export default function Home() {
             isTodayRow(r, today)
           );
 
-        //   await getSeenCountry(today.dcode, cid, uiLang);
+           //await getSeenCountry(today.dcode, cid, uiLang);
 
           for (const r of todayRows) {
             const body = bodyOfRowByLang(r, uiLang);
@@ -536,15 +534,16 @@ export default function Home() {
         }
 
         let picks = [];
-        if (workingPool.length > 0) {
+        let finalPicks = Array.isArray(initialPicks) ? [...initialPicks] : [];
+        if (finalPicks.length === 0 && workingPool.length > 0) {
           const first =
             workingPool[Math.floor(Math.random() * workingPool.length)];
-          picks.push(first);
+          finalPicks.push(first);
           if (wantTwoByLang(first.body, uiLang) && workingPool.length > 1) {
             const rest = workingPool.filter((x) => x.key !== first.key);
             if (rest.length > 0) {
               const second = rest[Math.floor(Math.random() * rest.length)];
-              picks.push(second);
+              finalPicks.push(second);
             }
           }
           const selHash2 = hashSelected(selectedCountries);
@@ -552,13 +551,13 @@ export default function Home() {
             today.dcode,
             uiLang,
             selHash2,
-            picks.map((p) => p.key)
+            finalPicks.map((p) => p.key)
           );
-          for (const p of picks)
+          for (const p of finalPicks)
             await addSeenCountry(today.dcode, p.cid, uiLang, [rowKey(p.row)]);
         }
 
-        if (!canceled) setOnePick(picks);
+        if (!canceled) setOnePick(finalPicks);
       } catch (e) {
         if (!canceled) setErr(String(e?.message || e));
       } finally {
