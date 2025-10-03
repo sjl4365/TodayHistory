@@ -9,7 +9,8 @@ import { getLastHomeParams, loadOnePickForDay } from '../home';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),
@@ -21,7 +22,7 @@ async function doWork() {
   console.log(picks);
 }
 
-const CHANNEL_ID = 'default';
+const CHANNEL_ID = 'daily-reminder-channel';
 const TAG = 'DAILY_REMINDER';
 
 export default function Notification() {
@@ -32,6 +33,9 @@ export default function Notification() {
   const scheduledIdRef = useRef(null);
   const [hasPermission, setHasPermission] = useState(false);
 
+  const notificationListener = useRef(null);
+  const responseListener = useRef(null);
+
   useEffect(() => {
     init();
   }, []);
@@ -39,52 +43,168 @@ export default function Notification() {
   useEffect(() => {
     console.log("test")
     doWork().catch(console.error);
-}, []);
+  }, []);
+
+  useEffect(() => {
+    notificationListener.current =
+      Notifications.addNotificationReceivedListener((notification) => {
+        console.log('NOTIFICATION RECEIVED:', notification);
+      });
+
+    responseListener.current =
+      Notifications.addNotificationResponseReceivedListener((response) => {
+        console.log('NOTIFICATION RESPONSE:', response);
+      });
+
+    return () => {
+      notificationListener.current?.remove?.();
+      responseListener.current?.remove?.();
+    };
+  }, []);
 
   async function init() {
-    const perm = await Notifications.getPermissionsAsync();
-    let granted = perm.status === 'granted';
-    if (!granted) {
-      const req = await Notifications.requestPermissionsAsync();
-      granted = req.status === 'granted';
+    console.log('Checking notification permissions...');
+    
+    const { granted } = await Notifications.getPermissionsAsync();
+    console.log('Permission status:', { granted });
+    
+    if (granted) {
+      console.log('Permissions already granted');
+      setHasPermission(true);
+      
+      try {
+        const { data } = await Notifications.getExpoPushTokenAsync();
+        console.log('Push token:', data);
+      } catch (error) {
+        console.log('Push token error (can ignore):', error);
+      }
+    } else {
+      console.log('Permissions not granted, requesting...');
+      alert("알림이 거부 되었습니다.");
+      
+      const req = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+          allowAnnouncements: true,
+        },
+      });
+      console.log('Permission request result:', req);
+      
+      if (req.granted) {
+        setHasPermission(true);
+        console.log('Permissions granted after request');
+      } else {
+        setHasPermission(false);
+        console.log('Permissions still denied');
+        alert("알림 권한이 필요합니다. 설정에서 허용해주세요.");
+      }
     }
-    setHasPermission(granted);
 
     if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-        name: 'Default',
-        importance: Notifications.AndroidImportance.MAX,
-        sound: true,
-        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-      });
+      try {
+        console.log('Creating Android notification channel...');
+        const channel = await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+          name: 'Daily Reminders',
+          importance: Notifications.AndroidImportance.HIGH,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: '#FF231F7C',
+          sound: true,
+          enableVibrate: true,
+        });
+        console.log('Notification channel created:', channel);
+      } catch (error) {
+        console.error('Failed to create notification channel:', error);
+      }
     }
 
-
     try {
+      console.log('Checking for existing scheduled notifications...');
       const all = await Notifications.getAllScheduledNotificationsAsync();
+      console.log('All scheduled notifications:', all.length);
+      
       const mine = all.find(n => n?.content?.data?.__tag === TAG);
       if (mine) {
+        console.log('Found existing notification:', mine);
         scheduledIdRef.current = mine.identifier || null;
         setIsNotificationOn(true);
+        if (mine.trigger && mine.trigger.hour !== undefined) {
+          const savedDate = new Date();
+          savedDate.setHours(mine.trigger.hour, mine.trigger.minute, 0, 0);
+          setDate(savedDate);
+          setSavedTime(savedDate);
+          console.log('Restored saved time:', savedDate.toLocaleTimeString());
+        }
+      } else {
+        console.log('No existing notifications found');
       }
-    } catch {}
+    } catch (error) {
+      console.error('Failed to get scheduled notifications:', error);
+    }
   }
 
   async function scheduleDailyAt(time) {
+    console.log('Starting scheduleDailyAt with time:', time);
+    
     if (!hasPermission) {
+      console.log('No permission, aborting schedule');
       Alert.alert('Permission Required', 'Please allow notifications first.');
       setIsNotificationOn(false);
       return false;
     }
     if (scheduledIdRef.current) {
       try {
+        console.log('Cancelling existing notification:', scheduledIdRef.current);
         await Notifications.cancelScheduledNotificationAsync(scheduledIdRef.current);
-      } catch {}
+        console.log('Successfully cancelled existing notification');
+      } catch (error) {
+        console.error('Failed to cancel notification:', error);
+      }
       scheduledIdRef.current = null;
+    }
+
+    if (Platform.OS === 'android') {
+      try {
+        console.log('Recreating notification channel (Fix logic)...');
+        
+        try {
+          await Notifications.deleteNotificationChannelAsync(CHANNEL_ID);
+          console.log('Old channel deleted');
+        } catch (e) {
+          console.log('No channel to delete');
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+        const channel = await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+          name: 'Daily Reminders',
+          description: 'Critical daily reminder notifications',
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 500, 500, 500],
+          lightColor: '#FF0000',
+          sound: 'default',
+          lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+          enableVibrate: true,
+          showBadge: true,
+          enableLights: true,
+          bypassDnd: false,
+        });
+        
+        console.log('Channel recreated successfully:', JSON.stringify(channel));
+        
+        await new Promise(resolve => setTimeout(resolve, 300));
+        console.log('Waited for channel to be fully registered');
+      } catch (error) {
+        console.error('Failed to recreate channel:', error);
+        Alert.alert('채널 생성 실패', '다시 시도해주세요.');
+        return false;
+      }
     }
 
     const hours = time.getHours();
     const minutes = time.getMinutes();
+    console.log(`Scheduling notification for ${hours}:${minutes}`);
 
     const trigger = Platform.select({
       ios: {
@@ -98,65 +218,137 @@ export default function Notification() {
         hour: hours,
         minute: minutes,
         repeats: true,
-        channelId: CHANNEL_ID,
       },
     });
 
-    const id = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Daily Reminder',
-        body: "It's time for your daily check-in!",
-        sound: true,
-        priority: Notifications.AndroidNotificationPriority.MAX,
-        data: { __tag: TAG },
-      },
-      trigger,
-    });
+    console.log('Trigger configuration:', trigger);
 
-    scheduledIdRef.current = id;
-    return true;
+    try {
+      console.log('Attempting to schedule notification...');
+      
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Daily Reminder',
+          body: "It's time for your daily check-in!",
+          sound: true,
+          channelId: CHANNEL_ID,
+          data: { __tag: TAG },
+        },
+        trigger: {
+          ...trigger,
+          channelId: CHANNEL_ID,
+        },
+      });
+
+      console.log('Notification scheduled successfully with ID:', id);
+      
+      if (!id) {
+        console.error('Schedule returned null/undefined ID');
+        Alert.alert('Schedule Failed', 'Notification ID is null');
+        return false;
+      }
+      
+      scheduledIdRef.current = id;
+
+      console.log('Verifying scheduled notification...');
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      console.log('All scheduled notifications:', scheduled.length);
+      
+      const myNotification = scheduled.find(n => n.identifier === id);
+      if (myNotification) {
+        console.log('Found my notification in schedule:', myNotification);
+      } else {
+        console.error('My notification NOT found in schedule!');
+        Alert.alert('Schedule Verification Failed', 'Notification was not properly scheduled');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to schedule notification:', error);
+      Alert.alert('Schedule Error', `Failed: ${error.message}`);
+      return false;
+    }
   }
 
   async function cancelDaily() {
     if (scheduledIdRef.current) {
       try {
         await Notifications.cancelScheduledNotificationAsync(scheduledIdRef.current);
-      } catch {}
+        console.log('Successfully cancelled notification');
+      } catch (error) {
+        console.error('Failed to cancel notification:', error);
+      }
       scheduledIdRef.current = null;
     }
   }
 
-
   const handleSaveTime = async () => {
-    if (!isNotificationOn) return; 
+    if (!isNotificationOn) {
+      console.log('Notification is off, not saving time');
+      return;
+    }
+    
+    console.log('Saving time:', date.toLocaleTimeString());
+    console.log('Current state - hasPermission:', hasPermission, 'scheduledId:', scheduledIdRef.current);
+    
     const ok = await scheduleDailyAt(date);
+    console.log('Schedule result:', ok);
+    
     if (ok) {
       setSavedTime(date);
       const timeString = date.toLocaleTimeString([], {
         hour: '2-digit', minute: '2-digit', hour12: false
       });
-      Alert.alert('Notification Scheduled!', `Daily at ${timeString}`);
+      console.log('Successfully saved time:', timeString);
+      Alert.alert(
+        '알림 설정 완료!', 
+        `매일 ${timeString}에 알림이 울립니다.`
+      );
     } else {
+      console.log('Failed to save time');
       Alert.alert('Schedule Failed', 'Could not schedule the reminder.');
     }
   };
 
   const handleToggleNotification = async (value) => {
+    console.log('Toggle notification:', value);
+    
     if (value) {
-      if (!hasPermission) {
-        const req = await Notifications.requestPermissionsAsync();
-        if (req.status !== 'granted') {
-          Alert.alert('Permission Required', 'Notification permission is required.');
+      const { granted } = await Notifications.getPermissionsAsync();
+      console.log('Current permission status:', { granted });
+      
+      if (granted) {
+        console.log('Permission already granted');
+        setHasPermission(true);
+        setIsNotificationOn(true);
+      } else {
+        console.log('Permission not granted, requesting...');
+        const req = await Notifications.requestPermissionsAsync({
+          ios: {
+            allowAlert: true,
+            allowBadge: true,
+            allowSound: true,
+          },
+        });
+        console.log('Permission request result:', req);
+        
+        if (req.granted) {
+          setHasPermission(true);
+          setIsNotificationOn(true);
+          console.log('Permission granted after request');
+        } else {
+          console.log('Permission denied by user');
+          Alert.alert('알림 권한 필요', '알림 권한이 필요합니다. 설정에서 허용해주세요.');
           return;
         }
-        setHasPermission(true);
       }
-      setIsNotificationOn(true);
     } else {
+      console.log('Turning off notifications');
       setIsNotificationOn(false);
       await cancelDaily();
       setSavedTime(null);
-      Alert.alert('Notification Disabled', 'Daily notifications have been turned off.');
+      Alert.alert('알림 비활성화', '일일 알림이 꺼졌습니다.');
     }
   };
 
@@ -228,7 +420,7 @@ export default function Notification() {
                       value={date}
                       mode="time"
                       is24Hour
-                      display="clock" // or 'spinner'
+                      display="clock"
                       onChange={(e, d) => {
                         setShowTimePicker(false);
                         handleChange(e, d);
