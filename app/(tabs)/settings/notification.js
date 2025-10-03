@@ -27,7 +27,12 @@ const TAG = 'DAILY_REMINDER';
 
 export default function Notification() {
   const [isNotificationOn, setIsNotificationOn] = useState(false);
-  const [date, setDate] = useState(new Date());
+  // 기본 시간을 오후 3시 (15:00)로 설정
+  const [date, setDate] = useState(() => {
+    const defaultTime = new Date();
+    defaultTime.setHours(15, 0, 0, 0);
+    return defaultTime;
+  });
   const [savedTime, setSavedTime] = useState(null);
 
   const scheduledIdRef = useRef(null);
@@ -79,27 +84,9 @@ export default function Notification() {
         console.log('Push token error (can ignore):', error);
       }
     } else {
-      console.log('Permissions not granted, requesting...');
-      alert("알림이 거부 되었습니다.");
-      
-      const req = await Notifications.requestPermissionsAsync({
-        ios: {
-          allowAlert: true,
-          allowBadge: true,
-          allowSound: true,
-          allowAnnouncements: true,
-        },
-      });
-      console.log('Permission request result:', req);
-      
-      if (req.granted) {
-        setHasPermission(true);
-        console.log('Permissions granted after request');
-      } else {
-        setHasPermission(false);
-        console.log('Permissions still denied');
-        alert("알림 권한이 필요합니다. 설정에서 허용해주세요.");
-      }
+      console.log('Permissions not granted yet');
+      setHasPermission(false);
+      // 첫 진입 시에는 alert 띄우지 않음 - 토글 켤 때 권한 요청
     }
 
     if (Platform.OS === 'android') {
@@ -110,7 +97,7 @@ export default function Notification() {
           importance: Notifications.AndroidImportance.HIGH,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#FF231F7C',
-          sound: true,
+          sound: 'default',
           enableVibrate: true,
         });
         console.log('Notification channel created:', channel);
@@ -230,7 +217,7 @@ export default function Notification() {
         content: {
           title: 'Daily Reminder',
           body: "It's time for your daily check-in!",
-          sound: true,
+          sound: 'default',
           channelId: CHANNEL_ID,
           data: { __tag: TAG },
         },
@@ -315,14 +302,15 @@ export default function Notification() {
     console.log('Toggle notification:', value);
     
     if (value) {
+      // 토글 켤 때 시간을 오후 3시로 리셋
+      const defaultTime = new Date();
+      defaultTime.setHours(15, 0, 0, 0);
+      setDate(defaultTime);
+      
       const { granted } = await Notifications.getPermissionsAsync();
       console.log('Current permission status:', { granted });
       
-      if (granted) {
-        console.log('Permission already granted');
-        setHasPermission(true);
-        setIsNotificationOn(true);
-      } else {
+      if (!granted) {
         console.log('Permission not granted, requesting...');
         const req = await Notifications.requestPermissionsAsync({
           ios: {
@@ -339,9 +327,14 @@ export default function Notification() {
           console.log('Permission granted after request');
         } else {
           console.log('Permission denied by user');
-          Alert.alert('알림 권한 필요', '알림 권한이 필요합니다. 설정에서 허용해주세요.');
+          // 권한 거부 시 토글 다시 끄기
+          setIsNotificationOn(false);
           return;
         }
+      } else {
+        console.log('Permission already granted');
+        setHasPermission(true);
+        setIsNotificationOn(true);
       }
     } else {
       console.log('Turning off notifications');
