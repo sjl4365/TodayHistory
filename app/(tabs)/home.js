@@ -61,6 +61,7 @@ const NATIVE_COL_BY_COUNTRY = { korea: "한국어", japan: "日本語", usa: "En
 /* ── 전역 캐시 (시트 재호출 최소화) ───────────────────────────────── */
 const SHEET_CACHE = globalThis.__SHEET_CACHE__ ?? (globalThis.__SHEET_CACHE__ = new Map());
 const INFLIGHT = globalThis.__SHEET_INFLIGHT__ ?? (globalThis.__SHEET_INFLIGHT__ = new Map());
+export const PICK_RESULT_CACHE = globalThis.__PICK_RESULT_CACHE__ ?? (globalThis.__PICK_RESULT_CACHE__ = new Map());
 
 async function loadSheetRowsCached(sheetId, gid, timeoutMs = 6000) {
   const key = `${sheetId}:${gid}`;
@@ -238,6 +239,48 @@ function buildShareText({ baseDate, uiLang, picks, tz }) {
 
   const footer = APP_DOWNLOAD_URL;
   return [header, ...blocks, footer].join("\n\n");
+}
+
+/* ── 데이터 로드 & 픽 생성 함수 ─────────────────────────────────── */
+async function loadAndPickHistoryData({ todayParts, uiLang, selectedCountries }) {
+  try {
+    const chosen = [...selectedCountries].filter(Boolean);
+    if (chosen.length === 0) return [];
+
+    const datasets = await Promise.all(
+      chosen.map((cid) => {
+        const cfg = COUNTRY_CFG[cid];
+        if (!cfg) return Promise.resolve({ cid, rows: [] });
+        return loadSheetRowsCached(cfg.sheetId, cfg.gid).then((rows) => ({ cid, rows: rows || [] }));
+      })
+    );
+
+    const pool = [];
+    for (const { cid, rows } of datasets) {
+      const todayRows = rows.filter((r) => isTodayRow(r, todayParts));
+      for (const r of todayRows) {
+        const body = bodyOfRowByLang(r, uiLang, cid);
+        if (!hasAnyText(body)) continue;
+        const key = `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50)}`;
+        pool.push({ cid, row: r, key, body });
+      }
+    }
+
+    let picks = [];
+    if (pool.length > 0) {
+      const first = pool[Math.floor(Math.random() * pool.length)];
+      picks.push(first);
+      const len = String(first.body || "").replace(/\s+/g, " ").trim().length;
+      const wantTwo = uiLang === "en" ? len <= 75 : (uiLang === "ko" || uiLang === "ja") ? len <= 50 : false;
+      if (wantTwo && pool.length > 1) {
+        const rest = pool.filter((x) => x.key !== first.key);
+        if (rest.length > 0) picks.push(rest[Math.floor(Math.random() * rest.length)]);
+      }
+    }
+    return picks;
+  } catch (e) {
+    throw e;
+  }
 }
 
 /* 제목 문자열 */
@@ -419,39 +462,11 @@ const goBy = useCallback((delta) => {
         setErr("");
         setLoading(true); // 기존 콘텐츠 유지한 채 스피너만
 
-        const chosen = [...selectedCountries].filter(Boolean);
-        if (chosen.length === 0) { setOnePick([]); return; }
-
-        const datasets = await Promise.all(
-          chosen.map((cid) => {
-            const cfg = COUNTRY_CFG[cid];
-            if (!cfg) return Promise.resolve({ cid, rows: [] });
-            return loadSheetRowsCached(cfg.sheetId, cfg.gid).then((rows) => ({ cid, rows: rows || [] }));
-          })
-        );
-
-        const pool = [];
-        for (const { cid, rows } of datasets) {
-          const todayRows = rows.filter((r) => isTodayRow(r, todayParts));
-          for (const r of todayRows) {
-            const body = bodyOfRowByLang(r, uiLang, cid);
-            if (!hasAnyText(body)) continue;
-            const key = `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50)}`;
-            pool.push({ cid, row: r, key, body });
-          }
-        }
-
-        let picks = [];
-        if (pool.length > 0) {
-          const first = pool[Math.floor(Math.random() * pool.length)];
-          picks.push(first);
-          const len = String(first.body || "").replace(/\s+/g, " ").trim().length;
-          const wantTwo = uiLang === "en" ? len <= 75 : (uiLang === "ko" || uiLang === "ja") ? len <= 50 : false;
-          if (wantTwo && pool.length > 1) {
-            const rest = pool.filter((x) => x.key !== first.key);
-            if (rest.length > 0) picks.push(rest[Math.floor(Math.random() * rest.length)]);
-          }
-        }
+        const picks = await loadAndPickHistoryData({ 
+          todayParts, 
+          uiLang, 
+          selectedCountries 
+        });
 
         if (!canceled) setOnePick(picks);
       } catch (e) {
@@ -498,6 +513,41 @@ const goBy = useCallback((delta) => {
     const offShare = onShareAttach?.(() => onCopyPress());
     return () => { offShare && offShare(); };
   }, [onCopyPress]);
+
+  useEffect(() => {
+    try {
+      const picksList = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
+      const selectedArr = [...selectedCountries];
+
+     const monthDay = getMonthDayOnly(baseDate, uiLang, tz);
+
+      // 알림 본문(문자열)
+      const notificationBody = picksList.length
+        ? picksList
+            .map((p) => {
+              const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
+              const yr = getYearFromRow(p.row);
+              return `${monthDay} — ${label}${yr ? ` ${yr}` : ""}: ${p.body}`;
+            })
+            .join(" • ")
+        : `${monthDay} — ${APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en}`;
+
+      // 공유 텍스트도 캐시에 저장
+      const shareText = buildShareText({ baseDate, uiLang, picks: picksList, tz });
+
+      // 전역 캐시 동기화
+      PICK_RESULT_CACHE.clear()
+      PICK_RESULT_CACHE.set("todayParts", todayParts);
+      PICK_RESULT_CACHE.set("uiLang", uiLang);
+      PICK_RESULT_CACHE.set("selectedCountries", selectedArr);
+      PICK_RESULT_CACHE.set("picks", picksList);
+      PICK_RESULT_CACHE.set("shareText", shareText);
+      PICK_RESULT_CACHE.set("notificationBody", notificationBody); 
+      PICK_RESULT_CACHE.set("baseDateISO", startOfDayInTz(baseDate, tz).toISOString());
+      PICK_RESULT_CACHE.set("lastSavedAt", Date.now());
+    } catch {}
+  }, [onePick, todayParts, uiLang, selectedCountries, baseDate, tz]);
+
 
   const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
   const ordered = orderCountriesForLang(uiLang);
