@@ -6,6 +6,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
 import { getLastHomeParams, loadOnePickForDay } from '../home';
+import {PICK_RESULT_CACHE} from '../home';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -212,11 +213,13 @@ export default function Notification() {
 
     try {
       console.log('Attempting to schedule notification...');
+      console.log(PICK_RESULT_CACHE.get('picks'))
+
       
       const id = await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Daily Reminder',
-          body: "It's time for your daily check-in!",
+          title: 'Today In History',
+          body: PICK_RESULT_CACHE.get("notificationBody"),
           sound: 'default',
           channelId: CHANNEL_ID,
           data: { __tag: TAG },
