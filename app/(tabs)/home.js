@@ -8,6 +8,7 @@ import {
   ScrollView,
   Animated,
   Easing,
+  useWindowDimensions,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchSheetRows } from "../../lib/sheets";
@@ -20,7 +21,7 @@ import * as Sharing from "expo-sharing";
 import { Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 
-/* ── 설정 ───────────────────────────────────────────────────────── */
+// 상수
 const STORAGE_KEY_SELECTED  = "selectedCountries";
 const STORAGE_KEY_UI_LANG   = "@app_language";
 const STORAGE_SHEET_PREFIX  = "@sheet_cache_v1:";
@@ -60,13 +61,13 @@ const LOCALE_BY_LANG = { ko: "ko-KR", en: "en-US", ja: "ja-JP" };
 const UI_COL = { ko: "한국어", en: "English", ja: "日本語" };
 const NATIVE_COL_BY_COUNTRY = { korea: "한국어", japan: "日本語", usa: "English", uk: "English" };
 
-/* ── 전역 캐시 ───────────────────────────────────────────────────── */
+// 캐시
 const SHEET_CACHE      = globalThis.__SHEET_CACHE__      ?? (globalThis.__SHEET_CACHE__      = new Map()); // key → rows[]
 const INFLIGHT         = globalThis.__SHEET_INFLIGHT__   ?? (globalThis.__SHEET_INFLIGHT__   = new Map()); // key → promise
 const SHEET_DAY_INDEX  = globalThis.__SHEET_DAY_INDEX__  ?? (globalThis.__SHEET_DAY_INDEX__  = new Map()); // key → Map(mdLower -> row[])
 export const PICK_RESULT_CACHE = globalThis.__PICK_RESULT_CACHE__ ?? (globalThis.__PICK_RESULT_CACHE__ = new Map());
 
-/* ── 공통 유틸 ───────────────────────────────────────────────────── */
+// 디바이스 언어로 UI 언어 결정
 function resolveUiLangFromDevice() {
   const locales = (Localization.getLocales && Localization.getLocales()) || [];
   const primary =
@@ -157,7 +158,7 @@ function getYearFromRow(row) {
   return "";
 }
 
-/* === equality & seeded rng ====================================== */
+//  세트 동등 비교
 function equalSets(a, b) {
   if (a.size !== b.size) return false;
   for (const v of a) if (!b.has(v)) return false;
@@ -181,7 +182,7 @@ function xorshift(seed) {
   };
 }
 
-/* ── 빠른 md 추출 ───────────────────────────────────────────────── */
+// 행에서 MM-DD 추출(빠른 검사)
 function mdFromRowQuick(row) {
   const dateStr = row?.Date || row?.date || row?.__DATE || "";
   if (typeof dateStr === "string") {
@@ -203,7 +204,7 @@ function mdFromRowQuick(row) {
   return "";
 }
 
-/* ── 느긋하지만 확실한 판별(폴백) ───────────────────────────────── */
+// 느슨한 검사
 function isTodayRowLoose(row, today) {
   const md = today.md;
   const mmdd = today.dcode.slice(1);
@@ -234,7 +235,7 @@ function isTodayRowLoose(row, today) {
   return false;
 }
 
-/* ── 인덱스 + 폴백 스캐닝으로 오늘 rows 확보 ───────────────────── */
+// 오늘 날짜에 해당하는 행들 추출(빠른 검사 후 느슨한 검사)
 function getTodayRowsSmart(key, todayParts) {
   const mdLower = todayParts.md.toLowerCase();
 
@@ -268,7 +269,7 @@ function getTodayRowsSmart(key, todayParts) {
   return sure;
 }
 
-/* ── 인덱스 생성 ────────────────────────────────────────────────── */
+// 전체 rows로부터 md 인덱스 구축
 function buildDayIndex(rows) {
   const map = new Map();
   for (let i = 0; i < rows.length; i++) {
@@ -281,7 +282,7 @@ function buildDayIndex(rows) {
   return map;
 }
 
-/* ── 시트 로더(SWR, 영속 캐시) ──────────────────────────────────── */
+// 빠른 로드 + 백그라운드 갱신
 async function loadSheetRowsFast(sheetId, gid, timeoutMs = 5000) {
   const key = `${sheetId}:${gid}`;
   const storageKey = STORAGE_SHEET_PREFIX + key;
@@ -357,7 +358,7 @@ async function loadSheetRowsFast(sheetId, gid, timeoutMs = 5000) {
   return task;
 }
 
-/* ── 픽 생성 ────────────────────────────────────────────────────── */
+//  랜덤 선택(1~2개)
 function makePicksFromPool(pool, uiLang, stableKey) {
   if (!pool.length) return [];
   const rnd = xorshift(hash32(stableKey));
@@ -380,7 +381,7 @@ function getHistoryTitle(uiLang, deltaDay) {
   return t.today;
 }
 
-/* ── 토스트 ─────────────────────────────────────────────────────── */
+// 복사 완료 토스트
 function CopyToast({ trigger, message }) {
   const [visible, setVisible] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
@@ -418,7 +419,7 @@ function CopyToast({ trigger, message }) {
   );
 }
 
-/* 나라 칩 정렬: 언어 기본 나라 먼저 */
+// 국가 정렬
 const ALL_ORDER = ["usa", "uk", "korea", "japan"];
 function orderCountriesForLang(uiLang) {
   const pref = DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default;
@@ -427,9 +428,29 @@ function orderCountriesForLang(uiLang) {
   return [...pref, ...rest];
 }
 
-/* ── 메인 화면 ───────────────────────────────────────────────────── */
+//  메인 컴포넌트
 export default function Home() {
   const [tz] = useState(Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC");
+
+  // 반응형 사이즈
+  const { width } = useWindowDimensions();
+  const S = useMemo(() => {
+    const isTablet = width >= 768;
+    const isLarge  = width >= 1024;
+    return {
+      containerMaxWidth: isLarge ? 900 : isTablet ? 700 : 460,
+      pagePad:           isTablet ? 24  : 16,
+      gap:               isTablet ? 20  : 16,
+      cardPad:           isLarge ? 24   : 16,
+      titleSize:         isLarge ? 28   : isTablet ? 24 : 20,
+      dateSize:          isLarge ? 16   : 14,
+      bodySize:          isLarge ? 20   : isTablet ? 18 : 18,
+      bodyLH:            isLarge ? 30   : isTablet ? 28 : 26,
+      chipPadH:          isTablet ? 14  : 12,
+      chipPadV:          isTablet ? 10  : 8,
+      chipFont:          isTablet ? 14  : 13,
+    };
+  }, [width]);
 
   // 오늘 00:00
   const [now, setNow] = useState(new Date());
@@ -722,25 +743,35 @@ export default function Home() {
         }}
       />
 
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 16, maxWidth: 460, alignSelf: "center", paddingBottom: 40, width: "100%" }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: S.pagePad,
+          gap: S.gap,
+          maxWidth: S.containerMaxWidth,
+          alignSelf: "center",
+          paddingBottom: S.pagePad + 16,
+          width: "100%",
+        }}
+      >
         {/* 나라 선택(멀티 선택 가능, 저장/복원) */}
         <CountrySelector
           uiLang={uiLang}
           ordered={ordered}
           value={selectedCountries}
           onChange={handleCountriesChange}
+          size={S}
         />
 
         {/* 제목 + 날짜 */}
         <View>
-          <Text style={{ fontSize: 20, fontWeight: "800" }}>{getHistoryTitle(uiLang, deltaDay)}</Text>
-          <Text style={{ marginTop: 6, fontSize: 14, color: "#64748b" }}>
+          <Text style={{ fontSize: S.titleSize, fontWeight: "800" }}>{getHistoryTitle(uiLang, deltaDay)}</Text>
+          <Text style={{ marginTop: 6, fontSize: S.dateSize, color: "#64748b" }}>
             {baseDate.toLocaleDateString(LOCALE_BY_LANG[uiLang] || "en-US", { year: "numeric", month: "long", day: "numeric", timeZone: tz })}
           </Text>
         </View>
 
         {/* 카드 */}
-        <View style={{ padding: 16, borderRadius: 12, backgroundColor: "#F8FAFC", gap: 14 }}>
+        <View style={{ padding: S.cardPad, borderRadius: 12, backgroundColor: "#F8FAFC", gap: 14 }}>
           {list.length === 0 ? (
             <Text style={{ color: "#6b7280" }}>{loading ? "..." : (UI_STR.empty[uiLang] || UI_STR.empty.en)}</Text>
           ) : (
@@ -753,7 +784,7 @@ export default function Home() {
                     <Text style={{ fontWeight: "700" }}>{label}</Text>
                   </View>
                   {!!dateLine && <Text style={{ fontSize: 12, color: "#64748b" }}>{dateLine}</Text>}
-                  <Text style={{ lineHeight: 28, fontSize: 18 }}>{p.body}</Text>
+                  <Text style={{ lineHeight: S.bodyLH, fontSize: S.bodySize }}>{p.body}</Text>
                 </View>
               );
             })
@@ -778,7 +809,7 @@ export default function Home() {
   );
 }
 
-/* ── 보조 UI ─────────────────────────────────────────────────────── */
+// 헤더 복사 버튼
 function HeaderCopyButton({ label, onPress }) {
   return (
     <Pressable onPress={onPress} hitSlop={10} style={{ paddingHorizontal: 12 }}>
@@ -787,7 +818,7 @@ function HeaderCopyButton({ label, onPress }) {
   );
 }
 
-function CountrySelector({ uiLang, ordered, value, onChange }) {
+function CountrySelector({ uiLang, ordered, value, onChange, size }) {
   const toggleOne = (id) => {
     const next = new Set(value);
     if (next.has(id)) next.delete(id);
@@ -804,9 +835,14 @@ function CountrySelector({ uiLang, ordered, value, onChange }) {
             <Pressable
               key={id}
               onPress={() => toggleOne(id)}
-              style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 999, backgroundColor: active ? "#201d6aff" : "#E5E7EB" }}
+              style={{
+                paddingHorizontal: size?.chipPadH ?? 12,
+                paddingVertical:   size?.chipPadV ?? 8,
+                borderRadius: 999,
+                backgroundColor: active ? "#201d6aff" : "#E5E7EB",
+              }}
             >
-              <Text style={{ color: active ? "white" : "black", fontWeight: "700" }}>
+              <Text style={{ color: active ? "white" : "black", fontWeight: "700", fontSize: size?.chipFont ?? 13 }}>
                 {(COUNTRY_CFG[id]?.label?.[uiLang]) || id}
               </Text>
             </Pressable>
