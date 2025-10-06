@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   useWindowDimensions,
+  Platform,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fetchSheetRows } from "../../lib/sheets";
@@ -495,6 +496,11 @@ export default function Home() {
     });
   }, [tz, getIndexFromToday]);
 
+  const STORAGE_KEY_FONT = '@app_font';
+  const STORAGE_KEY_FONT_SIZE = '@app_font_size';
+  const STORAGE_KEY_FONT_COLOR = '@app_font_color';
+  const STORAGE_KEY_BG_COLOR = '@app_bg_color';
+
   // prev/next/refresh
   useEffect(() => {
     const offPrev    = onGoPrevDay?.(() => goBy(-1));
@@ -543,7 +549,15 @@ export default function Home() {
       (async () => {
         try {
           const storedLang = await AsyncStorage.getItem(STORAGE_KEY_UI_LANG).catch(() => null);
+          const savedFont = await AsyncStorage.getItem(STORAGE_KEY_FONT).catch(() => null);
+          const savedSize = await AsyncStorage.getItem(STORAGE_KEY_FONT_SIZE).catch(() => null);
+          const savedFontColor = await AsyncStorage.getItem(STORAGE_KEY_FONT_COLOR).catch(() => null);
+          const savedBgColor = await AsyncStorage.getItem(STORAGE_KEY_BG_COLOR).catch(() => null);
           if (!alive) return;
+          if (savedFont) setCustomFont(savedFont);
+          if (savedSize) setCustomFontSize(parseInt(savedSize));
+          if (savedFontColor) setCustomFontColor(savedFontColor);
+          if (savedBgColor) setCustomBgColor(savedBgColor);
 
           const nextLang =
             storedLang === "ko" || storedLang === "en" || storedLang === "ja"
@@ -734,6 +748,30 @@ export default function Home() {
   const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
   const ordered = orderCountriesForLang(uiLang);
 
+  const [customFont, setCustomFont] = useState('System');
+const [customFontSize, setCustomFontSize] = useState(18);
+const [customFontColor, setCustomFontColor] = useState('#000000');
+const [customBgColor, setCustomBgColor] = useState('#F8FAFC');
+
+const getFontFamily = (font) => {
+  switch (font) {
+    case 'System':
+      return Platform.OS === 'ios' ? 'System' : 'Roboto';
+    case 'Verdana':
+      return Platform.OS === 'ios' ? 'Verdana' : 'sans-serif';
+    case 'Arial':
+      return Platform.OS === 'ios' ? 'Arial' : 'sans-serif';
+    case 'Times New Roman':
+      return Platform.OS === 'ios' ? 'Times New Roman' : 'serif';
+    case 'Courier New':
+      return Platform.OS === 'ios' ? 'Courier New' : 'monospace';
+    case 'Georgia':
+      return Platform.OS === 'ios' ? 'Georgia' : 'serif';
+    default:
+      return Platform.OS === 'ios' ? 'System' : 'Roboto';
+  }
+};
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top", "bottom"]}>
       <Stack.Screen
@@ -771,7 +809,8 @@ export default function Home() {
         </View>
 
         {/* 카드 */}
-        <View style={{ padding: S.cardPad, borderRadius: 12, backgroundColor: "#F8FAFC", gap: 14 }}>
+{/* 카드 */}
+<View style={{ padding: S.cardPad, borderRadius: 12, backgroundColor: customBgColor, gap: 14 }}>
           {list.length === 0 ? (
             <Text style={{ color: "#6b7280" }}>{loading ? "..." : (UI_STR.empty[uiLang] || UI_STR.empty.en)}</Text>
           ) : (
@@ -784,7 +823,11 @@ export default function Home() {
                     <Text style={{ fontWeight: "700" }}>{label}</Text>
                   </View>
                   {!!dateLine && <Text style={{ fontSize: 12, color: "#64748b" }}>{dateLine}</Text>}
-                  <Text style={{ lineHeight: S.bodyLH, fontSize: S.bodySize }}>{p.body}</Text>
+                  <Text style={{ lineHeight: S.bodyLH, 
+                    fontSize: customFontSize || S.bodySize, 
+                    fontFamily: getFontFamily(customFont),
+                    color: customFontColor}}>
+                      {p.body}</Text>
                 </View>
               );
             })
