@@ -1,4 +1,4 @@
-package com.todayhistory.TodayHistory
+package com.todayhistory.todayhistory
 
 import android.app.Application
 import android.content.res.Configuration

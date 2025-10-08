@@ -1,34 +1,16 @@
-# macOS
+# OSX
+#
 .DS_Store
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-.expo/
-.expo-shared/
+# Android/IntelliJ
+#
+build/
+.idea
+.gradle
+local.properties
+*.iml
+*.hprof
+.cxx/
 
 # Bundle artifacts
 *.jsbundle
-
-# Android (산출물/캐시 전부 제외)
-**/build/
-**/.gradle/
-**/.idea/
-**/.cxx/
-android/.externalNativeBuild/
-android/captures/
-android/app/debug.keystore
-# 로컬 SDK 경로 파일(반드시 제외)
-android/local.properties
-
-# (선택) 환경파일
-.env
-.env.*.local
-
-# iOS가 있다면
-ios/build/
-ios/Pods/
-*.xcworkspace
-*.xcuserdatad

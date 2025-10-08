@@ -1,20 +1,32 @@
-// Declare the layout of the ap
-// Set the <Stack /> component to render the child routes.
-// Header, Common Providers, etc. can be added here.
 // Root layout
-
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-
+import { useEffect } from "react";
+import { Platform } from "react-native";
 
 export default function RootLayout() {
-  return <SafeAreaProvider>
-    <Stack>
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-    </Stack>
-  </SafeAreaProvider>
-  
+  // ANDROID 전용: 앱 시작 시 네비게이션 바 스타일 적용 (동적 임포트로 iOS 빌드 오류 방지)
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    (async () => {
+      try {
+        const NavigationBar = await import('expo-navigation-bar');
+        await NavigationBar.setBackgroundColorAsync('transparent');
+        await NavigationBar.setButtonStyleAsync('dark');
+        await NavigationBar.setVisibilityAsync('visible');
+      } catch {
+        // noop
+      }
+    })();
+  }, []);
 
+  return (
+    <SafeAreaProvider>
+      <StatusBar style="dark" translucent backgroundColor="transparent" />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      </Stack>
+    </SafeAreaProvider>
+  );
 }
