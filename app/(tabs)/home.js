@@ -24,7 +24,7 @@ import * as Sharing from "expo-sharing";
 import { Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 
-/* ─── 상수/설정 ─── */
+//  상수
 const STORAGE_KEY_SELECTED = "selectedCountries";
 const STORAGE_KEY_UI_LANG  = "@app_language";
 const STORAGE_SHEET_PREFIX = "@sheet_cache_v1:";
@@ -59,7 +59,7 @@ const LOCALE_BY_LANG = { ko: "ko-KR", en: "en-US", ja: "ja-JP" };
 const UI_COL = { ko: "한국어", en: "English", ja: "日本語" };
 const NATIVE_COL_BY_COUNTRY = { korea: "한국어", japan: "日本語", usa: "English", uk: "English" };
 
-/* ─── 전역 캐시 ─── */
+// 전역캐시
 const SHEET_CACHE      = globalThis.__SHEET_CACHE__      ?? (globalThis.__SHEET_CACHE__      = new Map()); // key → rows[]
 const INFLIGHT         = globalThis.__SHEET_INFLIGHT__   ?? (globalThis.__SHEET_INFLIGHT__   = new Map()); // key → Promise
 const SHEET_DAY_INDEX  = globalThis.__SHEET_DAY_INDEX__  ?? (globalThis.__SHEET_DAY_INDEX__  = new Map()); // key → Map(md -> rows[])
@@ -344,7 +344,7 @@ function getHistoryTitle(uiLang, deltaDay) {
   return t.today;
 }
 
-/* ── Notification에서 재사용할 헬퍼들 (알림에서 import) ─────────────────── */
+// Notification에서 재사용할 헬퍼들 (알림에서 import) 
 export async function getLastHomeParams() {
   const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC";
 
@@ -551,7 +551,7 @@ export default function Home() {
     });
   }, [tz, getIndexFromToday]);
 
-  // 설정 저장 키(폰트/색)
+  // 설정 저장 키(폰트/색) 
   const STORAGE_KEY_FONT = "@app_font";
   const STORAGE_KEY_FONT_SIZE = "@app_font_size";
   const STORAGE_KEY_FONT_COLOR = "@app_font_color";
@@ -599,6 +599,7 @@ export default function Home() {
   const [customFontColor, setCustomFontColor] = useState("#000000");
   const [customBgColor, setCustomBgColor] = useState("#F8FAFC");
 
+  // 세팅 폰트/색상/언어/선택 동기화
   useFocusEffect(
     useCallback(() => {
       let alive = true;
@@ -789,7 +790,7 @@ export default function Home() {
     } catch {}
   }, [onePick, todayParts, uiLang, selectedCountries, baseDate, tz, stableKey]);
 
-  // 폰트 패밀리 매핑
+  // 폰트 패밀리 매핑 
   const getFontFamily = (font) => {
     switch (font) {
       case "System":           return Platform.OS === "ios" ? "System" : "Roboto";
@@ -835,7 +836,7 @@ export default function Home() {
           </Text>
         </View>
 
-        {/* 카드 */}
+        {/* 카드 (폰트) */}
         <View style={{ padding: S.cardPad, borderRadius: 12, backgroundColor: customBgColor, gap: 14 }}>
           {list.length === 0 ? (
             <Text style={{ color: "#6b7280" }}>{loading ? "..." : (UI_STR.empty[uiLang] || UI_STR.empty.en)}</Text>
