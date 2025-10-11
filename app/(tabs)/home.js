@@ -575,6 +575,11 @@ export default function Home() {
   const [refreshTick, setRefreshTick] = useState(0);
   const [copyTick, setCopyTick] = useState(0);
 
+  // Amplitude 초기화
+  useEffect(() => {
+    initAmplitude();
+  }, []);
+
   // -1/0/1 네비게이션
   const DAY_MS = 86400000;
   const getIndexFromToday = useCallback((date) => {
@@ -643,6 +648,10 @@ export default function Home() {
         const storedLang = await AsyncStorage.getItem(STORAGE_KEY_UI_LANG).catch(() => null);
         const lang = (storedLang === "ko" || storedLang === "en" || storedLang === "ja") ? storedLang : deviceLang;
         setUiLang(lang);
+        setUserProperties({
+          language: lang,
+          device_language: deviceLang
+        });
         const storedSel = await AsyncStorage.getItem(STORAGE_KEY_SELECTED).catch(() => null);
         if (storedSel) {
           let arr = [];
