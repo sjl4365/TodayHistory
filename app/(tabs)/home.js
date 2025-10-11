@@ -23,7 +23,7 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "../(tabs)/amplitude";
+import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "./amplitude";
 
 //  상수
 const STORAGE_KEY_SELECTED = "selectedCountries";
@@ -87,8 +87,8 @@ function getDayPartsFrom(date, tz) {
 }
 
 function isTodayRow(row, today) {
-  const md = today.md;
-  const mmdd = today.dcode.slice(1);
+  const md = today.md;               // "MM-DD"
+  const mmdd = today.dcode.slice(1); // "MMDD"
 
   const dateStr = row?.Date || row?.date || row?.__DATE || "";
   if (typeof dateStr === "string") {
@@ -122,26 +122,32 @@ const hasAnyText = (t) => String(t || "").replace(/\s+/g, " ").trim().length > 0
 
 function pickFirstNonEmpty(raw, keys) {
   for (const k of keys) {
-    const s = String(raw?.[k] ?? "").replace(/<[^>]+>/g, "").trim();
+    if (!k) continue;
+    const v = raw?.[k];
+    const s = String(v ?? "").replace(/<[^>]+>/g, "").trim();
     if (s) return s;
   }
   return "";
 }
+
 function bodyOfRowByLang(raw, uiLang, cid) {
   const order = [UI_COL[uiLang] || "English", "English", NATIVE_COL_BY_COUNTRY[cid] || "English"];
   const unique = Array.from(new Set([...order, "한국어", "日本語"]));
   return pickFirstNonEmpty(raw, unique);
 }
+
 function formatRowDate(row, uiLang) {
   let y, m, d;
   const iso = row?.isoDate || row?.dateISO || row?.dateString || "";
   const dateStr = row?.Date || row?.date || row?.__DATE || "";
+
   const trySplit = (s) => {
     if (!s || typeof s !== "string") return null;
     const mat = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
     if (mat) return { y: mat[1], m: mat[2], d: mat[3] };
     return null;
   };
+
   const isoHit = trySplit(iso);
   const dateHit = trySplit(dateStr);
   if (isoHit) ({ y, m, d } = isoHit);
@@ -156,13 +162,16 @@ function formatRowDate(row, uiLang) {
       d = String(row.day).padStart(2, "0");
     }
   }
+
   const L = ({
     ko: (Y, M, D) => [Y && `${Y}년`, M && `${parseInt(M, 10)}월`, D && `${parseInt(D, 10)}일`].filter(Boolean).join(" "),
     ja: (Y, M, D) => [Y && `${Y}年`, M && `${parseInt(M, 10)}月`, D && `${parseInt(D, 10)}日`].filter(Boolean).join(" "),
     en: (Y, M, D) => [M && parseInt(M, 10), D && parseInt(D, 10), Y].filter(Boolean).join(" "),
   }[uiLang]) || ((Y, M, D) => [Y, M, D].filter(Boolean).join("-"));
+
   return L(y || "", m || "", d || "") || "";
 }
+
 function getMonthDayOnly(baseDate, uiLang, tz) {
   return baseDate.toLocaleDateString(LOCALE_BY_LANG[uiLang] || "en-US", { month: "long", day: "numeric", timeZone: tz });
 }
@@ -478,6 +487,7 @@ function CopyToast({ trigger, message }) {
   );
 }
 
+/* 나라 칩 정렬: 언어 기본 나라 먼저 */
 const ALL_ORDER = ["usa", "uk", "korea", "japan"];
 function orderCountriesForLang(uiLang) {
   const pref = DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default;
@@ -592,11 +602,39 @@ export default function Home() {
 
   // 디스패처들 연결
   useEffect(() => {
-    const offPrev    = onGoPrevDay?.(() => goBy(-1));
-    const offNext    = onGoNextDay?.(() => goBy(+1));
-    const offRefresh = onRefresh?.(() => setRefreshTick((t) => t + 1));
-    return () => { offPrev && offPrev(); offNext && offNext(); offRefresh && offRefresh(); };
-  }, [goBy]);
+    const offPrev = onGoPrevDay?.(() => {
+      trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+        current_date: baseDate.toISOString()
+      });
+      goBy(-1);
+    });
+    
+    const offNext = onGoNextDay?.(() => {
+      trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+        current_date: baseDate.toISOString()
+      });
+      goBy(+1);
+    });
+    
+    const offRefresh = onRefresh?.(() => {
+      trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+        date: baseDate.toISOString()
+      });
+      setRefreshTick((t) => t + 1);
+    });
+    
+    return () => {
+      offPrev && offPrev();
+      offNext && offNext();
+      offRefresh && offRefresh();
+    };
+  }, [goBy, uiLang, selectedCountries, baseDate]);
 
   // 최초 로드: 언어/선택
   useEffect(() => {
@@ -605,13 +643,6 @@ export default function Home() {
         const storedLang = await AsyncStorage.getItem(STORAGE_KEY_UI_LANG).catch(() => null);
         const lang = (storedLang === "ko" || storedLang === "en" || storedLang === "ja") ? storedLang : deviceLang;
         setUiLang(lang);
-
-        // 사용자 속성 설정
-        setUserProperties({
-          language: lang,
-          device_language: detected
-        });
-
         const storedSel = await AsyncStorage.getItem(STORAGE_KEY_SELECTED).catch(() => null);
         if (storedSel) {
           let arr = [];
@@ -632,7 +663,7 @@ export default function Home() {
     })();
   }, [deviceLang]);
 
-  // 설정 복귀 동기화(언어/선택 + 폰트/색상)
+  // 세팅 폰트/색상/언어/선택 동기화
   const [customFont, setCustomFont] = useState("System");
   const [customFontSize, setCustomFontSize] = useState(18);
   const [customFontColor, setCustomFontColor] = useState("#000000");
@@ -755,10 +786,23 @@ export default function Home() {
 
   // 나라 선택 저장
   const handleCountriesChange = useCallback((nextSet) => {
+    const added = [...nextSet].filter(c => !selectedCountries.has(c));
+    const removed = [...selectedCountries].filter(c => !nextSet.has(c));
+    
+    if (added.length > 0 || removed.length > 0) {
+      trackEvent(AMPLITUDE_EVENTS.COUNTRY_CLICKED, {
+        language: uiLang,
+        added_countries: added,
+        removed_countries: removed,
+        total_selected: nextSet.size,
+        selected_countries: [...nextSet]
+      });
+    }
+    
     setSelectedCountries(nextSet);
     AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...nextSet])).catch(() => {});
     setRefreshTick((t) => t + 1);
-  }, []);
+  }, [selectedCountries, uiLang]);
 
   // 복사/공유
   const onCopyPress = useCallback(async () => {
@@ -778,14 +822,7 @@ export default function Home() {
       await Clipboard.setStringAsync(payload);
       setCopyTick((t) => t + 1);
 
-      // Share 이벤트 트래킹
-      trackEvent(AMPLITUDE_EVENTS.SHARE_CLICKED, {
-        language: uiLang,
-        countries: [...selectedCountries],
-        items_count: list.length,
-        date: baseDate.toISOString(),
-        content_length: payload.length
-      });
+
 
       const fileName = `history_${Date.now()}.txt`;
       const uri = FileSystem.cacheDirectory + fileName;
@@ -794,7 +831,7 @@ export default function Home() {
         await Sharing.shareAsync(uri, { dialogTitle: UI_STR.copyBtn[uiLang] || UI_STR.copyBtn.en, UTI: "public.plain-text", mimeType: "text/plain" });
       }
     } catch {}
-  }, [onePick, baseDate, uiLang, tz, selectedCountries]);
+  }, [onePick, baseDate, uiLang, tz]);
 
   // Share 탭 트리거
   useEffect(() => {
