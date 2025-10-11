@@ -11,7 +11,6 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { trackEvent, AMPLITUDE_EVENTS } from '../amplitude';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -47,10 +46,8 @@ export default function SettingsIndex() {
   };
 
   const handleLanguageSelect = async (language) => {
-    const previousLanguage = selectedLanguage;
     setSelectedLanguage(language.name);
     setIsLanguageExpanded(false);
-    
     try {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language.code);
       console.log(`Language changed to: ${language.name}`);
@@ -71,7 +68,9 @@ export default function SettingsIndex() {
 
   return (
     <ScrollView style={styles.container}>
+
       <View style={styles.section}>
+        
         <SettingItem
           title="Look & Feel"
           onPress={() => router.push('/settings/look-and-feel')}
