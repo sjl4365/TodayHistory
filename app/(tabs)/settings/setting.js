@@ -23,7 +23,7 @@ export default function SettingsIndex() {
 
   const languages = [
     { name: 'English', code: 'en' },
-    { name: '中文', code: 'zh' },
+    { name: '한국어', code: 'ko' },
     { name: '日本語', code: 'ja' },
   ];
 

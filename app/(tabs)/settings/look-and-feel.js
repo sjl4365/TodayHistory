@@ -1,5 +1,5 @@
 // app/(tabs)/settings/look-and-feels.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,12 @@ import {
   Modal,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY_FONT = '@app_font';
+const STORAGE_KEY_FONT_SIZE = '@app_font_size';
+const STORAGE_KEY_FONT_COLOR = '@app_font_color';
+const STORAGE_KEY_BG_COLOR = '@app_bg_color';
 
 export default function LookAndFeel() {
   const [selectedFont, setSelectedFont] = useState('Verdana');
@@ -50,7 +56,6 @@ export default function LookAndFeel() {
     { name: 'Lime', value: '#32CD32' },
   ];
 
-  // Removed checkmark helper function - no longer needed
 
   // Font Dropdown Modal Component
   const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts, getFontFamily }) => (
@@ -141,6 +146,43 @@ export default function LookAndFeel() {
       </View>
     </View>
   );
+  
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const savedFont = await AsyncStorage.getItem(STORAGE_KEY_FONT);
+      const savedSize = await AsyncStorage.getItem(STORAGE_KEY_FONT_SIZE);
+      const savedFontColor = await AsyncStorage.getItem(STORAGE_KEY_FONT_COLOR);
+      const savedBgColor = await AsyncStorage.getItem(STORAGE_KEY_BG_COLOR);
+      
+      if (savedFont) setSelectedFont(savedFont);
+      if (savedSize) setFontSize(parseInt(savedSize));
+      if (savedFontColor) setFontColor(savedFontColor);
+      if (savedBgColor) setBackgroundColor(savedBgColor);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  // Save whenever settings change
+  useEffect(() => {
+    AsyncStorage.setItem(STORAGE_KEY_FONT, selectedFont).catch(() => {});
+  }, [selectedFont]);
+
+  useEffect(() => {
+    AsyncStorage.setItem(STORAGE_KEY_FONT_SIZE, fontSize.toString()).catch(() => {});
+  }, [fontSize]);
+
+  useEffect(() => {
+    AsyncStorage.setItem(STORAGE_KEY_FONT_COLOR, fontColor).catch(() => {});
+  }, [fontColor]);
+
+  useEffect(() => {
+    AsyncStorage.setItem(STORAGE_KEY_BG_COLOR, backgroundColor).catch(() => {});
+  }, [backgroundColor]);
 
   return (
     <View style={styles.container}>
