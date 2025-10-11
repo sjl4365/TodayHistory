@@ -54,40 +54,10 @@ export default function SettingsIndex() {
     try {
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language.code);
       console.log(`Language changed to: ${language.name}`);
-      
-      // Amplitude 이벤트 트래킹 - 언어 변경
-      trackEvent(AMPLITUDE_EVENTS.LANGUAGE_CHANGED, {
-        from_language: previousLanguage,
-        to_language: language.name,
-        language_code: language.code,
-        source: 'settings_page'
-      });
     } catch (error) {
       console.error('Error saving language:', error);
     }
   };
-
-  const handleLookAndFeelPress = () => {
-    // Amplitude 이벤트 트래킹
-    trackEvent(AMPLITUDE_EVENTS.SETTINGS_CLICKED, {
-      setting_type: 'look_and_feel',
-      current_theme: selectedTheme,
-      current_language: selectedLanguage
-    });
-    
-    router.push('/settings/look-and-feel');
-  };
-
-  const handleNotificationPress = () => {
-    // Amplitude 이벤트 트래킹
-    trackEvent(AMPLITUDE_EVENTS.SETTINGS_CLICKED, {
-      setting_type: 'notification',
-      current_language: selectedLanguage
-    });
-    
-    router.push('/settings/notification');
-  };
-
 
   const SettingItem = ({ title, onPress, rightComponent, showArrow = true }) => (
     <TouchableOpacity style={styles.settingItem} onPress={onPress}>
@@ -104,21 +74,21 @@ export default function SettingsIndex() {
       <View style={styles.section}>
         <SettingItem
           title="Look & Feel"
-          onPress={handleLookAndFeelPress}
+          onPress={() => router.push('/settings/look-and-feel')}
         />
       </View>
       
       <View style={styles.section}>
         <SettingItem
           title="Notification"
-          onPress={handleNotificationPress}
+          onPress={() => router.push('/settings/notification')}
         />
       </View>
 
       <View style={styles.section}>
         <TouchableOpacity 
           style={styles.settingItem} 
-          onPress={handleLanguageExpandToggle}
+          onPress={() => setIsLanguageExpanded(!isLanguageExpanded)}
         >
           <Text style={styles.settingTitle}>Language</Text>
           <View style={styles.rightContainer}>
