@@ -19,6 +19,7 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "../(tabs)/amplitude";
 
 /* ── 설정 ───────────────────────────────────────────────────────── */
 const STORAGE_KEY_SELECTED = "selectedCountries";
@@ -127,8 +128,8 @@ function getDayPartsFrom(date, tz) {
 }
 
 function isTodayRow(row, today) {
-  const md = today.md;               // "MM-DD"
-  const mmdd = today.dcode.slice(1); // "MMDD"
+  const md = today.md;
+  const mmdd = today.dcode.slice(1);
 
   const dateStr = row?.Date || row?.date || row?.__DATE || "";
   if (typeof dateStr === "string") {
@@ -342,6 +343,12 @@ function orderCountriesForLang(uiLang) {
 export default function Home() {
   const [tz] = useState(Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC");
 
+  // Amplitude 초기화
+  useEffect(() => {
+    initAmplitude();
+    trackEvent(AMPLITUDE_EVENTS.APP_OPENED);
+  }, []);
+
   // 오늘 00:00
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -368,38 +375,58 @@ export default function Home() {
   const [copyTick, setCopyTick] = useState(0);
 
   // -1(어제)/0(오늘)/1(내일) 범위 내에서만 이동 + 같은 날이면 상태 갱신 X
-const DAY_MS = 86400000;
+  const DAY_MS = 86400000;
 
-const getIndexFromToday = useCallback((date) => {
-  const base0  = startOfDayInTz(date, tz).getTime();
-  const today0 = startOfDayInTz(new Date(), tz).getTime();
-  return Math.round((base0 - today0) / DAY_MS);
-}, [tz]);
+  const getIndexFromToday = useCallback((date) => {
+    const base0  = startOfDayInTz(date, tz).getTime();
+    const today0 = startOfDayInTz(new Date(), tz).getTime();
+    return Math.round((base0 - today0) / DAY_MS);
+  }, [tz]);
 
-const goBy = useCallback((delta) => {
-  setBaseDate((prev) => {
-    const curIdx  = getIndexFromToday(prev);                    // -1 / 0 / 1
-    const nextIdx = Math.max(-1, Math.min(1, curIdx + delta));  // clamp
-    if (nextIdx === curIdx) return prev; // ★ 같은 날이면 업데이트하지 않음(리로드 X)
+  const goBy = useCallback((delta) => {
+    setBaseDate((prev) => {
+      const curIdx  = getIndexFromToday(prev);
+      const nextIdx = Math.max(-1, Math.min(1, curIdx + delta));
+      if (nextIdx === curIdx) return prev;
 
-    const today0 = startOfDayInTz(new Date(), tz);
-    const target = new Date(today0);
-    target.setDate(target.getDate() + nextIdx);
-    return target;
-  });
-}, [tz, getIndexFromToday]);
+      // Amplitude 이벤트 트래킹
+      if (delta < 0) {
+        trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, { 
+          current_index: curIdx,
+          new_index: nextIdx 
+        });
+      } else if (delta > 0) {
+        trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, { 
+          current_index: curIdx,
+          new_index: nextIdx 
+        });
+      }
+
+      const today0 = startOfDayInTz(new Date(), tz);
+      const target = new Date(today0);
+      target.setDate(target.getDate() + nextIdx);
+      return target;
+    });
+  }, [tz, getIndexFromToday]);
 
   // prev/next/refresh 구독
   useEffect(() => {
     const offPrev    = onGoPrevDay?.(() => goBy(-1));
     const offNext    = onGoNextDay?.(() => goBy(+1));
-    const offRefresh = onRefresh?.(() => setRefreshTick((t) => t + 1));
+    const offRefresh = onRefresh?.(() => {
+      trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+        date: baseDate.toISOString()
+      });
+      setRefreshTick((t) => t + 1);
+    });
     return () => {
       offPrev && offPrev();
       offNext && offNext();
       offRefresh && offRefresh();
     };
-  }, [goBy]);
+  }, [goBy, uiLang, selectedCountries, baseDate]);
 
   // 최초 로드: 언어/나라 불러오기
   useEffect(() => {
@@ -409,6 +436,12 @@ const goBy = useCallback((delta) => {
         const detected = resolveUiLangFromDevice();
         const lang = (storedLang === "ko" || storedLang === "en" || storedLang === "ja") ? storedLang : detected;
         setUiLang(lang);
+
+        // 사용자 속성 설정
+        setUserProperties({
+          language: lang,
+          device_language: detected
+        });
 
         const storedSel = await AsyncStorage.getItem(STORAGE_KEY_SELECTED).catch(() => null);
         if (storedSel) {
@@ -438,6 +471,13 @@ const goBy = useCallback((delta) => {
             const def = DEFAULT_COUNTRIES_BY_LANG[storedLang] || DEFAULT_COUNTRIES_BY_LANG.default;
             setSelectedCountries(new Set(def));
             await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify(def));
+            
+            // 언어 변경 트래킹
+            trackEvent(AMPLITUDE_EVENTS.LANGUAGE_CHANGED, {
+              from_language: uiLang,
+              to_language: storedLang
+            });
+            
             return;
           }
           const storedSel = await AsyncStorage.getItem(STORAGE_KEY_SELECTED).catch(() => null);
@@ -460,7 +500,7 @@ const goBy = useCallback((delta) => {
     (async () => {
       try {
         setErr("");
-        setLoading(true); // 기존 콘텐츠 유지한 채 스피너만
+        setLoading(true);
 
         const picks = await loadAndPickHistoryData({ 
           todayParts, 
@@ -468,7 +508,17 @@ const goBy = useCallback((delta) => {
           selectedCountries 
         });
 
-        if (!canceled) setOnePick(picks);
+        if (!canceled) {
+          setOnePick(picks);
+          
+          // 콘텐츠 로드 완료 트래킹
+          trackEvent(AMPLITUDE_EVENTS.CONTENT_LOADED, {
+            language: uiLang,
+            countries: [...selectedCountries],
+            items_count: picks.length,
+            date: baseDate.toISOString()
+          });
+        }
       } catch (e) {
         if (!canceled) setErr(String(e?.message || e));
       } finally {
@@ -476,7 +526,7 @@ const goBy = useCallback((delta) => {
       }
     })();
     return () => { canceled = true; };
-  }, [todayParts, uiLang, selectedCountries, refreshTick]);
+  }, [todayParts, uiLang, selectedCountries, refreshTick, baseDate]);
 
   // 제목(어제/오늘/내일)
   const deltaDay = useMemo(() => {
@@ -499,6 +549,15 @@ const goBy = useCallback((delta) => {
       await Clipboard.setStringAsync(payload);
       setCopyTick((t) => t + 1);
 
+      // Share 이벤트 트래킹
+      trackEvent(AMPLITUDE_EVENTS.SHARE_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+        items_count: list.length,
+        date: baseDate.toISOString(),
+        content_length: payload.length
+      });
+
       const fileName = `history_${Date.now()}.txt`;
       const uri = FileSystem.cacheDirectory + fileName;
       await FileSystem.writeAsStringAsync(uri, payload, { encoding: FileSystem.EncodingType.UTF8 });
@@ -506,7 +565,7 @@ const goBy = useCallback((delta) => {
         await Sharing.shareAsync(uri, { dialogTitle: UI_STR.copyBtn[uiLang] || UI_STR.copyBtn.en, UTI: "public.plain-text", mimeType: "text/plain" });
       }
     } catch {}
-  }, [onePick, baseDate, uiLang, tz]);
+  }, [onePick, baseDate, uiLang, tz, selectedCountries]);
 
   // Share 탭의 첨부 트리거 구독 → 홈에서 복사/공유 실행
   useEffect(() => {
@@ -519,7 +578,7 @@ const goBy = useCallback((delta) => {
       const picksList = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
       const selectedArr = [...selectedCountries];
 
-     const monthDay = getMonthDayOnly(baseDate, uiLang, tz);
+      const monthDay = getMonthDayOnly(baseDate, uiLang, tz);
 
       // 알림 본문(문자열)
       const notificationBody = picksList.length
@@ -548,6 +607,23 @@ const goBy = useCallback((delta) => {
     } catch {}
   }, [onePick, todayParts, uiLang, selectedCountries, baseDate, tz]);
 
+  // 국가 선택 변경 핸들러
+  const handleCountriesChange = useCallback((newCountries) => {
+    const added = [...newCountries].filter(c => !selectedCountries.has(c));
+    const removed = [...selectedCountries].filter(c => !newCountries.has(c));
+    
+    if (added.length > 0 || removed.length > 0) {
+      trackEvent(AMPLITUDE_EVENTS.COUNTRY_CLICKED, {
+        language: uiLang,
+        added_countries: added,
+        removed_countries: removed,
+        total_selected: newCountries.size,
+        selected_countries: [...newCountries]
+      });
+    }
+    
+    setSelectedCountries(newCountries);
+  }, [selectedCountries, uiLang]);
 
   const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
   const ordered = orderCountriesForLang(uiLang);
@@ -567,7 +643,7 @@ const goBy = useCallback((delta) => {
           uiLang={uiLang}
           ordered={ordered}
           value={selectedCountries}
-          onChange={setSelectedCountries}
+          onChange={handleCountriesChange}
         />
 
         {/* 제목 + 날짜 */}
