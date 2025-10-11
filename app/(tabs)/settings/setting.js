@@ -6,7 +6,6 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-
   ScrollView 
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -71,7 +70,7 @@ export default function SettingsIndex() {
     <ScrollView style={styles.container}>
 
       <View style={styles.section}>
-
+        
         <SettingItem
           title="Look & Feel"
           onPress={() => router.push('/settings/look-and-feel')}

@@ -23,6 +23,7 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "../(tabs)/amplitude";
 
 //  상수
 const STORAGE_KEY_SELECTED = "selectedCountries";
@@ -84,7 +85,39 @@ function getDayPartsFrom(date, tz) {
     .formatToParts(date).reduce((a, p) => { if (p.type !== "literal") a[p.type] = p.value; return a; }, {});
   return { md: `${parts.month}-${parts.day}`, dcode: `D${parts.month}${parts.day}`, y: parts.year, m: parts.month, d: parts.day };
 }
-const trimHtml   = (s) => String(s || "").replace(/<[^>]+>/g, "").trim();
+
+function isTodayRow(row, today) {
+  const md = today.md;
+  const mmdd = today.dcode.slice(1);
+
+  const dateStr = row?.Date || row?.date || row?.__DATE || "";
+  if (typeof dateStr === "string") {
+    const s = dateStr.trim();
+    if (s.toLowerCase().includes(`d${mmdd.toLowerCase()}`)) return true;
+    if (s === md) return true;
+    if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(s)) return s.slice(5, 10) === md;
+  }
+
+  const iso = row?.isoDate || row?.dateISO || row?.dateString || "";
+  if (typeof iso === "string" && /^\d{4}-\d{2}-\d{2}/.test(iso)) return iso.slice(5, 10) === md;
+
+  if (row?.month && row?.day) {
+    const mm = String(row.month).padStart(2, "0");
+    const dd = String(row.day).padStart(2, "0");
+    return `${mm}-${dd}` === md;
+  }
+
+  for (const v of Object.values(row || {})) {
+    if (typeof v !== "string") continue;
+    const s = v.trim();
+    if (!s) continue;
+    if (new RegExp(`\\b[dD]${mmdd}\\b`).test(s)) return true;
+    if (s.includes(md)) return true;
+  }
+  return false;
+}
+
+const trimHtml = (s) => String(s || "").replace(/<[^>]+>/g, "").trim();
 const hasAnyText = (t) => String(t || "").replace(/\s+/g, " ").trim().length > 0;
 
 function pickFirstNonEmpty(raw, keys) {
@@ -573,6 +606,12 @@ export default function Home() {
         const lang = (storedLang === "ko" || storedLang === "en" || storedLang === "ja") ? storedLang : deviceLang;
         setUiLang(lang);
 
+        // 사용자 속성 설정
+        setUserProperties({
+          language: lang,
+          device_language: detected
+        });
+
         const storedSel = await AsyncStorage.getItem(STORAGE_KEY_SELECTED).catch(() => null);
         if (storedSel) {
           let arr = [];
@@ -739,6 +778,15 @@ export default function Home() {
       await Clipboard.setStringAsync(payload);
       setCopyTick((t) => t + 1);
 
+      // Share 이벤트 트래킹
+      trackEvent(AMPLITUDE_EVENTS.SHARE_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+        items_count: list.length,
+        date: baseDate.toISOString(),
+        content_length: payload.length
+      });
+
       const fileName = `history_${Date.now()}.txt`;
       const uri = FileSystem.cacheDirectory + fileName;
       await FileSystem.writeAsStringAsync(uri, payload, { encoding: FileSystem.EncodingType.UTF8 });
@@ -746,7 +794,7 @@ export default function Home() {
         await Sharing.shareAsync(uri, { dialogTitle: UI_STR.copyBtn[uiLang] || UI_STR.copyBtn.en, UTI: "public.plain-text", mimeType: "text/plain" });
       }
     } catch {}
-  }, [onePick, baseDate, uiLang, tz]);
+  }, [onePick, baseDate, uiLang, tz, selectedCountries]);
 
   // Share 탭 트리거
   useEffect(() => {
