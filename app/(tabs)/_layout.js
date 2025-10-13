@@ -42,7 +42,7 @@ const SettingsButton = memo(function SettingsButton({ href, name, color, size, h
       onPress={() => {
         markUserInteracted();
         
-        // 🚀 requestAnimationFrame을 사용해 터치 피드백을 우선하고 다음 프레임에 라우팅 시작
+        // requestAnimationFrame을 사용해 터치 피드백을 우선하고 다음 프레임에 라우팅 시작
         requestAnimationFrame(() => {
             if (href) {
                 router.navigate(href);
@@ -148,7 +148,6 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "",
-          // ❌ href: "/settings", // <--- 이 줄을 제거했습니다.
           tabBarButton: (props) => (
             <SettingsButton
               router={router}
