@@ -8,20 +8,24 @@ import {
   TouchableOpacity,
   Platform,
   Modal,
+  Image,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
 const STORAGE_KEY_FONT = '@app_font';
 const STORAGE_KEY_FONT_SIZE = '@app_font_size';
 const STORAGE_KEY_FONT_COLOR = '@app_font_color';
 const STORAGE_KEY_BG_COLOR = '@app_bg_color';
+const STORAGE_KEY_BG_IMAGE = '@app_bg_image';
 
 export default function LookAndFeel() {
   const [selectedFont, setSelectedFont] = useState('Verdana');
   const [fontSize, setFontSize] = useState(18);
   const [fontColor, setFontColor] = useState('black');
   const [backgroundColor, setBackgroundColor] = useState('white');
+  const [backgroundImage, setBackgroundImage] = useState(null);
   
   const [showFontModal, setShowFontModal] = useState(false);
 
@@ -34,8 +38,31 @@ export default function LookAndFeel() {
     'Georgia',
   ];
 
-  // Rainbow color options only
-  const colorOptions = [
+  // Font Color options (includes Brown)
+  const fontcolorOptions = [
+    // Basic colors (keeping black and white for contrast)
+    { name: 'Black', value: '#000000' },
+    { name: 'White', value: '#FFFFFF' },
+    
+    // Rainbow colors in order: ROYGBIV
+    { name: 'Red', value: '#FF0000' },
+    { name: 'Orange', value: '#FF8000' },
+    { name: 'Yellow', value: '#FFFF00' },
+    { name: 'Green', value: '#00FF00' },
+    { name: 'Blue', value: '#0000FF' },
+    { name: 'Indigo', value: '#4B0082' },
+    { name: 'Violet', value: '#8A2BE2' },
+    
+    // Additional rainbow variations
+    { name: 'Pink', value: '#FF69B4' },
+    { name: 'Cyan', value: '#00FFFF' },
+    { name: 'Magenta', value: '#FF00FF' },
+    { name: 'Lime', value: '#32CD32' },
+    { name: 'Brown', value: '#8B4513' },
+  ];
+
+  // Background Color options (without Brown, has upload button instead)
+  const backcolorOptions = [
     // Basic colors (keeping black and white for contrast)
     { name: 'Black', value: '#000000' },
     { name: 'White', value: '#FFFFFF' },
@@ -125,12 +152,12 @@ export default function LookAndFeel() {
     }
   };
 
-  // Inline Color Palette Component
-  const ColorPalette = ({ title, selectedColor, onColorChange }) => (
+  // Font Color Palette Component
+  const FontColorPalette = ({ title, selectedColor, onColorChange }) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <View style={styles.inlineColorContainer}>
-        {colorOptions.map((color) => (
+        {fontcolorOptions.map((color) => (
           <TouchableOpacity
             key={color.value}
             style={[
@@ -146,6 +173,86 @@ export default function LookAndFeel() {
       </View>
     </View>
   );
+
+  // Background Color Palette Component (with upload button)
+  const BackColorPalette = ({ title, selectedColor, onColorChange }) => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.inlineColorContainer}>
+        {backcolorOptions.map((color) => (
+          <TouchableOpacity
+            key={color.value}
+            style={[
+              styles.inlineColorOption,
+              { backgroundColor: color.value },
+              (color.value === '#FFFFFF' && selectedColor !== color.value) && styles.whiteColorBorder,
+              selectedColor === color.value && styles.selectedInlineColorOption,
+            ]}
+            onPress={() => {
+              onColorChange(color.value);
+              setBackgroundImage(null);
+            }}
+          >
+          </TouchableOpacity>
+        ))}
+        
+        {/* Upload Image Button */}
+        <TouchableOpacity
+          style={[
+            styles.inlineColorOption,
+            styles.uploadImageButton,
+            backgroundImage && styles.selectedInlineColorOption,
+          ]}
+          onPress={pickImage}
+        >
+          <Text style={styles.uploadImageIcon}>📷</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* Show selected image preview */}
+      {backgroundImage && (
+        <View style={styles.imagePreviewContainer}>
+          <Image
+            source={{ uri: backgroundImage }}
+            style={styles.imagePreview}
+          />
+          <TouchableOpacity 
+            style={styles.removeImageButton}
+            onPress={removeBackgroundImage}
+          >
+            <Text style={styles.removeImageButtonText}>✕ Remove</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 1,
+      });
+
+      if (!result.cancelled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        setBackgroundImage(imageUri);
+        await AsyncStorage.setItem(STORAGE_KEY_BG_IMAGE, imageUri);
+        // Clear color when image is set
+        setBackgroundColor(null);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+    }
+  };
+
+  const removeBackgroundImage = async () => {
+    setBackgroundImage(null);
+    await AsyncStorage.removeItem(STORAGE_KEY_BG_IMAGE);
+    setBackgroundColor('white');
+  };
   
   useEffect(() => {
     loadSettings();
@@ -157,11 +264,13 @@ export default function LookAndFeel() {
       const savedSize = await AsyncStorage.getItem(STORAGE_KEY_FONT_SIZE);
       const savedFontColor = await AsyncStorage.getItem(STORAGE_KEY_FONT_COLOR);
       const savedBgColor = await AsyncStorage.getItem(STORAGE_KEY_BG_COLOR);
+      const savedBgImage = await AsyncStorage.getItem(STORAGE_KEY_BG_IMAGE);
       
       if (savedFont) setSelectedFont(savedFont);
       if (savedSize) setFontSize(parseInt(savedSize));
       if (savedFontColor) setFontColor(savedFontColor);
       if (savedBgColor) setBackgroundColor(savedBgColor);
+      if (savedBgImage) setBackgroundImage(savedBgImage);
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -181,14 +290,27 @@ export default function LookAndFeel() {
   }, [fontColor]);
 
   useEffect(() => {
-    AsyncStorage.setItem(STORAGE_KEY_BG_COLOR, backgroundColor).catch(() => {});
+    if (backgroundColor) {
+      AsyncStorage.setItem(STORAGE_KEY_BG_COLOR, backgroundColor).catch(() => {});
+    }
   }, [backgroundColor]);
 
   return (
     <View style={styles.container}>
 
       {/* Preview Area - Thank you! message */}
-      <View style={[styles.previewArea, { backgroundColor }]}>
+      <View
+        style={[
+          styles.previewArea,
+          backgroundImage ? { backgroundColor: 'transparent' } : { backgroundColor },
+        ]}
+      >
+        {backgroundImage && (
+          <Image
+            source={{ uri: backgroundImage }}
+            style={styles.previewImage}
+          />
+        )}
         <Text
           style={[
             styles.previewText,
@@ -246,16 +368,16 @@ export default function LookAndFeel() {
         </View>
 
         {/* Font Color Palette */}
-        <ColorPalette 
+        <FontColorPalette 
           title="Font Color"
           selectedColor={fontColor}
           onColorChange={setFontColor}
         />
 
-        {/* Background Color Palette */}
-        <ColorPalette 
+        {/* Background Color Palette with Image Upload */}
+        <BackColorPalette 
           title="Background Color"
-          selectedColor={backgroundColor}
+          selectedColor={backgroundImage ? null : backgroundColor}
           onColorChange={setBackgroundColor}
         />
 
@@ -295,10 +417,18 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
+    overflow: 'hidden',
+  },
+  previewImage: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
   },
   previewText: {
     fontSize: 18,
     fontWeight: '500',
+    zIndex: 1,
   },
   controlsContainer: {
     flex: 1,
@@ -360,6 +490,39 @@ const styles = StyleSheet.create({
   whiteColorBorder: {
     borderColor: '#ddd',
     borderWidth: 2,
+  },
+  uploadImageButton: {
+    backgroundColor: '#f0f0f0',
+    borderWidth: 2,
+    borderColor: '#ddd',
+  },
+  uploadImageIcon: {
+    fontSize: 18,
+  },
+  imagePreviewContainer: {
+    marginTop: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    height: 120,
+    position: 'relative',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  removeImageButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
   },
   inlineCheckmark: {
     fontSize: 14,
