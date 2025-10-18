@@ -66,6 +66,37 @@ const INFLIGHT         = globalThis.__SHEET_INFLIGHT__   ?? (globalThis.__SHEET_
 const SHEET_DAY_INDEX  = globalThis.__SHEET_DAY_INDEX__  ?? (globalThis.__SHEET_DAY_INDEX__  = new Map()); // key → Map(md -> rows[])
 export const PICK_RESULT_CACHE = globalThis.__PICK_RESULT_CACHE__ ?? (globalThis.__PICK_RESULT_CACHE__ = new Map());
 
+// amplitude, ENOENT, internalByteCode.js error disable.
+if (__DEV__) {
+  const ignoreErrors = [
+    'Amplitude Logger',
+    'ENOENT',
+    'InternalBytecode.js',
+  ];
+
+  const originalError = console.error;
+  const originalWarn = console.warn;
+
+  console.error = (...args) => {
+    // args를 문자열로 변환해서 체크
+    const errorString = args.join(' ');
+    
+    // 무시할 에러가 아니면 원래대로 표시
+    if (!ignoreErrors.some(ignore => errorString.includes(ignore))) {
+      originalError(...args);
+    }
+    // 무시할 에러면 아무것도 안 함
+  };
+
+  console.warn = (...args) => {
+    const warnString = args.join(' ');
+    
+    if (!ignoreErrors.some(ignore => warnString.includes(ignore))) {
+      originalWarn(...args);
+    }
+  };
+}
+
 // 유틸
 function resolveUiLangFromDevice() {
   const locales = (Localization.getLocales && Localization.getLocales()) || [];
