@@ -849,17 +849,39 @@ export default function Home() {
   }, [onCopyPress]);
 
   // PICK_RESULT_CACHE 동기화 (알림이 참조)
-  useEffect(() => {
+useEffect(() => {
+  (async () => {
     try {
       const picksList = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
       const monthDay = getMonthDayOnly(baseDate, uiLang, tz);
+      
+      console.log('🔍 Creating notification body from picks:', picksList.length);
+      
+      // 알림 본문 생성
       const notificationBody = picksList.length
         ? picksList.map((p) => {
             const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
             const yr = getYearFromRow(p.row);
-            return `${monthDay} — ${label}${yr ? ` ${yr}` : ""}: ${p.body}`;
+            const maxBodyLength = (uiLang === "ko" || uiLang === "ja") ? 20 : 40;
+            
+            // 본문만 자르기
+            const truncatedBody = p.body.length > maxBodyLength 
+              ? p.body.substring(0, maxBodyLength) + "..." 
+              : p.body;
+            
+            console.log(`  📝 ${label} ${yr}: ${truncatedBody}`);
+            
+            // 나라+연도+본문 (날짜 제외)
+            return `${label}${yr ? ` ${yr}` : ""}: ${truncatedBody}`;
           }).join(" • ")
-        : `${monthDay} — ${APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en}`;
+        : APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en;
+
+      // 최종 알림 본문 = 날짜 + 내용
+      const finalNotificationBody = `${monthDay} — ${notificationBody}`;
+
+      // ⭐ AsyncStorage에 저장
+      await AsyncStorage.setItem("@notification_body", finalNotificationBody);
+      console.log('💾 SAVED to AsyncStorage:', finalNotificationBody);
 
       const header = getMonthDayOnly(baseDate, uiLang, tz);
       const appName = APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en;
@@ -872,17 +894,23 @@ export default function Home() {
       });
       const shareText = [header, ...blocks, APP_DOWNLOAD_URL].join("\n\n");
 
+      // 기존 캐시도 유지 (다른 용도로 사용될 수 있음)
       PICK_RESULT_CACHE.set("stableKey", stableKey);
       PICK_RESULT_CACHE.set("todayParts", todayParts);
       PICK_RESULT_CACHE.set("uiLang", uiLang);
       PICK_RESULT_CACHE.set("selectedCountries", [...selectedCountries]);
       PICK_RESULT_CACHE.set("picks", picksList);
       PICK_RESULT_CACHE.set("shareText", shareText);
-      PICK_RESULT_CACHE.set("notificationBody", notificationBody);
+      PICK_RESULT_CACHE.set("notificationBody", finalNotificationBody);
       PICK_RESULT_CACHE.set("baseDateISO", startOfDayInTz(baseDate, tz).toISOString());
       PICK_RESULT_CACHE.set("lastSavedAt", Date.now());
-    } catch {}
-  }, [onePick, todayParts, uiLang, selectedCountries, baseDate, tz, stableKey]);
+      
+    } catch (error) {
+      console.error("❌ Failed to update notification body:", error);
+    }
+  })();
+}, [onePick, todayParts, uiLang, selectedCountries, baseDate, tz, stableKey]);
+
 
   // 폰트 패밀리 매핑 
   const getFontFamily = (font) => {
