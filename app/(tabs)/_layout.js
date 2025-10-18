@@ -1,8 +1,8 @@
 // app/(tabs)/_layout.js
 import React, { memo } from "react";
-import { Pressable, InteractionManager } from "react-native";
+import { Pressable, InteractionManager, Image } from "react-native";
 import { Tabs, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   emitRefresh,
   emitGoPrevDay,
@@ -11,60 +11,110 @@ import {
 } from "../../lib/bus";
 import { markUserInteracted } from "../../lib/idle";
 
-/** 네비 전환 없이 즉시 이벤트만 실행하는 탭 버튼 */
-const ActionButton = memo(function ActionButton({ onPress, name, color, size, hitSlop = 10 }) {
+// 아이콘 PNG 매핑 (경로/파일명 확인)
+const ICONS = {
+  "chevron-back": require("../../assets/images/prev.png"),
+  "chevron-forward": require("../../assets/images/next.png"),
+ // refresh: require("../../assets/images/refresh.png"),
+  "share": require("../../assets/images/share.png"),
+  "setting": require("../../assets/images/setting.png"),
+};
+
+// 공통 버튼 (이벤트 실행 전용)
+const ActionButton = memo(function ActionButton({
+  onPress,
+  name,
+  size,
+  hitSlop = 10,
+}) {
+  const iconSize = size ?? 40;
+  const src = ICONS[name];
+
   return (
     <Pressable
       onPress={() => {
-        // 첫 터치 표시 → 이후 무거운 작업 허용
         markUserInteracted();
-        // 터치 응답은 즉시, 무거운 작업은 프레임 뒤로
         InteractionManager.runAfterInteractions(() => onPress && onPress());
       }}
       hitSlop={hitSlop}
-      style={({ pressed }) => ({ 
-        paddingVertical: 6, 
-        paddingHorizontal: 10,
+      android_ripple={{ color: "rgba(0,0,0,0)", borderless: true }}
+      style={({ pressed }) => ({
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 14,
+        paddingHorizontal: 18,
+        backgroundColor: "transparent",
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name={name} size={size ?? 24} color={color ?? "black"} />
+      {src ? (
+        <Image
+          source={src}
+          style={{
+            width: iconSize,
+            height: iconSize,
+            backgroundColor: "transparent",
+          }}
+          resizeMode="contain"
+          pointerEvents="none"
+        />
+      ) : null}
     </Pressable>
   );
 });
 
-// ---
+// 라우팅 전용 버튼
+const SettingsButton = memo(function SettingsButton({
+  href,
+  name,
+  size,
+  hitSlop = 10,
+  router,
+}) {
+  const iconSize = size ?? 40;
+  const src = ICONS[name];
 
-/** 라우팅을 위해 설계된 커스텀 탭 버튼 (즉각적인 라우팅 시작) */
-const SettingsButton = memo(function SettingsButton({ href, name, color, size, hitSlop = 10, router }) {
   return (
     <Pressable
       onPress={() => {
         markUserInteracted();
-        
-        // 🚀 requestAnimationFrame을 사용해 터치 피드백을 우선하고 다음 프레임에 라우팅 시작
         requestAnimationFrame(() => {
-            if (href) {
-                router.navigate(href);
-            }
+          if (href) router.navigate(href);
         });
       }}
       hitSlop={hitSlop}
-      style={({ pressed }) => ({ 
-        paddingVertical: 6, 
-        paddingHorizontal: 10,
+      android_ripple={{ color: "rgba(0,0,0,0)", borderless: true }}
+      style={({ pressed }) => ({
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        paddingVertical: 14,
+        paddingHorizontal: 18,
+        backgroundColor: "transparent",
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name={name} size={size ?? 24} color={color ?? "black"} />
+      {src ? (
+        <Image
+          source={src}
+          style={{
+            width: iconSize,
+            height: iconSize,
+            backgroundColor: "transparent",
+          }}
+          resizeMode="contain"
+          pointerEvents="none"
+        />
+      ) : null}
     </Pressable>
   );
 });
 
-// ---
-
 export default function TabLayout() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const totalTabBarHeight = 68 + insets.bottom;
 
   return (
     <Tabs
@@ -74,23 +124,24 @@ export default function TabLayout() {
         tabBarShowLabel: false,
         tabBarActiveTintColor: "#007AFF",
         tabBarInactiveTintColor: "black",
+        tabBarActiveBackgroundColor: "transparent",
+        tabBarInactiveBackgroundColor: "transparent",
         tabBarStyle: {
-          backgroundColor: "white",
-          borderTopWidth: 1,
-          borderTopColor: "black",
+          backgroundColor: "#fff",
+          borderTopWidth: 0,
+          height: totalTabBarHeight,
+          paddingBottom: 0,
         },
         lazy: true,
       }}
     >
-      {/* 액션 탭들: href 없음 (onPress로 이벤트만 발생) */}
+      {/* 이벤트 전용 탭들 */}
       <Tabs.Screen
         name="back"
         options={{
-          title: "",
           tabBarButton: (props) => (
             <ActionButton
               name="chevron-back"
-              color={props.color}
               size={props.size}
               onPress={emitGoPrevDay}
             />
@@ -101,11 +152,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="refresh"
         options={{
-          title: "",
           tabBarButton: (props) => (
             <ActionButton
               name="refresh"
-              color={props.color}
               size={props.size}
               onPress={emitRefresh}
             />
@@ -116,11 +165,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="forward"
         options={{
-          title: "",
           tabBarButton: (props) => (
             <ActionButton
               name="chevron-forward"
-              color={props.color}
               size={props.size}
               onPress={emitGoNextDay}
             />
@@ -131,11 +178,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="share"
         options={{
-          title: "",
           tabBarButton: (props) => (
             <ActionButton
-              name="share-social"
-              color={props.color}
+              name="share"
               size={props.size}
               onPress={emitShareAttach}
             />
@@ -143,18 +188,15 @@ export default function TabLayout() {
         }}
       />
 
-      {/* settings만 실제 라우팅 - 커스텀 SettingsButton 사용 */}
+      {/* 설정(라우팅) */}
       <Tabs.Screen
         name="settings"
         options={{
-          title: "",
-          // ❌ href: "/settings", // <--- 이 줄을 제거했습니다.
           tabBarButton: (props) => (
             <SettingsButton
               router={router}
-              href="/settings" // SettingsButton 내부에서만 사용
+              href="/settings"
               name="settings"
-              color={props.color}
               size={props.size}
             />
           ),
