@@ -631,30 +631,6 @@ export default function Home() {
     });
   }, [uiLang]);
 
-  useEffect(() => {
-  if (!hydrated) return;
-  
-  const ping = async (u) => {
-    try {
-      const c = new AbortController(); 
-      const t = setTimeout(() => c.abort(), 6000);
-      const r = await fetch(u, { signal: c.signal }); 
-      clearTimeout(t);
-      console.log("✅ PING SUCCESS", u, r.status); 
-    } catch (e) { 
-      console.log("❌ PING FAIL", u, e?.message); 
-    }
-  };
-  
-  (async () => {
-    console.log("🔍 Starting network diagnostics...");
-    await ping("https://httpbin.org/get");                  // 일반 HTTPS
-    await ping("https://www.googleapis.com/generate_204");  // googleapis 도달성
-    await ping("https://www.googleapis.com/customsearch/v1?key=test"); // API 엔드포인트
-    console.log("🔍 Network diagnostics complete");
-  })();
-}, [hydrated]);
-
   // 데이터 로딩
   useEffect(() => {
     if (!hydrated || !uiLang) return;
@@ -686,13 +662,13 @@ export default function Home() {
                 try {
                   // picks의 첫 번째 아이템 본문으로 이미지 검색
                   const searchQuery = picks[0]?.body || '';
-                  console.log('🔍 Search Query:', searchQuery);
+                  console.log('Search Query:', searchQuery);
                   if (searchQuery) {
                     const imageUrl = await fetchImageForContent(searchQuery);
-                    console.log('🖼️ Image URL:', imageUrl);
+                    console.log('Image URL:', imageUrl);
                     if (!canceled && imageUrl) {
                       setHeaderImageUrl(imageUrl);
-                      console.log('✅ Image URL set successfully');
+                      console.log('Image URL set successfully');
                     }
                   }
                 } catch (err) {
