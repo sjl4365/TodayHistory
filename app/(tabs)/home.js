@@ -27,6 +27,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "../../lib/amplitude";
 import { loadTodayRowsSmart } from "../../lib/dayCache";
 import { scheduleDailyAt, cancelAllScheduled } from "./settings/notification";
+import { fetchImageForContent } from "../../lib/googleSearch"; 
 
 // 전역 캐시 (알림/공유에서 사용)
 if (!globalThis.__PICK_RESULT_CACHE__ || typeof globalThis.__PICK_RESULT_CACHE__?.get !== "function") {
@@ -298,19 +299,47 @@ function SegmentedCountrySelector({ uiLang, ordered, value, onChange, fixedHeigh
 }
 
  // 헤더/카드
-function HeaderHero({ height, bgSource }) {
+function HeaderHero({ height, bgSource, imageUrl }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
+
   return (
     <View style={{ height, width: "100%", position: "relative", zIndex: 0 }}>
       <Image
-        source={bgSource || require("../../assets/bg-images/k-photo1.jpg")}
+        source={
+          imageUrl && !imageFailed
+            ? { uri: imageUrl }
+            : (bgSource || require("../../assets/bg-images/k-photo1.jpg"))
+        }
         style={{ width: "100%", height: "100%" }}
         resizeMode="cover"
         pointerEvents="none"
+        onLoad={() => setImageLoaded(true)}
+        onError={() => {
+          console.log('Header image load failed, using fallback');
+          setImageFailed(true);
+        }}
       />
+      {/* 로딩 인디케이터 */}
+      {imageUrl && !imageLoaded && !imageFailed && (
+        <View style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          bottom: 0, 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: 'rgba(0,0,0,0.3)'
+        }}>
+          <ActivityIndicator color="#fff" />
+        </View>
+      )}
       <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.12)" }} />
     </View>
   );
 }
+
 function FullBleedCard({ children, topInset, cardBg, customBgColor }) {
   const BG_MAP = { none: "#FFFFFF", bg1: "#F9FAFB", bg2: "#FFF7ED", bg3: "#ECFEFF" };
   const bgColor = (customBgColor && typeof customBgColor === "string" && customBgColor.trim())
@@ -403,6 +432,9 @@ export default function Home() {
   const [err, setErr] = useState("");
   const [refreshTick, setRefreshTick] = useState(0);
   const [copyTick, setCopyTick] = useState(0);
+
+  // 헤더 이미지 URL (Google Custom Search API)
+  const [headerImageUrl, setHeaderImageUrl] = useState(null);
 
   // 세팅에서 제어되는 값만 읽어오기 (UI 버튼 없음)
   const [notifyEnabled, setNotifyEnabled] = useState(false);
@@ -599,6 +631,30 @@ export default function Home() {
     });
   }, [uiLang]);
 
+  useEffect(() => {
+  if (!hydrated) return;
+  
+  const ping = async (u) => {
+    try {
+      const c = new AbortController(); 
+      const t = setTimeout(() => c.abort(), 6000);
+      const r = await fetch(u, { signal: c.signal }); 
+      clearTimeout(t);
+      console.log("✅ PING SUCCESS", u, r.status); 
+    } catch (e) { 
+      console.log("❌ PING FAIL", u, e?.message); 
+    }
+  };
+  
+  (async () => {
+    console.log("🔍 Starting network diagnostics...");
+    await ping("https://httpbin.org/get");                  // 일반 HTTPS
+    await ping("https://www.googleapis.com/generate_204");  // googleapis 도달성
+    await ping("https://www.googleapis.com/customsearch/v1?key=test"); // API 엔드포인트
+    console.log("🔍 Network diagnostics complete");
+  })();
+}, [hydrated]);
+
   // 데이터 로딩
   useEffect(() => {
     if (!hydrated || !uiLang) return;
@@ -608,32 +664,76 @@ export default function Home() {
         setErr("");
         setLoading(true);
         const chosen = [...selectedCountries].filter(Boolean);
-        if (!chosen.length) { if (!canceled) { setOnePick([]); setLoading(false); } return; }
+        if (!chosen.length) { 
+          if (!canceled) { 
+            setOnePick([]); 
+            setHeaderImageUrl(null); // 이미지도 초기화
+            setLoading(false); 
+          } 
+          return; 
+        }
 
         const pool = [];
         const tryCommit = () => {
           if (canceled || !pool.length) return;
           requestAnimationFrame(() => {
             const picks = makePicksFromPool(pool, uiLang, seedKey);
-            if (picks.length) { setOnePick(picks); setLoading(false); }
+            if (picks.length) { 
+              setOnePick(picks); 
+              
+              // ★★★ Google Custom Search API로 이미지 검색 ★★★
+              (async () => {
+                try {
+                  // picks의 첫 번째 아이템 본문으로 이미지 검색
+                  const searchQuery = picks[0]?.body || '';
+                  console.log('🔍 Search Query:', searchQuery);
+                  if (searchQuery) {
+                    const imageUrl = await fetchImageForContent(searchQuery);
+                    console.log('🖼️ Image URL:', imageUrl);
+                    if (!canceled && imageUrl) {
+                      setHeaderImageUrl(imageUrl);
+                      console.log('✅ Image URL set successfully');
+                    }
+                  }
+                } catch (err) {
+                  console.warn('Failed to fetch header image:', err);
+                }
+              })();
+              
+              setLoading(false); 
+            }
           });
         };
 
         const PER_REQ_TIMEOUT = 18000;
         await Promise.all(chosen.map(async (cid) => {
-          const cfg = COUNTRY_CFG[cid]; if (!cfg) return;
+          const cfg = COUNTRY_CFG[cid]; 
+          if (!cfg) return;
           const todays = await loadTodayRowsSmart(cfg.sheetId, cfg.gid, todayParts, PER_REQ_TIMEOUT);
           for (const r of todays) {
-            const body = bodyOfRowByLang(r, uiLang, cid); if (!hasAnyText(body)) continue;
+            const body = bodyOfRowByLang(r, uiLang, cid); 
+            if (!hasAnyText(body)) continue;
             const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
-            pool.push({ cid, row: r, key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`, body });
+            pool.push({ 
+              cid, 
+              row: r, 
+              key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`, 
+              body 
+            });
           }
           if (pool.length) tryCommit();
         }));
 
-        if (!pool.length && !canceled) { setOnePick([]); setLoading(false); }
+        if (!pool.length && !canceled) { 
+          setOnePick([]); 
+          setHeaderImageUrl(null);
+          setLoading(false); 
+        }
       } catch (e) {
-        if (!canceled) { setErr(String(e?.message || e)); setLoading(false); }
+        if (!canceled) { 
+          setErr(String(e?.message || e)); 
+          setLoading(false); 
+        }
       }
     })();
     return () => { canceled = true; };
@@ -787,7 +887,11 @@ export default function Home() {
           <Stack.Screen options={{ headerShown: false, freezeOnBlur: true }} />
 
           {/* 1) 상단 헤더 이미지 */}
-          <HeaderHero height={HEADER_H + 30} bgSource={require("../../assets/bg-images/k-photo1.jpg")} />
+          <HeaderHero 
+            height={HEADER_H + 30} 
+            bgSource={require("../../assets/bg-images/k-photo1.jpg")}
+            imageUrl={headerImageUrl}
+          />
 
           {/* 2) 나라 선택 세그먼트 (오버레이) */}
           <View pointerEvents="box-none" style={{ position: "absolute", top: insets.top + TOP_PX, left: 0, right: 0, alignItems: "center", zIndex: 3 }}>
