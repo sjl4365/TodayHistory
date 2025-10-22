@@ -3,10 +3,10 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Platform, Switch, Alert
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
-import { getLastHomeParams, loadOnePickForDay } from '../home';
-import {PICK_RESULT_CACHE} from '../home';
+import { PICK_RESULT_CACHE } from '../home';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -17,18 +17,11 @@ Notifications.setNotificationHandler({
   }),
 });
 
-async function doWork() {
-  const { today, selectedCountries, uiLang } = await getLastHomeParams();
-  const picks = await loadOnePickForDay({ today, selectedCountries, uiLang });
-  console.log(picks);
-}
-
 const CHANNEL_ID = 'daily-reminder-channel';
 const TAG = 'DAILY_REMINDER';
 
 export default function Notification() {
   const [isNotificationOn, setIsNotificationOn] = useState(false);
-  // 기본 시간을 오후 3시 (15:00)로 설정
   const [date, setDate] = useState(() => {
     const defaultTime = new Date();
     defaultTime.setHours(15, 0, 0, 0);
@@ -44,11 +37,6 @@ export default function Notification() {
 
   useEffect(() => {
     init();
-  }, []);
-
-  useEffect(() => {
-    console.log("test")
-    doWork().catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -87,7 +75,6 @@ export default function Notification() {
     } else {
       console.log('Permissions not granted yet');
       setHasPermission(false);
-      // 첫 진입 시에는 alert 띄우지 않음 - 토글 켤 때 권한 요청
     }
 
     if (Platform.OS === 'android') {
@@ -141,20 +128,20 @@ export default function Notification() {
       setIsNotificationOn(false);
       return false;
     }
-    if (scheduledIdRef.current) {
-      try {
-        console.log('Cancelling existing notification:', scheduledIdRef.current);
-        await Notifications.cancelScheduledNotificationAsync(scheduledIdRef.current);
-        console.log('Successfully cancelled existing notification');
-      } catch (error) {
-        console.error('Failed to cancel notification:', error);
-      }
+    
+    // 모든 기존 알림을 완전히 삭제
+    try {
+      console.log('🗑️ Cancelling ALL existing notifications...');
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      console.log('✅ All notifications cancelled');
       scheduledIdRef.current = null;
+    } catch (error) {
+      console.error('Failed to cancel all notifications:', error);
     }
 
     if (Platform.OS === 'android') {
       try {
-        console.log('Recreating notification channel (Fix logic)...');
+        console.log('Recreating notification channel...');
         
         try {
           await Notifications.deleteNotificationChannelAsync(CHANNEL_ID);
@@ -179,47 +166,53 @@ export default function Notification() {
           bypassDnd: false,
         });
         
-        console.log('Channel recreated successfully:', JSON.stringify(channel));
-        
+        console.log('Channel recreated successfully');
         await new Promise(resolve => setTimeout(resolve, 300));
-        console.log('Waited for channel to be fully registered');
       } catch (error) {
         console.error('Failed to recreate channel:', error);
-        Alert.alert('채널 생성 실패', '다시 시도해주세요.');
         return false;
       }
     }
 
     const hours = time.getHours();
     const minutes = time.getMinutes();
-    console.log(`Scheduling notification for ${hours}:${minutes}`);
+    console.log(`⏰ Scheduling notification for ${hours}:${minutes}`);
 
-    const trigger = Platform.select({
-      ios: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: hours,
-        minute: minutes,
-        repeats: true,
-      },
-      android: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: hours,
-        minute: minutes,
-        repeats: true,
-      },
-    });
-
-    console.log('Trigger configuration:', trigger);
-
+    // ⭐ AsyncStorage에서 알림 본문 읽기
     try {
-      console.log('Attempting to schedule notification...');
-      console.log(PICK_RESULT_CACHE.get('picks'))
-
+      console.log('🔍 Reading from AsyncStorage...');
+      const cachedBody = await AsyncStorage.getItem("@notification_body");
+      console.log('📱 Cached body from AsyncStorage:', cachedBody);
       
+      if (!cachedBody) {
+        console.error('❌ No notification body found in AsyncStorage!');
+        Alert.alert('알림 설정 실패', 'Home 화면을 먼저 방문해주세요.');
+        return false;
+      }
+      
+      console.log('✅ Using body from AsyncStorage:', cachedBody);
+
+      const trigger = Platform.select({
+        ios: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: hours,
+          minute: minutes,
+          repeats: true,
+        },
+        android: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: hours,
+          minute: minutes,
+          repeats: true,
+        },
+      });
+
+      console.log('📤 Scheduling notification...');
+
       const id = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Today In History',
-          body: PICK_RESULT_CACHE.get("notificationBody"),
+          body: cachedBody, // ⭐ AsyncStorage에서 읽은 최신 데이터
           sound: 'default',
           channelId: CHANNEL_ID,
           data: { __tag: TAG },
@@ -230,32 +223,31 @@ export default function Notification() {
         },
       });
 
-      console.log('Notification scheduled successfully with ID:', id);
+      console.log('✅ Notification scheduled with ID:', id);
       
       if (!id) {
-        console.error('Schedule returned null/undefined ID');
+        console.error('❌ Schedule returned null/undefined ID');
         Alert.alert('Schedule Failed', 'Notification ID is null');
         return false;
       }
       
       scheduledIdRef.current = id;
 
-      console.log('Verifying scheduled notification...');
       const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-      console.log('All scheduled notifications:', scheduled.length);
+      console.log('📋 Total scheduled notifications:', scheduled.length);
       
       const myNotification = scheduled.find(n => n.identifier === id);
       if (myNotification) {
-        console.log('Found my notification in schedule:', myNotification);
+        console.log('✅ Verified notification body:', myNotification.content.body);
       } else {
-        console.error('My notification NOT found in schedule!');
+        console.error('❌ My notification NOT found in schedule!');
         Alert.alert('Schedule Verification Failed', 'Notification was not properly scheduled');
         return false;
       }
       
       return true;
     } catch (error) {
-      console.error('Failed to schedule notification:', error);
+      console.error('❌ Failed to schedule notification:', error);
       Alert.alert('Schedule Error', `Failed: ${error.message}`);
       return false;
     }
@@ -279,8 +271,7 @@ export default function Notification() {
       return;
     }
     
-    console.log('Saving time:', date.toLocaleTimeString());
-    console.log('Current state - hasPermission:', hasPermission, 'scheduledId:', scheduledIdRef.current);
+    console.log('💾 Saving time:', date.toLocaleTimeString());
     
     const ok = await scheduleDailyAt(date);
     console.log('Schedule result:', ok);
@@ -290,13 +281,20 @@ export default function Notification() {
       const timeString = date.toLocaleTimeString([], {
         hour: '2-digit', minute: '2-digit', hour12: false
       });
-      console.log('Successfully saved time:', timeString);
+      console.log('✅ Successfully saved time:', timeString);
+      
+      const all = await Notifications.getAllScheduledNotificationsAsync();
+      console.log('📋 Total scheduled notifications:', all.length);
+      all.forEach((n, i) => {
+        console.log(`  ${i + 1}. ${n.content.title}: ${n.content.body.substring(0, 50)}...`);
+      });
+      
       Alert.alert(
         '알림 설정 완료!', 
-        `매일 ${timeString}에 알림이 울립니다.`
+        `매일 ${timeString}에 최신 역사 정보가 알림으로 울립니다.`
       );
     } else {
-      console.log('Failed to save time');
+      console.log('❌ Failed to save time');
       Alert.alert('Schedule Failed', 'Could not schedule the reminder.');
     }
   };
@@ -305,7 +303,6 @@ export default function Notification() {
     console.log('Toggle notification:', value);
     
     if (value) {
-      // 토글 켤 때 시간을 오후 3시로 리셋
       const defaultTime = new Date();
       defaultTime.setHours(15, 0, 0, 0);
       setDate(defaultTime);
@@ -330,7 +327,6 @@ export default function Notification() {
           console.log('Permission granted after request');
         } else {
           console.log('Permission denied by user');
-          // 권한 거부 시 토글 다시 끄기
           setIsNotificationOn(false);
           return;
         }
