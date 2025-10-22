@@ -472,6 +472,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: 12,
+    maxWidth: 330,
   },
   inlineColorOption: {
     width: 35,

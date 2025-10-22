@@ -53,6 +53,14 @@ export default function SettingsLayout() {
           presentation: 'card',
         }} 
       />
+
+      <Stack.Screen
+        name="instagram"
+        options={{
+          title: 'Instagram',
+          presentation: 'card',
+        }}
+      />
     </Stack>
   );
 }
