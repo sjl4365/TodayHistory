@@ -6,7 +6,9 @@ import {
   Text, 
   StyleSheet, 
   TouchableOpacity, 
-  ScrollView 
+  ScrollView,
+  Linking,
+  Alert 
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,6 +55,40 @@ export default function SettingsIndex() {
       console.log(`Language changed to: ${language.name}`);
     } catch (error) {
       console.error('Error saving language:', error);
+    }
+  };
+
+  const openInstagram = async () => {
+    const webUrl = 'https://www.instagram.com/sunnyinnolab/';
+
+    try {
+      const canOpen = await Linking.canOpenURL(instagramUrl);
+      if (canOpen) {
+        await Linking.openURL(instagramUrl);
+      } else {
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open Instagram');
+      console.error(error);
+    }
+  };
+
+  const openTwitter = async () => {
+    const twitterUsername = 'Sunnyinnolab'; // Replace with your X (Twitter) username
+    const twitterUrl = `twitter://user?screen_name=${twitterUsername}`;
+    const webUrl = `https://x.com/Sunnyinnolab`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(twitterUrl);
+      if (canOpen) {
+        await Linking.openURL(twitterUrl);
+      } else {
+        await Linking.openURL(webUrl);
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open X (Twitter)');
+      console.error(error);
     }
   };
 
@@ -117,6 +153,27 @@ export default function SettingsIndex() {
           </View>
         )}
       </View>
+
+      {/* Social Media Links Section */}
+      <View style={styles.section}>
+        <SettingItem
+          title="Instagram"
+          onPress={openInstagram}
+          rightComponent={<Text style={styles.linkText}>Link</Text>}
+          showArrow={false}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <SettingItem
+          title="X (Twitter)"
+          onPress={openTwitter}
+          rightComponent={<Text style={styles.linkText}>Link</Text>}
+          showArrow={false}
+        />
+      </View>
+
+      <View style={styles.bottomSpacing} />
     </ScrollView>
   );
 }
@@ -152,6 +209,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: 'white',
     marginRight: 4,
+  },
+  linkText: {
+    fontSize: 14,
+    color: 'grey',
   },
   dropdownContainer: {
     backgroundColor: '#1a1a1a',
@@ -194,6 +255,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   bottomSpacing: {
-    height: 100, // Space for tab bar
+    height: 100,
   },
 });

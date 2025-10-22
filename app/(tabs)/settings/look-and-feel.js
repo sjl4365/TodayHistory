@@ -210,7 +210,7 @@ export default function LookAndFeel() {
       </View>
       
       {/* Show selected image preview */}
-      {backgroundImage && (
+      {/* {backgroundImage && (
         <View style={styles.imagePreviewContainer}>
           <Image
             source={{ uri: backgroundImage }}
@@ -223,7 +223,7 @@ export default function LookAndFeel() {
             <Text style={styles.removeImageButtonText}>✕ Remove</Text>
           </TouchableOpacity>
         </View>
-      )}
+      )} */}
     </View>
   );
 
