@@ -56,7 +56,7 @@ if (__DEV__) {
   };
 }
 
-// 상수/설정
+// 상수 / 설정
 const STORAGE_KEY_SELECTED = "selectedCountries";
 const STORAGE_KEY_UI_LANG = "@app_language";
 const STORAGE_KEY_FONT = "@app_font";
@@ -74,7 +74,8 @@ const COUNTRY_CFG = {
   japan: { id: "japan", label: { ko: "일본", en: "Japan", ja: "日本" }, lang: "ja", sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg", gid: "1850482528" },
 };
 
-const DEFAULT_COUNTRIES_BY_LANG = { en: ["uk", "usa"], ko: ["korea"], ja: ["japan"], default: ["uk", "usa"] };
+// 기본 선택: 영어 기기 → World(UK+USA 묶음), 한국어 → 한국, 일본어 → 일본
+const DEFAULT_COUNTRIES_BY_LANG = { en: ["world"], ko: ["korea"], ja: ["japan"], default: ["world"] };
 const APP_NAME_BY_LANG = { ko: "Histree", en: "Histree", ja: "Histree" };
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
 
@@ -94,11 +95,23 @@ const NATIVE_COL_BY_COUNTRY = { korea: "한국어", japan: "日本語", usa: "En
 
 // 국기
 const FLAG_ICON = {
-  usa:   require("../../assets/flag/🇺🇸a.png"),
-  uk:    require("../../assets/flag/🇬🇧a.png"),
+  usa: require("../../assets/flag/🇺🇸a.png"),
+  uk: require("../../assets/flag/🇬🇧a.png"),
   korea: require("../../assets/flag/korea.png"),
   japan: require("../../assets/flag/japan.png"),
+  // world: require("../../assets/flag/world.png"), // (옵션) globe 아이콘이 있으면 사용
 };
+
+// ── 광고/배너 공통 상수 ─────────────────────────────────
+// 고정 비율: 320×100 (3.2:1)
+const AD_RATIO = 3.2;
+const AD_TARGET = { w: 320, h: 100 };
+// 요청: 하단 고정형만 사용
+const ENABLE_INLINE_BANNER = false; // 카드 안 중간 배너 비활성화
+const ENABLE_BOTTOM_BANNER = true;  // 탭바 위 하단 고정 배너 활성화
+
+// World 가상 국가: UK+USA를 한 버튼으로 제어
+const VIRTUAL_WORLD = ["uk", "usa"];
 
 // 유틸
 function resolveUiLangFromDevice() {
@@ -214,18 +227,12 @@ function xorshift(seed) {
     return (x >>> 0) / 0xffffffff;
   };
 }
-function makePicksFromPool(pool, uiLang, stableKey) {
+// 항상 1개만 선택 (짧아도 2개 노출 제거)
+function makePicksFromPool(pool, _uiLang, stableKey) {
   if (!pool.length) return [];
   const rnd = xorshift(hash32(stableKey));
   const first = pool[Math.floor(rnd() * pool.length)];
-  const picks = [first];
-  const len = String(first.body || "").replace(/\s+/g, " ").trim().length;
-  const wantTwo = uiLang === "en" ? len <= 75 : uiLang === "ko" || uiLang === "ja" ? len <= 50 : false;
-  if (wantTwo && pool.length > 1) {
-    const rest = pool.filter((x) => x.key !== first.key);
-    if (rest.length) picks.push(rest[Math.floor(rnd() * rest.length)]);
-  }
-  return picks;
+  return [first];
 }
 function getHistoryTitle(uiLang, deltaDay) {
   const t = UI_STR.title[uiLang] || UI_STR.title.en;
@@ -298,8 +305,8 @@ function useUIScale() {
   return { scale, screenW: width };
 }
 
-// 나라 선택
-const ALL_ORDER = ["usa", "uk", "korea", "japan"];
+// 나라 선택 (World=UK+USA)
+const ALL_ORDER = ["world", "korea", "japan"];
 function orderCountriesForLang(uiLang) {
   const pref = DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default;
   const set = new Set(pref);
@@ -308,12 +315,12 @@ function orderCountriesForLang(uiLang) {
 }
 function SegmentedCountrySelector({ uiLang, ordered, value, onChange, fixedHeight = 39 }) {
   const { scale } = useUIScale();
-  const W = scale(337),
+  const W = scale(340),
     H = fixedHeight,
     R = scale(100),
-    BTN_W = scale(64),
+    BTN_W = scale(90),
     BTN_H = H;
-  const GAP = Math.max(0, (W - BTN_W * 4) / 3);
+  const GAP = Math.max(0, (W - BTN_W * 3) / 2);
   const ICON = Math.max(14, Math.min(22, scale(16)));
   const toggle = (id) => {
     const next = new Set(value);
@@ -335,58 +342,57 @@ function SegmentedCountrySelector({ uiLang, ordered, value, onChange, fixedHeigh
         shadowRadius: scale(8),
         shadowOffset: { width: 0, height: scale(4) },
         elevation: 4,
+        paddingHorizontal: 6,
       }}
     >
       {ordered.map((id, idx) => {
-  const active = value.has(id);
-  // const iconSrc = FLAG_ICON[id]; // ← 이렇게 써도 됨 (원하면 주석 해제)
-
-  return (
-    <Pressable
-      key={id}
-      onPress={() => toggle(id)}
-      style={{
-        width: BTN_W,
-        height: BTN_H,
-        borderRadius: R,
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: active ? "#FFFFFF" : "transparent",
-        marginLeft: idx === 0 ? 0 : GAP,
-        paddingHorizontal: 4,
-      }}
-      hitSlop={6}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        {!!FLAG_ICON[id] && (
-          <Image
-            source={FLAG_ICON[id]}
+        const active = value.has(id);
+        const iconId = id === "world" ? null : id; // world 아이콘이 있으면 교체
+        return (
+          <Pressable
+            key={id}
+            onPress={() => toggle(id)}
             style={{
-              width: ICON,
-              height: ICON,
-              marginRight: 6,
-              opacity: active ? 1 : 0.9,
+              width: BTN_W,
+              height: BTN_H,
+              borderRadius: R,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: active ? "#FFFFFF" : "transparent",
+              marginLeft: idx === 0 ? 0 : GAP,
+              paddingHorizontal: 4,
             }}
-            resizeMode="contain"
-          />
-        )}
-        <Text
-          style={{
-            fontWeight: "700",
-            fontSize: scale(13),
-            color: "#000",
-            textShadowColor: active ? "transparent" : "rgba(0,0,0,0.25)",
-            textShadowOffset: active ? undefined : { width: 0, height: 1 },
-            textShadowRadius: active ? 0 : 2,
-          }}
-        >
-          {COUNTRY_CFG[id]?.label?.[uiLang] || id}
-        </Text>
-      </View>
-    </Pressable>
-  );
-})}
-
+            hitSlop={6}
+          >
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {!!iconId && !!FLAG_ICON[iconId] && (
+                <Image
+                  source={FLAG_ICON[iconId]}
+                  style={{
+                    width: ICON,
+                    height: ICON,
+                    marginRight: 6,
+                    opacity: active ? 1 : 0.9,
+                  }}
+                  resizeMode="contain"
+                />
+              )}
+              <Text
+                style={{
+                  fontWeight: "700",
+                  fontSize: scale(13),
+                  color: "#000",
+                  textShadowColor: active ? "transparent" : "rgba(0,0,0,0.25)",
+                  textShadowOffset: active ? undefined : { width: 0, height: 1 },
+                  textShadowRadius: active ? 0 : 2,
+                }}
+              >
+                {id === "korea" ? "한국" : id === "japan" ? "일본" : "World"}
+              </Text>
+            </View>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
@@ -427,6 +433,29 @@ function HeaderHero({ height, bgSource, imageUrl }) {
         </View>
       )}
       <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.12)" }} />
+    </View>
+  );
+}
+
+// 320×100(3.2:1) placeholder 배너 (이미지/광고 공간)
+function BannerPlaceholder({ maxWidth = 340 }) {
+  const w = Math.min(maxWidth, AD_TARGET.w);
+  const h = Math.round(w / AD_RATIO);
+  return (
+    <View
+      style={{
+        width: w,
+        height: h,
+        borderRadius: 12,
+        alignSelf: "center",
+        backgroundColor: "#E5E7EB",
+        borderWidth: 1,             // 필요 시 0으로 바꿔 선 제거 가능
+        borderColor: "#D1D5DB",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Text style={{ color: "#6B7280", fontWeight: "700" }}>320 × 100 Placeholder</Text>
     </View>
   );
 }
@@ -480,20 +509,23 @@ export async function loadOnePickForDay({ today, selectedCountries, uiLang }) {
   const chosen = Array.isArray(selectedCountries) ? selectedCountries : [...selectedCountries];
 
   const pool = [];
-  for (const cid of chosen) {
-    const cfg = COUNTRY_CFG[cid];
-    if (!cfg) continue;
-    const todays = await loadTodayRowsSmart(cfg.sheetId, cfg.gid, todayParts, 15000);
-    for (const r of todays) {
-      const body = bodyOfRowByLang(r, uiLang, cid);
-      if (!hasAnyText(body)) continue;
-      const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
-      pool.push({
-        cid,
-        row: r,
-        key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`,
-        body,
-      });
+  for (const cid0 of chosen) {
+    const list = cid0 === "world" ? VIRTUAL_WORLD : [cid0];
+    for (const cid of list) {
+      const cfg = COUNTRY_CFG[cid];
+      if (!cfg) continue;
+      const todays = await loadTodayRowsSmart(cfg.sheetId, cfg.gid, todayParts, 15000);
+      for (const r of todays) {
+        const body = bodyOfRowByLang(r, uiLang, cid);
+        if (!hasAnyText(body)) continue;
+        const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
+        pool.push({
+          cid,
+          row: r,
+          key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`,
+          body,
+        });
+      }
     }
   }
   const stableKey = `${startOfDayInTz(today, tz).toISOString()}__${uiLang}__${chosen.slice().sort().join(",")}`;
@@ -514,10 +546,8 @@ export default function Home() {
   const tabBarHeight = useBottomTabBarHeight();
   const { width } = useWindowDimensions(); // 배너높이
 
-  // 배너 치수/위치 계산
-  const bannerBottom = Math.round(tabBarHeight);
-  const bannerHeight = Math.min(160, Math.round(width * 0.12)); // 그대로 ok
-
+  // 하단 고정 배너 실제 높이(비율 기반)
+  const bannerHeight = Math.round(Math.min(AD_TARGET.h, Math.min(width, 340) / AD_RATIO));
 
   // 하이드레이션 플래그(복구 전엔 렌더 가드)
   const [hydrated, setHydrated] = useState(false);
@@ -633,7 +663,7 @@ export default function Home() {
     };
   }, [goBy, uiLang, selectedCountries]);
 
-  // 최초 로드: 세팅 복구
+  // 최초 로드: 세팅 복구 (언어 기본 선택을 스토리지에도 기록)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -668,10 +698,16 @@ export default function Home() {
           } else {
             const def = new Set(DEFAULT_COUNTRIES_BY_LANG[lang] || DEFAULT_COUNTRIES_BY_LANG.default);
             setSelectedCountries(def);
+            try {
+              await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...def]));
+            } catch {}
           }
         } else {
           const def = new Set(DEFAULT_COUNTRIES_BY_LANG[lang] || DEFAULT_COUNTRIES_BY_LANG.default);
           setSelectedCountries(def);
+          try {
+            await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...def]));
+          } catch {}
         }
 
         // 알림/배경
@@ -699,7 +735,7 @@ export default function Home() {
     };
   }, [deviceLang]);
 
-  // 포커스 시 재동기화
+  // 포커스 시 재동기화 (언어 바뀌면 기본 선택을 스토리지에도 즉시 저장)
   useFocusEffect(
     useCallback(() => {
       if (!hydrated) return () => {};
@@ -725,6 +761,9 @@ export default function Home() {
             setUiLang(nextLang);
             const def = new Set(DEFAULT_COUNTRIES_BY_LANG[nextLang] || DEFAULT_COUNTRIES_BY_LANG.default);
             setSelectedCountries(def);
+            try {
+              await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...def]));
+            } catch {}
             setRefreshTick((t) => t + 1);
           } else {
             const storedSel = dict[STORAGE_KEY_SELECTED];
@@ -788,7 +827,9 @@ export default function Home() {
       try {
         setErr("");
         setLoading(true);
-        const chosen = [...selectedCountries].filter(Boolean);
+        // World 가상국가를 실제 국가 배열로 확장
+        const chosenRaw = [...selectedCountries].filter(Boolean);
+        const chosen = chosenRaw.flatMap((cid) => (cid === "world" ? VIRTUAL_WORLD : [cid]));
         if (!chosen.length) {
           if (!canceled) {
             setOnePick([]);
@@ -934,14 +975,6 @@ export default function Home() {
 
   // 캐시 동기화 (+ AsyncStorage에 알림 본문 저장)
   useEffect(() => {
-    try {
-      if (!globalThis.__PICK_RESULT_CACHE__ || typeof globalThis.__PICK_RESULT_CACHE__?.get !== "function") {
-        globalThis.__PICK_RESULT_CACHE__ = new Map();
-      }
-      globalThis.PICK_RESULT_CACHE = globalThis.__PICK_RESULT_CACHE__;
-    } catch {}
-  }, []);
-  useEffect(() => {
     (async () => {
       try {
         const picksList = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
@@ -1025,9 +1058,11 @@ export default function Home() {
   const TOP_PX = 58;
   const BOTTOM_PX = 93;
   const HEADER_H = insets.top + TOP_PX + SEGMENT_H + BOTTOM_PX;
+  const CONTENT_W = 340;
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "transparent" }} edges={["bottom"]}>
+    // iOS/Android 모두 상하 안전영역 사용
+    <SafeAreaView style={{ flex: 1, backgroundColor: "transparent" }} edges={["top", "bottom"]}>
       {!hydrated ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator />
@@ -1055,10 +1090,11 @@ export default function Home() {
               contentContainerStyle={{
                 flexGrow: 1,
                 paddingHorizontal: 16,
-                paddingBottom: 24 + 160 + bannerBottom,
+                // 하단 고정형 배너 + 탭바에 가리지 않도록 하단 여유
+                paddingBottom: 24 + (ENABLE_BOTTOM_BANNER ? (bannerHeight + 12 + tabBarHeight) : 0),
               }}
             >
-              <View style={{ paddingTop: 20 }}>
+              <View style={{ paddingTop: 20, width: CONTENT_W, alignSelf: "center" }}>
                 {/* 제목/날짜 */}
                 <View style={{ paddingVertical: 20 }}>
                   <Text style={{ fontSize: 20, fontWeight: "800" }}>{getHistoryTitle(uiLang, deltaDay)}</Text>
@@ -1102,20 +1138,28 @@ export default function Home() {
                 <View style={{ height: 36 }} />
               </View>
             </ScrollView>
-
-            {/* 광고 */}
-             <View style={{ height: bannerHeight, alignItems: "stretch" }}>
-                <Image
-                  source={require("../../assets/World Movie Trailer Banner.png")}
-                  style={{ height: "100%", width: "100%" }} // flex:1 대신 높이 100%
-                  resizeMode="contain"
-                  pointerEvents="none"
-                />
-              </View>
-
           </FullBleedCard>
 
-        
+          {/* 하단 고정형 배너: "탭바 바로 위"에 항상 1개 */}
+          {ENABLE_BOTTOM_BANNER && (
+            <View
+              pointerEvents="box-none"
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: tabBarHeight - 40 ,
+                alignItems: "center",
+                zIndex: 10000,
+                elevation: 10000,
+              }}
+            >
+              {/* 배너 자체는 터치 가능 */}
+              <View style={{ height: bannerHeight }}>
+                <BannerPlaceholder maxWidth={Math.min(340, width - 24)} />
+              </View>
+            </View>
+          )}
 
           {loading && !err && (
             <View style={{ position: "absolute", top: 12, right: 12 }}>
