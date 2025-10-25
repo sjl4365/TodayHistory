@@ -172,8 +172,11 @@ export default function SettingsIndex() {
           showArrow={false}
         />
       </View>
+      <View style={styles.versionContainer}>
+        <Text style={styles.versionText}>Test Build 2025.10.22 (Version 0.0.2)</Text>
+      </View>
+    <View style={styles.bottomSpacing} />
 
-      <View style={styles.bottomSpacing} />
     </ScrollView>
   );
 }
@@ -257,4 +260,13 @@ const styles = StyleSheet.create({
   bottomSpacing: {
     height: 100,
   },
+  versionContainer: {
+  alignItems: 'center',
+  paddingVertical: 20,
+},
+versionText: {
+  fontSize: 13,
+  color: 'grey',
+  opacity: 0.6,
+},
 });
