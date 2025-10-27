@@ -61,6 +61,16 @@ export default function SettingsLayout() {
           presentation: 'card',
         }}
       />
+      
+      <Stack.Screen 
+        name="credit" 
+        options={{ 
+          title: 'Credit',
+          presentation: 'card',
+        }} 
+      />
     </Stack>
+
+    
   );
 }

@@ -172,6 +172,14 @@ export default function SettingsIndex() {
           showArrow={false}
         />
       </View>
+
+      {/* Credit */}
+      <View style={styles.section}>
+        <SettingItem
+          title="Credit"
+          onPress={() => router.push('/settings/credit')}
+        />
+      </View>
       <View style={styles.versionContainer}>
         <Text style={styles.versionText}>Test Build 2025.10.22 (Version 0.0.2)</Text>
       </View>
