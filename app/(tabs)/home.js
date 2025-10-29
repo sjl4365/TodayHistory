@@ -1,19 +1,8 @@
 // app/(tabs)/home.js
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
-  ActivityIndicator,
-  Text,
-  View,
-  Pressable,
-  ScrollView,
-  Animated,
-  Easing,
-  useWindowDimensions,
-  Platform,
-  InteractionManager,
-  Image,
-  StyleSheet,
-  StatusBar,
+  ActivityIndicator, Text, View, Pressable, ScrollView, Animated, Easing,
+  useWindowDimensions, Platform, InteractionManager, Image, StyleSheet, StatusBar,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onRefresh, onGoPrevDay, onGoNextDay, onShareAttach } from "../../lib/bus";
@@ -25,38 +14,20 @@ import * as Sharing from "expo-sharing";
 import { Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "../../lib/amplitude";
-import { loadTodayRowsSmart } from "../../lib/dayCache";
 import { scheduleDailyAt, cancelAllScheduled } from "./settings/notification";
+import { fetchHistory } from "../../api/history";            // ← Apps Script API (최적화)
 import { fetchImageForContent } from "../../lib/googleSearch";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
-// 전역 캐시 (알림/공유에서 사용)
-if (!globalThis.__PICK_RESULT_CACHE__ || typeof globalThis.__PICK_RESULT_CACHE__?.get !== "function") {
-  globalThis.__PICK_RESULT_CACHE__ = new Map();
-}
-if (!globalThis.PICK_RESULT_CACHE || typeof globalThis.PICK_RESULT_CACHE__?.get !== "function") {
-  globalThis.PICK_RESULT_CACHE = globalThis.__PICK_RESULT_CACHE__;
-}
-export const PICK_RESULT_CACHE = globalThis.__PICK_RESULT_CACHE__;
-if (!PICK_RESULT_CACHE.has("notificationBody")) PICK_RESULT_CACHE.set("notificationBody", "오늘의 역사");
-if (!PICK_RESULT_CACHE.has("shareText")) PICK_RESULT_CACHE.set("shareText", "오늘의 역사\n\nhttps://example.com/today-in-history");
-
-// DEV 로그 필터
+// 개발 모드 콘솔 필터링
 if (__DEV__) {
-  const ignoreErrors = ["Amplitude Logger", "ENOENT", "InternalBytecode.js"];
-  const originalError = console.error;
-  const originalWarn = console.warn;
-  console.error = (...args) => {
-    const s = args.join(" ");
-    if (!ignoreErrors.some((t) => s.includes(t))) originalError(...args);
-  };
-  console.warn = (...args) => {
-    const s = args.join(" ");
-    if (!ignoreErrors.some((t) => s.includes(t))) originalWarn(...args);
-  };
+  const ignore = ["Amplitude Logger", "ENOENT", "InternalBytecode.js"];
+  const _e = console.error, _w = console.warn;
+  console.error = (...a) => (ignore.some(t => a.join(" ").includes(t)) ? void 0 : _e(...a));
+  console.warn  = (...a) => (ignore.some(t => a.join(" ").includes(t)) ? void 0 : _w(...a));
 }
 
-// 상수 / 저장키
+// 상수 정의
 const STORAGE_KEY_SELECTED = "selectedCountries";
 const STORAGE_KEY_UI_LANG = "@app_language";
 const STORAGE_KEY_FONT = "@app_font";
@@ -67,15 +38,14 @@ const STORAGE_KEY_NOTIFY_ENABLED = "@notify_enabled";
 const STORAGE_KEY_NOTIFY_TIME = "@notify_time";
 const STORAGE_KEY_CARD_BG = "@card_bg"; // "bg1" | "bg2" | "bg3" | "none"
 
-// 국가 설정
-const COUNTRY_CFG = {
-  usa: { id: "usa", label: { ko: "미국", en: "USA", ja: "アメリカ" }, lang: "en", sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg", gid: "2056769855" },
-  uk: { id: "uk", label: { ko: "영국", en: "UK", ja: "英国" }, lang: "en", sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg", gid: "1528717252" },
-  korea: { id: "korea", label: { ko: "한국", en: "Korea", ja: "韓国" }, lang: "ko", sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg", gid: "219522591" },
-  japan: { id: "japan", label: { ko: "일본", en: "Japan", ja: "日本" }, lang: "ja", sheetId: "16aQeXTEmzYGHDTpu0uoWCRh6Jutq2g4u--Kr2QjYOtg", gid: "1850482528" },
-};
+// 앱 캐시 (데이터) — 6시간 TTL
+const DATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 
-// 기본 선택(언어별)
+const COUNTRY_CFG = {
+  korea: { id: "korea", label: { ko: "한국", en: "Korea", ja: "韓国" }, lang: "ko" },
+  japan: { id: "japan", label: { ko: "일본", en: "Japan", ja: "日本" }, lang: "ja" },
+  world: { id: "world", label: { ko: "세계", en: "World", ja: "世界" }, lang: "en" },
+};
 const DEFAULT_COUNTRIES_BY_LANG = { en: ["world"], ko: ["korea"], ja: ["japan"], default: ["world"] };
 const APP_NAME_BY_LANG = { ko: "Histree", en: "Histree", ja: "Histree" };
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
@@ -92,31 +62,22 @@ const COPY_TOAST = { ko: "복사", en: "Copied", ja: "コピーしました" };
 const SOURCE_LABEL = { ko: "출처", en: "Source", ja: "出典" };
 const LOCALE_BY_LANG = { ko: "ko-KR", en: "en-US", ja: "ja-JP" };
 const UI_COL = { ko: "한국어", en: "English", ja: "日本語" };
-const NATIVE_COL_BY_COUNTRY = { korea: "한국어", japan: "日本語", usa: "English", uk: "English" };
+const NATIVE_COL_BY_COUNTRY = { korea: "한국어", japan: "日本語", world: "English" };
 
-// 세그먼트 라벨(언어반영)
 const LABEL_BY_ID = {
-  world: { ko: "세계", en: "World", ja: "ワールド" },
+  world: COUNTRY_CFG.world.label,
   korea: COUNTRY_CFG.korea.label,
   japan: COUNTRY_CFG.japan.label,
 };
 
-// 아이콘
 const FLAG_ICON = {
-  usa: require("../../assets/flag/🇺🇸a.png"),
-  uk: require("../../assets/flag/🇬🇧a.png"),
   korea: require("../../assets/flag/korea.png"),
   japan: require("../../assets/flag/japan.png"),
-  // world 아이콘이 있으면 넣어도 됨
 };
 
-// 광고
 const AD_RATIO = 3.2;
 const AD_TARGET = { w: 320, h: 100 };
 const ENABLE_BOTTOM_BANNER = true;
-
-// World 가상 국가 확장
-const VIRTUAL_WORLD = ["uk", "usa"];
 
 // 유틸
 function resolveUiLangFromDevice() {
@@ -129,20 +90,12 @@ function resolveUiLangFromDevice() {
 }
 function startOfDayInTz(base = new Date(), tz = "UTC") {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
-    .formatToParts(base)
-    .reduce((a, p) => {
-      if (p.type !== "literal") a[p.type] = p.value;
-      return a;
-    }, {});
+    .formatToParts(base).reduce((a, p) => { if (p.type !== "literal") a[p.type] = p.value; return a; }, {});
   return new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00`);
 }
 function getDayPartsFrom(date, tz) {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
-    .formatToParts(date)
-    .reduce((a, p) => {
-      if (p.type !== "literal") a[p.type] = p.value;
-      return a;
-    }, {});
+    .formatToParts(date).reduce((a, p) => { if (p.type !== "literal") a[p.type] = p.value; return a; }, {});
   return { md: `${parts.month}-${parts.day}`, dcode: `D${parts.month}${parts.day}`, y: parts.year, m: parts.month, d: parts.day };
 }
 const trimHtml = (s) => String(s || "").replace(/<[^>]+>/g, "").trim();
@@ -179,19 +132,16 @@ function formatRowDate(row, uiLang) {
     y = String(row?.Year || row?.year || "").trim() || "";
     if (typeof dateStr === "string" && /^\d{2}-\d{2}$/.test(dateStr.trim())) {
       const [mm, dd] = dateStr.trim().split("-");
-      m = mm;
-      d = dd;
+      m = mm; d = dd;
     } else if (row?.month && row?.day) {
-      m = String(row.month).padStart(2, "0");
-      d = String(row.day).padStart(2, "0");
+      m = String(row.month).padStart(2, "0"); d = String(row.day).padStart(2, "0");
     }
   }
-  const L =
-    {
-      ko: (Y, M, D) => [Y && `${Y}년`, M && `${parseInt(M, 10)}월`, D && `${parseInt(D, 10)}일`].filter(Boolean).join(" "),
-      ja: (Y, M, D) => [Y && `${Y}年`, M && `${parseInt(M, 10)}月`, D && `${parseInt(D, 10)}日`].filter(Boolean).join(" "),
-      en: (Y, M, D) => [M && parseInt(M, 10), D && parseInt(D, 10), Y].filter(Boolean).join(" "),
-    }[uiLang] || ((Y, M, D) => [Y, M, D].filter(Boolean).join("-"));
+  const L = {
+    ko: (Y, M, D) => [Y && `${Y}년`, M && `${parseInt(M, 10)}월`, D && `${parseInt(D, 10)}일`].filter(Boolean).join(" "),
+    ja: (Y, M, D) => [Y && `${Y}年`, M && `${parseInt(M, 10)}月`, D && `${parseInt(D, 10)}日`].filter(Boolean).join(" "),
+    en: (Y, M, D) => [M && parseInt(M, 10), D && parseInt(D, 10), Y].filter(Boolean).join(" "),
+  }[uiLang] || ((Y, M, D) => [Y, M, D].filter(Boolean).join("-"));
   return L(y || "", m || "", d || "") || "";
 }
 function getMonthDayOnly(baseDate, uiLang, tz) {
@@ -214,30 +164,17 @@ function equalSets(a, b) {
 }
 function hash32(str) {
   let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
   return (h || 1) >>> 0;
 }
 function xorshift(seed) {
   let x = seed >>> 0;
-  return () => {
-    x ^= x << 13;
-    x >>>= 0;
-    x ^= x >>> 17;
-    x >>>= 0;
-    x ^= x << 5;
-    x >>>= 0;
-    return (x >>> 0) / 0xffffffff;
-  };
+  return () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x >>>= 0; x ^= x << 5; x >>>= 0; return (x >>> 0) / 0xffffffff; };
 }
-// 1개만 보여주기(랜덤 픽)
 function makePicksFromPool(pool, _uiLang, stableKey) {
   if (!pool.length) return [];
   const rnd = xorshift(hash32(stableKey));
-  const first = pool[Math.floor(rnd() * pool.length)];
-  return [first];
+  return [ pool[Math.floor(rnd() * pool.length)] ];
 }
 function getHistoryTitle(uiLang, deltaDay) {
   const t = UI_STR.title[uiLang] || UI_STR.title.en;
@@ -245,35 +182,27 @@ function getHistoryTitle(uiLang, deltaDay) {
   if (deltaDay > 0) return t.next;
   return t.today;
 }
-
-// 최소 1개 보장 헬퍼
 function ensureNonEmptySelection(inputSet, uiLang) {
   let s = new Set(inputSet || []);
-  if (s.size === 0) {
-    s = new Set(DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default);
-  }
-  // 알 수 없는 id 제거(안전)
+  if (s.size === 0) s = new Set(DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default);
   const allow = new Set(["world", "korea", "japan"]);
   for (const id of [...s]) if (!allow.has(id)) s.delete(id);
   if (s.size === 0) s.add((DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default)[0]);
   return s;
 }
 
-// CopyToast
+// 토스트
 function CopyToast({ trigger, message }) {
   const [visible, setVisible] = useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
   const translateY = useRef(new Animated.Value(10)).current;
   const mounted = useRef(false);
   const lastSeen = useRef(trigger);
-  const { bottom } = useSafeAreaInsets?.() || { bottom: 0 };
+  const insets = useSafeAreaInsets();
+  const bottom = (insets && typeof insets.bottom === "number") ? insets.bottom : 0;
 
   useEffect(() => {
-    if (!mounted.current) {
-      mounted.current = true;
-      lastSeen.current = trigger;
-      return;
-    }
+    if (!mounted.current) { mounted.current = true; lastSeen.current = trigger; return; }
     if (!trigger || trigger === lastSeen.current) return;
     lastSeen.current = trigger;
 
@@ -290,24 +219,14 @@ function CopyToast({ trigger, message }) {
       }, 1000);
       return () => clearTimeout(t);
     });
-  }, [trigger]);
+  }, [trigger, opacity, translateY]);
 
   if (!visible) return null;
   return (
-    <Animated.View
-      pointerEvents="none"
-      style={{
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: (bottom || 0) + 24,
-        alignItems: "center",
-        opacity,
-        transform: [{ translateY }],
-        zIndex: 9999,
-        elevation: 9999,
-      }}
-    >
+    <Animated.View pointerEvents="none" style={{
+      position: "absolute", left: 0, right: 0, bottom: bottom + 24, alignItems: "center",
+      opacity, transform: [{ translateY }], zIndex: 9999, elevation: 9999,
+    }}>
       <View style={{ backgroundColor: "#111827", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 }}>
         <Text style={{ color: "white", fontWeight: "700" }}>{message}</Text>
       </View>
@@ -315,15 +234,13 @@ function CopyToast({ trigger, message }) {
   );
 }
 
-// 리사이즈 스케일
+//  UI 스케일링
 function useUIScale() {
   const { width } = useWindowDimensions();
   const BASE = 393;
   const scale = (n) => Math.round((width / BASE) * n);
   return { scale, screenW: width };
 }
-
-// 나라 선택(월드/한국/일본)
 const ALL_ORDER = ["world", "korea", "japan"];
 function orderCountriesForLang(uiLang) {
   const pref = DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default;
@@ -332,81 +249,45 @@ function orderCountriesForLang(uiLang) {
   return [...pref, ...rest];
 }
 
+// 나라 선택 UI
 function SegmentedCountrySelector({ uiLang, ordered, value, onChange, fixedHeight = 39 }) {
   const { scale } = useUIScale();
   const W = scale(340), H = fixedHeight, R = scale(100), BTN_W = scale(90), BTN_H = H;
   const GAP = Math.max(0, (W - BTN_W * 3) / 2);
   const ICON = Math.max(14, Math.min(22, scale(16)));
 
-  // 최소 1개 보장 토글
   const toggle = (id) => {
     const next = new Set(value);
-    if (next.has(id)) {
-      // 마지막 1개면 해제 금지
-      if (next.size === 1) return;
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
+    if (next.has(id)) { if (next.size === 1) return; next.delete(id); }
+    else next.add(id);
     onChange(next);
   };
 
   return (
-    <View
-      style={{
-        width: W,
-        height: H,
-        backgroundColor: "rgba(167,167,167,0.27)",
-        borderRadius: R,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        shadowColor: "#000",
-        shadowOpacity: 0.15,
-        shadowRadius: scale(8),
-        shadowOffset: { width: 0, height: scale(4) },
-        elevation: 4,
-        paddingHorizontal: 6,
-      }}
-    >
+    <View style={{
+      width: W, height: H, backgroundColor: "rgba(167,167,167,0.27)", borderRadius: R,
+      flexDirection: "row", alignItems: "center", justifyContent: "flex-start",
+      shadowColor: "#000", shadowOpacity: 0.15, shadowRadius: scale(8),
+      shadowOffset: { width: 0, height: scale(4) }, elevation: 4, paddingHorizontal: 6,
+    }}>
       {ordered.map((id, idx) => {
         const active = value.has(id);
         const iconId = id === "world" ? null : id;
         const label = LABEL_BY_ID[id]?.[uiLang] || LABEL_BY_ID[id]?.en || id;
         return (
-          <Pressable
-            key={id}
-            onPress={() => toggle(id)}
-            style={{
-              width: BTN_W,
-              height: BTN_H,
-              borderRadius: R,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: active ? "#FFFFFF" : "transparent",
-              marginLeft: idx === 0 ? 0 : GAP,
-              paddingHorizontal: 4,
-            }}
-            hitSlop={6}
-          >
+          <Pressable key={id} onPress={() => toggle(id)} style={{
+            width: BTN_W, height: BTN_H, borderRadius: R, alignItems: "center", justifyContent: "center",
+            backgroundColor: active ? "#FFFFFF" : "transparent", marginLeft: idx === 0 ? 0 : GAP, paddingHorizontal: 4,
+          }} hitSlop={6}>
             <View style={{ flexDirection: "row", alignItems: "center" }}>
               {!!iconId && !!FLAG_ICON[iconId] && (
-                <Image
-                  source={FLAG_ICON[iconId]}
-                  style={{ width: ICON, height: ICON, marginRight: 6, opacity: active ? 1 : 0.9 }}
-                  resizeMode="contain"
-                />
+                <Image source={FLAG_ICON[iconId]} style={{ width: ICON, height: ICON, marginRight: 6, opacity: active ? 1 : 0.9 }} resizeMode="contain" />
               )}
-              <Text
-                style={{
-                  fontWeight: "700",
-                  fontSize: scale(13),
-                  color: "#000",
-                  textShadowColor: active ? "transparent" : "rgba(0,0,0,0.25)",
-                  textShadowOffset: active ? undefined : { width: 0, height: 1 },
-                  textShadowRadius: active ? 0 : 2,
-                }}
-              >
+              <Text style={{
+                fontWeight: "700", fontSize: scale(13), color: "#000",
+                textShadowColor: active ? "transparent" : "rgba(0,0,0,0.25)",
+                textShadowOffset: active ? undefined : { width: 0, height: 1 }, textShadowRadius: active ? 0 : 2,
+              }}>
                 {label}
               </Text>
             </View>
@@ -417,7 +298,7 @@ function SegmentedCountrySelector({ uiLang, ordered, value, onChange, fixedHeigh
   );
 }
 
-// 헤더/카드
+// 헤더 이미지
 function HeaderHero({ height, bgSource, imageUrl }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -425,28 +306,11 @@ function HeaderHero({ height, bgSource, imageUrl }) {
     <View style={{ height, width: "100%", position: "relative", zIndex: 0 }}>
       <Image
         source={imageUrl && !imageFailed ? { uri: imageUrl } : bgSource || require("../../assets/bg-images/k-photo1.jpg")}
-        style={{ width: "100%", height: "100%" }}
-        resizeMode="cover"
-        pointerEvents="none"
-        onLoad={() => setImageLoaded(true)}
-        onError={() => {
-          console.log("Header image load failed, using fallback");
-          setImageFailed(true);
-        }}
+        style={{ width: "100%", height: "100%" }} resizeMode="cover" pointerEvents="none"
+        onLoad={() => setImageLoaded(true)} onError={() => { setImageFailed(true); }}
       />
       {imageUrl && !imageLoaded && !imageFailed && (
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.3)",
-          }}
-        >
+        <View style={{ position: "absolute", top:0, left:0, right:0, bottom:0, alignItems:"center", justifyContent:"center", backgroundColor:"rgba(0,0,0,0.3)" }}>
           <ActivityIndicator color="#fff" />
         </View>
       )}
@@ -454,54 +318,100 @@ function HeaderHero({ height, bgSource, imageUrl }) {
     </View>
   );
 }
-
-// 320×100 placeholder 배너
 function BannerPlaceholder({ maxWidth = 340 }) {
   const w = Math.min(maxWidth, AD_TARGET.w);
   const h = Math.round(w / AD_RATIO);
   return (
-    <View
-      style={{
-        width: w,
-        height: h,
-        borderRadius: 12,
-        alignSelf: "center",
-        backgroundColor: "#E5E7EB",
-        borderWidth: 1,
-        borderColor: "#D1D5DB",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
+    <View style={{
+      width: w, height: h, borderRadius: 12, alignSelf: "center",
+      backgroundColor: "#E5E7EB", borderWidth: 1, borderColor: "#D1D5DB",
+      alignItems: "center", justifyContent: "center",
+    }}>
       <Text style={{ color: "#6B7280", fontWeight: "700" }}>320 × 100 Placeholder</Text>
     </View>
   );
 }
-
 function FullBleedCard({ children, topInset, cardBg, customBgColor }) {
   const BG_MAP = { none: "#FFFFFF", bg1: "#F9FAFB", bg2: "#FFF7ED", bg3: "#ECFEFF" };
-  const bgColor = customBgColor && typeof customBgColor === "string" && customBgColor.trim() ? customBgColor : BG_MAP[cardBg] ?? "#FFFFFF";
+  const bgColor = (customBgColor && typeof customBgColor === "string" && customBgColor.trim()) ? customBgColor : (BG_MAP[cardBg] ?? "#FFFFFF");
   return (
-    <View
-      style={{
-        position: "absolute",
-        top: topInset,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: bgColor,
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
-        overflow: "hidden",
-        zIndex: 1,
-      }}
-    >
+    <View style={{
+      position: "absolute", top: topInset, left: 0, right: 0, bottom: 0, backgroundColor: bgColor,
+      borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: "hidden", zIndex: 1,
+    }}>
       {children}
     </View>
   );
 }
 
-// 외부(Notification)에서 쓰는 헬퍼
+// API 호출 및 데이터 정규화
+function normalizeItemsToRows(items, iso, parts) {
+  const mm = String(parts.m).padStart(2, "0");
+  const dd = String(parts.d).padStart(2, "0");
+  return (items || []).map((it) => ({
+    isoDate: iso, date: `D${mm}${dd}`, Date: `D${mm}${dd}`,
+    Year: it.year, year: it.year,
+    English: it.en || "", "한국어": it.ko || "", "日本語": it.ja || "",
+    enAnchors: it.enAnchors, koAnchors: it.koAnchors, jaAnchors: it.jaAnchors,
+  }));
+}
+function resolveQuarterFromMonth(m) {
+  const mm = parseInt(String(m), 10);
+  if (mm >= 1 && mm <= 3) return "Q1";
+  if (mm >= 4 && mm <= 6) return "Q2";
+  if (mm >= 7 && mm <= 9) return "Q3";
+  return "Q4";
+}
+
+function formatYearOnly(year, uiLang) {
+  const y = String(year || "").trim();
+  if (!y) return "";
+  if (uiLang === "ko") return `${y}년`;
+  if (uiLang === "ja") return `${y}年`;
+  return y; 
+}
+
+/** 캐시 키 */
+function cacheKey(mode, parts){ return `@hist_cache:${mode}:${String(parts.m).padStart(2,"0")}${String(parts.d).padStart(2,"0")}`; }
+/** 캐시 저장 */
+async function saveCache(mode, parts, rows){
+  const key = cacheKey(mode, parts);
+  const payload = JSON.stringify({ t: Date.now(), rows });
+  try { await AsyncStorage.setItem(key, payload); } catch {}
+}
+/** 캐시 로드 (TTL 검사) */
+async function loadCache(mode, parts){
+  const key = cacheKey(mode, parts);
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    const obj = JSON.parse(raw);
+    if (!obj?.t || !Array.isArray(obj?.rows)) return null;
+    if (Date.now() - obj.t > DATA_CACHE_TTL_MS) return null; // TTL 만료
+    return obj.rows;
+  } catch { return null; }
+}
+
+/** 서버 호출 (한국/일본/세계) */
+async function apiFetchForMode(mode, todayParts) {
+  const iso = `${todayParts.y}-${String(todayParts.m).padStart(2, "0")}-${String(todayParts.d).padStart(2, "0")}`;
+  if (mode === "world") {
+    const quarter = resolveQuarterFromMonth(todayParts.m);
+    // 단일 호출 + 실패시에만 1회 폴백
+    try {
+      const items = await fetchHistory({ mode: "world", date: iso, quarter, n: 20, shuffle: false });
+      return normalizeItemsToRows(items, iso, todayParts);
+    } catch {
+      const items2 = await fetchHistory({ mode: "world", date: iso, n: 20, shuffle: false });
+      return normalizeItemsToRows(items2, iso, todayParts);
+    }
+  }
+  // korea / japan
+  const items = await fetchHistory({ mode, date: iso, n: 20, shuffle: false });
+  return normalizeItemsToRows(items, iso, todayParts);
+}
+
+// 홈 화면용 파라미터 불러오기
 export async function getLastHomeParams() {
   const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC";
   const deviceLang = resolveUiLangFromDevice();
@@ -519,54 +429,35 @@ export async function getLastHomeParams() {
   const today = startOfDayInTz(new Date(), tz);
   return { today, selectedCountries, uiLang, tz };
 }
-
 export async function loadOnePickForDay({ today, selectedCountries, uiLang }) {
   const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC";
   const todayParts = getDayPartsFrom(today, tz);
   const chosen = Array.isArray(selectedCountries) ? selectedCountries : [...selectedCountries];
 
   const pool = [];
-  for (const cid0 of chosen) {
-    const list = cid0 === "world" ? VIRTUAL_WORLD : [cid0];
-    for (const cid of list) {
-      const cfg = COUNTRY_CFG[cid];
-      if (!cfg) continue;
-      const todays = await loadTodayRowsSmart(cfg.sheetId, cfg.gid, todayParts, 15000);
-      for (const r of todays) {
-        const body = bodyOfRowByLang(r, uiLang, cid);
-        if (!hasAnyText(body)) continue;
-        const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
-        pool.push({
-          cid,
-          row: r,
-          key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`,
-          body,
-        });
-      }
+  for (const cid of chosen) {
+    const rows = await apiFetchForMode(cid, todayParts);
+    for (const r of rows) {
+      const body = bodyOfRowByLang(r, uiLang, cid);
+      if (!hasAnyText(body)) continue;
+      const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
+      pool.push({ cid, row: r, key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`, body });
     }
   }
   const stableKey = `${startOfDayInTz(today, tz).toISOString()}__${uiLang}__${chosen.slice().sort().join(",")}`;
-  const picks = makePicksFromPool(pool, uiLang, stableKey);
-
-  const notificationBody = Array.isArray(picks) && picks.length ? picks.map((p) => `• ${p.body}`).join("\n") : "";
-  try {
-    PICK_RESULT_CACHE.set("notificationBody", notificationBody || PICK_RESULT_CACHE.get("notificationBody") || "오늘의 역사");
-  } catch {}
-  return picks;
+  return makePicksFromPool(pool, uiLang, stableKey);
 }
 
-// 메인
+// 홈 화면 컴포넌트
 export default function Home() {
   const insets = useSafeAreaInsets();
   const { scale } = useUIScale();
   const [tz] = useState(Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC");
   const tabBarHeight = useBottomTabBarHeight();
-  const { width } = useWindowDimensions(); // 배너높이
+  const { width } = useWindowDimensions();
 
-  // 하단 고정 배너 실제 높이
   const bannerHeight = Math.round(Math.min(AD_TARGET.h, Math.min(width, 340) / AD_RATIO));
 
-  // 상태
   const [hydrated, setHydrated] = useState(false);
   const [baseDate, setBaseDate] = useState(() => startOfDayInTz(new Date(), tz));
   const deviceLang = useMemo(() => resolveUiLangFromDevice(), []);
@@ -578,117 +469,72 @@ export default function Home() {
   const [refreshTick, setRefreshTick] = useState(0);
   const [copyTick, setCopyTick] = useState(0);
 
-  // 헤더 이미지
   const [headerImageUrl, setHeaderImageUrl] = useState(null);
 
-  // 세팅 값
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyTime, setNotifyTime] = useState("09:00");
   const [cardBg, setCardBg] = useState("none");
   const [customBgColor, setCustomBgColor] = useState(null);
 
-  // 폰트
   const [customFont, setCustomFont] = useState("System");
   const [customFontSize, setCustomFontSize] = useState(18);
   const [customFontColor, setCustomFontColor] = useState("#111827");
   const getFontFamily = (font) => {
     switch (font) {
-      case "System":
-        return Platform.OS === "ios" ? "System" : "Roboto";
-      case "Verdana":
-        return Platform.OS === "ios" ? "Verdana" : "sans-serif";
-      case "Arial":
-        return Platform.OS === "ios" ? "Arial" : "sans-serif";
-      case "Times New Roman":
-        return Platform.OS === "ios" ? "Times New Roman" : "serif";
-      case "Courier New":
-        return Platform.OS === "ios" ? "Courier New" : "monospace";
-      case "Georgia":
-        return Platform.OS === "ios" ? "Georgia" : "serif";
-      default:
-        return Platform.OS === "ios" ? "System" : "Roboto";
+      case "System": return Platform.OS === "ios" ? "System" : "Roboto";
+      case "Verdana": return Platform.OS === "ios" ? "Verdana" : "sans-serif";
+      case "Arial": return Platform.OS === "ios" ? "Arial" : "sans-serif";
+      case "Times New Roman": return Platform.OS === "ios" ? "Times New Roman" : "serif";
+      case "Courier New": return Platform.OS === "ios" ? "Courier New" : "monospace";
+      case "Georgia": return Platform.OS === "ios" ? "Georgia" : "serif";
+      default: return Platform.OS === "ios" ? "System" : "Roboto";
     }
   };
   const bodyLineHeight = Math.round((customFontSize || 18) * 1.45);
 
-  // Amplitude
   const amplitudeReadyRef = useRef(false);
   useEffect(() => {
     let cancelled = false;
     InteractionManager.runAfterInteractions(async () => {
       if (cancelled) return;
-      try {
-        await initAmplitude();
-        amplitudeReadyRef.current = true;
-        trackEvent(AMPLITUDE_EVENTS.SCREEN_VIEW, { screen: "Home" });
-      } catch {}
+      try { await initAmplitude(); amplitudeReadyRef.current = true; trackEvent(AMPLITUDE_EVENTS.SCREEN_VIEW, { screen: "Home" }); } catch {}
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
-  // -1/0/1 네비게이션
+  /* 날짜 이동 */
   const DAY_MS = 86400000;
-  const getIndexFromToday = useCallback(
-    (date) => {
-      const base0 = startOfDayInTz(date, tz).getTime();
-      const today0 = startOfDayInTz(new Date(), tz).getTime();
-      return Math.round((base0 - today0) / DAY_MS);
-    },
-    [tz]
-  );
-  const goBy = useCallback(
-    (delta) => {
-      setBaseDate((prev) => {
-        const curIdx = getIndexFromToday(prev);
-        const nextIdx = Math.max(-1, Math.min(1, curIdx + delta));
-        if (nextIdx === curIdx) return prev;
-        const today0 = startOfDayInTz(new Date(), tz);
-        const target = new Date(today0);
-        target.setDate(target.getDate() + nextIdx);
-        return target;
-      });
-    },
-    [tz, getIndexFromToday]
-  );
+  const getIndexFromToday = useCallback((date) => {
+    const base0 = startOfDayInTz(date, tz).getTime();
+    const today0 = startOfDayInTz(new Date(), tz).getTime();
+    return Math.round((base0 - today0) / DAY_MS);
+  }, [tz]);
+  const goBy = useCallback((delta) => {
+    setBaseDate((prev) => {
+      const curIdx = getIndexFromToday(prev);
+      const nextIdx = Math.max(-1, Math.min(1, curIdx + delta)); // 어제/오늘/내일
+      if (nextIdx === curIdx) return prev;
+      const today0 = startOfDayInTz(new Date(), tz);
+      const target = new Date(today0); target.setDate(target.getDate() + nextIdx);
+      return target;
+    });
+  }, [tz, getIndexFromToday]);
 
-  // 버스
   useEffect(() => {
-    const offPrev = onGoPrevDay?.(() => {
-      if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, { language: uiLang, countries: [...selectedCountries] });
-      goBy(-1);
-    });
-    const offNext = onGoNextDay?.(() => {
-      if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, { language: uiLang, countries: [...selectedCountries] });
-      goBy(+1);
-    });
-    const offRefresh = onRefresh?.(() => {
-      if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, { language: uiLang, countries: [...selectedCountries] });
-      setRefreshTick((t) => t + 1);
-    });
-    return () => {
-      offPrev && offPrev();
-      offNext && offNext();
-      offRefresh && offRefresh();
-    };
+    const offPrev = onGoPrevDay?.(() => { if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, { language: uiLang, countries: [...selectedCountries] }); goBy(-1); });
+    const offNext = onGoNextDay?.(() => { if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, { language: uiLang, countries: [...selectedCountries] }); goBy(+1); });
+    const offRefresh = onRefresh?.(() => { if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, { language: uiLang, countries: [...selectedCountries] }); setRefreshTick((t) => t + 1); });
+    return () => { offPrev && offPrev(); offNext && offNext(); offRefresh && offRefresh(); };
   }, [goBy, uiLang, selectedCountries]);
 
-  // 최초 로드: 세팅 복구(비었으면 언어 기본값으로)
+  /* 초기 복원 */
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
         const pairs = await AsyncStorage.multiGet([
-          STORAGE_KEY_UI_LANG,
-          STORAGE_KEY_SELECTED,
-          STORAGE_KEY_NOTIFY_ENABLED,
-          STORAGE_KEY_NOTIFY_TIME,
-          STORAGE_KEY_CARD_BG,
-          STORAGE_KEY_BG_COLOR,
-          STORAGE_KEY_FONT,
-          STORAGE_KEY_FONT_SIZE,
-          STORAGE_KEY_FONT_COLOR,
+          STORAGE_KEY_UI_LANG, STORAGE_KEY_SELECTED, STORAGE_KEY_NOTIFY_ENABLED, STORAGE_KEY_NOTIFY_TIME,
+          STORAGE_KEY_CARD_BG, STORAGE_KEY_BG_COLOR, STORAGE_KEY_FONT, STORAGE_KEY_FONT_SIZE, STORAGE_KEY_FONT_COLOR,
         ]).catch(() => []);
         const dict = Object.fromEntries(pairs || []);
         if (!alive) return;
@@ -700,110 +546,86 @@ export default function Home() {
 
         let nextSet;
         if (dict[STORAGE_KEY_SELECTED]) {
-          let arr = [];
-          try { arr = JSON.parse(dict[STORAGE_KEY_SELECTED]); } catch {}
+          let arr = []; try { arr = JSON.parse(dict[STORAGE_KEY_SELECTED]); } catch {}
           nextSet = ensureNonEmptySelection(new Set(Array.isArray(arr) ? arr : []), lang);
-        } else {
-          nextSet = ensureNonEmptySelection(new Set(), lang);
-        }
+        } else nextSet = ensureNonEmptySelection(new Set(), lang);
         setSelectedCountries(nextSet);
         try { await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...nextSet])); } catch {}
 
-        // 알림/배경/폰트
         setNotifyEnabled(dict[STORAGE_KEY_NOTIFY_ENABLED] === "1");
         if (dict[STORAGE_KEY_NOTIFY_TIME]) setNotifyTime(dict[STORAGE_KEY_NOTIFY_TIME]);
         if (dict[STORAGE_KEY_CARD_BG]) setCardBg(dict[STORAGE_KEY_CARD_BG]);
         if (dict[STORAGE_KEY_BG_COLOR]) setCustomBgColor(dict[STORAGE_KEY_BG_COLOR]);
         if (dict[STORAGE_KEY_FONT]) setCustomFont(dict[STORAGE_KEY_FONT]);
-        if (dict[STORAGE_KEY_FONT_SIZE]) {
-          const v = parseInt(dict[STORAGE_KEY_FONT_SIZE], 10);
-          if (!Number.isNaN(v) && v > 8) setCustomFontSize(v);
-        }
+        if (dict[STORAGE_KEY_FONT_SIZE]) { const v = parseInt(dict[STORAGE_KEY_FONT_SIZE], 10); if (!Number.isNaN(v) && v > 8) setCustomFontSize(v); }
         if (dict[STORAGE_KEY_FONT_COLOR]) setCustomFontColor(dict[STORAGE_KEY_FONT_COLOR]);
       } catch (e) {
         console.warn("Init restore failed:", e);
       } finally {
-        setLoading(false);
-        setHydrated(true);
+        setHydrated(true); // 기존 내용 유지 위해 loading은 아래 로딩 훅에서 관리
       }
     })();
     return () => { alive = false; };
   }, [deviceLang]);
 
-  // 포커스 시 재동기화: 언어 바뀌면(설정화면 등) 비어있을 때만 언어 기본값 채움
-  useFocusEffect(
-    useCallback(() => {
-      if (!hydrated) return () => {};
-      let alive = true;
-      (async () => {
-        try {
-          const pairs = await AsyncStorage.multiGet([
-            STORAGE_KEY_UI_LANG,
-            STORAGE_KEY_SELECTED,
-            STORAGE_KEY_CARD_BG,
-            STORAGE_KEY_BG_COLOR,
-            STORAGE_KEY_FONT,
-            STORAGE_KEY_FONT_SIZE,
-            STORAGE_KEY_FONT_COLOR,
-          ]).catch(() => []);
-          const dict = Object.fromEntries(pairs || []);
-          if (!alive) return;
+  useFocusEffect(useCallback(() => {
+    if (!hydrated) return () => {};
+    let alive = true;
+    (async () => {
+      try {
+        const pairs = await AsyncStorage.multiGet([
+          STORAGE_KEY_UI_LANG, STORAGE_KEY_SELECTED, STORAGE_KEY_CARD_BG, STORAGE_KEY_BG_COLOR,
+          STORAGE_KEY_FONT, STORAGE_KEY_FONT_SIZE, STORAGE_KEY_FONT_COLOR,
+        ]).catch(() => []);
+        const dict = Object.fromEntries(pairs || []);
+        if (!alive) return;
 
-          const storedLang = dict[STORAGE_KEY_UI_LANG] || null;
-          const nextLang = storedLang === "ko" || storedLang === "en" || storedLang === "ja" ? storedLang : uiLang || deviceLang;
+        const storedLang = dict[STORAGE_KEY_UI_LANG] || null;
+        const nextLang = storedLang === "ko" || storedLang === "en" || storedLang === "ja" ? storedLang : uiLang || deviceLang;
 
-          if (nextLang !== uiLang) {
-            setUiLang(nextLang);
-            // 선택이 비어있다면만 언어 기본값 적용
-            let arr = [];
-            try { arr = JSON.parse(dict[STORAGE_KEY_SELECTED] || "[]"); } catch {}
-            let cur = new Set(Array.isArray(arr) ? arr : []);
-            if (cur.size === 0) {
-              cur = ensureNonEmptySelection(cur, nextLang);
-              setSelectedCountries(cur);
-              try { await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...cur])); } catch {}
-            }
-            setRefreshTick((t) => t + 1);
-          } else {
-            const storedSel = dict[STORAGE_KEY_SELECTED];
-            if (storedSel) {
-              let arr = [];
-              try { arr = JSON.parse(storedSel); } catch {}
-              if (Array.isArray(arr)) {
-                let nextSet = ensureNonEmptySelection(new Set(arr), nextLang);
-                if (!equalSets(nextSet, selectedCountries)) {
-                  setSelectedCountries(nextSet);
-                  try { await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...nextSet])); } catch {}
-                  setRefreshTick((t) => t + 1);
-                }
+        if (nextLang !== uiLang) {
+          setUiLang(nextLang);
+          let arr = []; try { arr = JSON.parse(dict[STORAGE_KEY_SELECTED] || "[]"); } catch {}
+          let cur = new Set(Array.isArray(arr) ? arr : []);
+          if (cur.size === 0) {
+            cur = ensureNonEmptySelection(cur, nextLang);
+            setSelectedCountries(cur);
+            try { await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...cur])); } catch {}
+          }
+          setRefreshTick((t) => t + 1);
+        } else {
+          const storedSel = dict[STORAGE_KEY_SELECTED];
+          if (storedSel) {
+            let arr = []; try { arr = JSON.parse(storedSel); } catch {}
+            if (Array.isArray(arr)) {
+              let nextSet = ensureNonEmptySelection(new Set(arr), nextLang);
+              if (!equalSets(nextSet, selectedCountries)) {
+                setSelectedCountries(nextSet);
+                try { await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...nextSet])); } catch {}
+                setRefreshTick((t) => t + 1);
               }
             }
           }
+        }
 
-          // 배경/폰트
-          const storedBgColor = dict[STORAGE_KEY_BG_COLOR] ?? null;
-          if (storedBgColor !== null && storedBgColor !== customBgColor) setCustomBgColor(storedBgColor);
-          const storedCardBg = dict[STORAGE_KEY_CARD_BG] || null;
-          if (storedCardBg && storedCardBg !== cardBg) setCardBg(storedCardBg);
-          if (dict[STORAGE_KEY_FONT]) setCustomFont(dict[STORAGE_KEY_FONT]);
-          if (dict[STORAGE_KEY_FONT_SIZE]) {
-            const v = parseInt(dict[STORAGE_KEY_FONT_SIZE], 10);
-            if (!Number.isNaN(v) && v > 8) setCustomFontSize(v);
-          }
-          if (dict[STORAGE_KEY_FONT_COLOR]) setCustomFontColor(dict[STORAGE_KEY_FONT_COLOR]);
-        } catch {}
-      })();
-      return () => { alive = false; };
-    }, [hydrated, uiLang, selectedCountries, cardBg, customBgColor, deviceLang])
-  );
+        const storedBgColor = dict[STORAGE_KEY_BG_COLOR] ?? null;
+        if (storedBgColor !== null && storedBgColor !== customBgColor) setCustomBgColor(storedBgColor);
+        const storedCardBg = dict[STORAGE_KEY_CARD_BG] || null;
+        if (storedCardBg && storedCardBg !== cardBg) setCardBg(storedCardBg);
+        if (dict[STORAGE_KEY_FONT]) setCustomFont(dict[STORAGE_KEY_FONT]);
+        if (dict[STORAGE_KEY_FONT_SIZE]) { const v = parseInt(dict[STORAGE_KEY_FONT_SIZE], 10); if (!Number.isNaN(v) && v > 8) setCustomFontSize(v); }
+        if (dict[STORAGE_KEY_FONT_COLOR]) setCustomFontColor(dict[STORAGE_KEY_FONT_COLOR]);
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, [hydrated, uiLang, selectedCountries, cardBg, customBgColor, deviceLang]));
 
-  // todayParts / stableKey
   const today0 = useMemo(() => startOfDayInTz(baseDate, tz), [baseDate, tz]);
   const todayParts = useMemo(() => getDayPartsFrom(today0, tz), [today0, tz]);
   const stableKey = useMemo(() => `${today0.toISOString()}__${uiLang}__${[...selectedCountries].sort().join(",")}`, [today0, uiLang, selectedCountries]);
   const seedKey = useMemo(() => `${stableKey}__r${refreshTick}`, [stableKey, refreshTick]);
 
-  // 언어만 바뀌면 본문 재조합
+  // 언어 바뀔 때 본문 재로컬라이즈
   useEffect(() => {
     setOnePick((prev) => {
       if (!Array.isArray(prev) || !prev.length) return prev;
@@ -814,7 +636,7 @@ export default function Home() {
     });
   }, [uiLang]);
 
-  // 데이터 로딩(선택 비어있지 않도록 보장)
+  // 데이터 로드: **캐시 → 즉시 표시 → 백그라운드 최신화**
   useEffect(() => {
     if (!hydrated || !uiLang) return;
     let canceled = false;
@@ -828,108 +650,99 @@ export default function Home() {
           setSelectedCountries(safeSelected);
           try { await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...safeSelected])); } catch {}
         }
+        const chosen = [...safeSelected];
+        if (!chosen.length) { if (!canceled) setLoading(false); return; }
 
-        const chosenRaw = [...safeSelected].filter(Boolean);
-        const chosen = chosenRaw.flatMap((cid) => (cid === "world" ? VIRTUAL_WORLD : [cid]));
-        if (!chosen.length) {
-          if (!canceled) {
-            setOnePick([]);
-            setHeaderImageUrl(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        const pool = [];
-        const tryCommit = () => {
-          if (canceled || !pool.length) return;
-          requestAnimationFrame(() => {
-            const picks = makePicksFromPool(pool, uiLang, seedKey);
-            if (picks.length) {
-              setOnePick(picks);
-              (async () => {
-                try {
-                  const searchQuery = picks[0]?.body || "";
-                  if (searchQuery) {
-                    const imageUrl = await fetchImageForContent(searchQuery);
-                    if (!canceled && imageUrl) setHeaderImageUrl(imageUrl);
-                  }
-                } catch (err) {
-                  console.warn("Failed to fetch header image:", err);
-                }
-              })();
-              setLoading(false);
-            }
-          });
-        };
-
-        const PER_REQ_TIMEOUT = 18000;
-        await Promise.all(
-          chosen.map(async (cid) => {
-            const cfg = COUNTRY_CFG[cid];
-            if (!cfg) return;
-            const todays = await loadTodayRowsSmart(cfg.sheetId, cfg.gid, todayParts, PER_REQ_TIMEOUT);
-            for (const r of todays) {
+        // 1) 캐시 먼저 모아서 즉시 노출
+        const cachedPools = [];
+        for (const cid of chosen) {
+          const c = await loadCache(cid, todayParts);
+          if (Array.isArray(c) && c.length) {
+            for (const r of c) {
               const body = bodyOfRowByLang(r, uiLang, cid);
               if (!hasAnyText(body)) continue;
               const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
-              pool.push({
-                cid,
-                row: r,
-                key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`,
-                body,
-              });
+              cachedPools.push({ cid, row: r, key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`, body });
             }
-            if (pool.length) tryCommit();
-          })
-        );
+          }
+        }
+        if (!canceled && cachedPools.length) {
+          const picks = makePicksFromPool(cachedPools, uiLang, seedKey + "::cache");
+          if (picks.length) {
+            setOnePick(picks);
+            setLoading(false); // 캐시로 즉시 종결
+            // 헤더 이미지 비동기
+            setTimeout(async () => {
+              try {
+                const searchQuery = picks[0]?.body || "";
+                if (searchQuery) {
+                  const imageUrl = await fetchImageForContent(searchQuery);
+                  if (!canceled && imageUrl) setHeaderImageUrl(imageUrl);
+                }
+              } catch {}
+            }, 0);
+          }
+        }
 
-        if (!pool.length && !canceled) {
+        // 2) 네트워크로 최신화(백그라운드) — 한국/일본 포함 확실
+        const pool = [];
+        for (const cid of chosen) {
+          const rows = await apiFetchForMode(cid, todayParts);
+          await saveCache(cid, todayParts, rows); // 최신 캐시 저장
+          for (const r of rows) {
+            const body = bodyOfRowByLang(r, uiLang, cid);
+            if (!hasAnyText(body)) continue;
+            const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
+            pool.push({ cid, row: r, key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`, body });
+          }
+        }
+        if (!canceled && pool.length) {
+          const picks = makePicksFromPool(pool, uiLang, seedKey + "::net");
+          setOnePick(picks);
+          setLoading(false);
+          // 헤더 이미지 비동기
+          setTimeout(async () => {
+            try {
+              const searchQuery = picks[0]?.body || "";
+              if (searchQuery) {
+                const imageUrl = await fetchImageForContent(searchQuery);
+                if (!canceled && imageUrl) setHeaderImageUrl(imageUrl);
+              }
+            } catch {}
+          }, 0);
+        } else if (!cachedPools.length && !canceled) {
           setOnePick([]);
           setHeaderImageUrl(null);
           setLoading(false);
         }
+
       } catch (e) {
-        if (!canceled) {
-          setErr(String(e?.message || e));
-          setLoading(false);
-        }
+        if (!canceled) { setErr(String(e?.message || e)); setLoading(false); }
       }
     })();
     return () => { canceled = true; };
   }, [hydrated, todayParts, uiLang, selectedCountries, seedKey]);
 
-  // 제목(어제/오늘/내일)
   const deltaDay = useMemo(() => {
     const todayBase = startOfDayInTz(new Date(), tz).getTime();
     const diff = Math.round((today0.getTime() - todayBase) / 86400000);
     return diff < 0 ? -1 : diff > 0 ? 1 : 0;
   }, [today0, tz]);
 
-  // 나라 선택 저장(최소 1개 보장)
-  const handleCountriesChange = useCallback(
-    (nextSetRaw) => {
-      const ensured = ensureNonEmptySelection(nextSetRaw, uiLang);
+  const handleCountriesChange = useCallback((nextSetRaw) => {
+    const ensured = ensureNonEmptySelection(nextSetRaw, uiLang);
+    const added = [...ensured].filter((c) => !selectedCountries.has(c));
+    const removed = [...selectedCountries].filter((c) => !ensured.has(c));
+    if (amplitudeReadyRef.current && (added.length || removed.length)) {
+      trackEvent(AMPLITUDE_EVENTS.COUNTRY_CLICKED, {
+        language: uiLang, added_countries: added, removed_countries: removed, total_selected: ensured.size, selected_countries: [...ensured],
+      });
+    }
+    setSelectedCountries(ensured);
+    AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...ensured])).catch(() => {});
+    setRefreshTick((t) => t + 1);
+  }, [selectedCountries, uiLang]);
 
-      const added = [...ensured].filter((c) => !selectedCountries.has(c));
-      const removed = [...selectedCountries].filter((c) => !ensured.has(c));
-      if (amplitudeReadyRef.current && (added.length || removed.length)) {
-        trackEvent(AMPLITUDE_EVENTS.COUNTRY_CLICKED, {
-          language: uiLang,
-          added_countries: added,
-          removed_countries: removed,
-          total_selected: ensured.size,
-          selected_countries: [...ensured],
-        });
-      }
-      setSelectedCountries(ensured);
-      AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...ensured])).catch(() => {});
-      setRefreshTick((t) => t + 1);
-    },
-    [selectedCountries, uiLang]
-  );
-
-  // 공유
   const onCopyPress = useCallback(async () => {
     try {
       const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
@@ -937,10 +750,10 @@ export default function Home() {
       const appName = APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en;
       const sourceLabel = SOURCE_LABEL[uiLang] || SOURCE_LABEL.en;
       const blocks = (list || []).map((p) => {
-        const countryLabel = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
+        const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
         const yr = getYearFromRow(p.row) || "";
         const content = (p.body || "").trim();
-        return [countryLabel, yr, content, `${sourceLabel}: ${appName}`].filter(Boolean).join("\n");
+        return [label, yr, content, `${sourceLabel}: ${appName}`].filter(Boolean).join("\n");
       });
       const payload = [header, ...blocks, APP_DOWNLOAD_URL].join("\n\n");
 
@@ -951,11 +764,7 @@ export default function Home() {
       const uri = FileSystem.cacheDirectory + fileName;
       await FileSystem.writeAsStringAsync(uri, payload, { encoding: FileSystem.EncodingType.UTF8 });
       if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          dialogTitle: header,
-          UTI: "public.plain-text",
-          mimeType: "text/plain",
-        });
+        await Sharing.shareAsync(uri, { dialogTitle: header, UTI: "public.plain-text", mimeType: "text/plain" });
       }
     } catch {}
   }, [onePick, today0, uiLang, tz]);
@@ -965,31 +774,27 @@ export default function Home() {
     return () => { offShare && offShare(); };
   }, [onCopyPress]);
 
-  // 캐시 동기화 (+ 알림 본문 저장)
+  // (생략 가능) 알림/공유 캐시 업데이트 — 필요 로직 유지
   useEffect(() => {
     (async () => {
       try {
-        const picksList = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
+        const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
         const monthDay = getMonthDayOnly(today0, uiLang, tz);
-
         const maxBodyLen = uiLang === "ko" || uiLang === "ja" ? 20 : 40;
-        const notificationBody = picksList.length
-          ? `${monthDay} — ` +
-            picksList
-              .map((p) => {
-                const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
-                const yr = getYearFromRow(p.row);
-                const body = p.body || "";
-                const trunc = body.length > maxBodyLen ? body.slice(0, maxBodyLen) + "..." : body;
-                return `${label}${yr ? ` ${yr}` : ""}: ${trunc}`;
-              })
-              .join(" • ")
+        const notificationBody = list.length
+          ? `${monthDay} — ` + list.map((p) => {
+              const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
+              const yr = getYearFromRow(p.row);
+              const body = p.body || "";
+              const trunc = body.length > maxBodyLen ? body.slice(0, maxBodyLen) + "..." : body;
+              return `${label}${yr ? ` ${yr}` : ""}: ${trunc}`;
+            }).join(" • ")
           : `${monthDay} — ${APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en}`;
 
         const header = getMonthDayOnly(today0, uiLang, tz);
         const appName = APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en;
         const sourceLabel = SOURCE_LABEL[uiLang] || SOURCE_LABEL.en;
-        const blocks = (picksList || []).map((p) => {
+        const blocks = (list || []).map((p) => {
           const countryLabel = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
           const yr = getYearFromRow(p.row) || "";
           const content = (p.body || "").trim();
@@ -997,24 +802,13 @@ export default function Home() {
         });
         const shareText = [header, ...blocks, APP_DOWNLOAD_URL].join("\n\n");
 
-        PICK_RESULT_CACHE.set("stableKey", `${today0.toISOString()}__${uiLang}__${[...selectedCountries].sort().join(",")}`);
-        PICK_RESULT_CACHE.set("todayParts", getDayPartsFrom(today0, tz));
-        PICK_RESULT_CACHE.set("uiLang", uiLang);
-        PICK_RESULT_CACHE.set("selectedCountries", [...selectedCountries]);
-        PICK_RESULT_CACHE.set("picks", picksList);
-        PICK_RESULT_CACHE.set("shareText", shareText || PICK_RESULT_CACHE.get("shareText") || "오늘의 역사\n\nhttps://example.com/today-in-history");
-        PICK_RESULT_CACHE.set("notificationBody", notificationBody || PICK_RESULT_CACHE.get("notificationBody") || "오늘의 역사");
-        PICK_RESULT_CACHE.set("baseDateISO", startOfDayInTz(today0, tz).toISOString());
-        PICK_RESULT_CACHE.set("lastSavedAt", Date.now());
-
+        // 필요 시 전역캐시/AsyncStorage 갱신 …
         await AsyncStorage.setItem("@notification_body", notificationBody);
-      } catch (e) {
-        console.error("Failed to update notification body/shareText:", e);
-      }
+      } catch {}
     })();
-  }, [onePick, today0, uiLang, selectedCountries, tz]);
+  }, [onePick, today0, uiLang, tz]);
 
-  // 알림 스케줄 반영
+  // 알림 스케줄
   const applySchedule = useCallback(async (timeStr) => {
     const [H, M] = (timeStr || "09:00").split(":").map((x) => parseInt(x, 10) || 0);
     try { await cancelAllScheduled?.(); } catch {}
@@ -1023,11 +817,7 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       try {
-        if (notifyEnabled) {
-          await applySchedule(notifyTime);
-        } else {
-          await cancelAllScheduled?.();
-        }
+        if (notifyEnabled) { await applySchedule(notifyTime); } else { await cancelAllScheduled?.(); }
         await AsyncStorage.setItem(STORAGE_KEY_NOTIFY_ENABLED, notifyEnabled ? "1" : "0");
         await AsyncStorage.setItem(STORAGE_KEY_NOTIFY_TIME, notifyTime);
       } catch {}
@@ -1037,7 +827,6 @@ export default function Home() {
   const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
   const ordered = useMemo(() => orderCountriesForLang(uiLang || "en"), [uiLang]);
 
-  // 레이아웃 수치
   const SEGMENT_H = 38;
   const TOP_PX = 58;
   const BOTTOM_PX = 93;
@@ -1055,32 +844,19 @@ export default function Home() {
           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
           <Stack.Screen options={{ headerShown: false, freezeOnBlur: true }} />
 
-          {/* 1) 상단 헤더 이미지 */}
-          <HeaderHero height={HEADER_H + 30} bgSource={require("../../assets/bg-images/k-photo1.jpg")} imageUrl={headerImageUrl} />
+          {/* 1) 헤더 이미지 */}
+          <HeaderHero height={HEADER_H + 15} bgSource={require("../../assets/bg-images/k-photo1.jpg")} imageUrl={headerImageUrl} />
 
-          {/* 2) 나라 선택 세그먼트 */}
-          <View
-            pointerEvents="box-none"
-            style={{ position: "absolute", top: insets.top + TOP_PX, left: 0, right: 0, alignItems: "center", zIndex: 3 }}
-          >
-            <SegmentedCountrySelector
-              uiLang={uiLang}
-              ordered={ordered}
-              value={selectedCountries}
-              onChange={handleCountriesChange}
-              fixedHeight={SEGMENT_H}
-            />
+          {/* 2) 나라 선택 */}
+          <View pointerEvents="box-none" style={{ position: "absolute", top: insets.top + TOP_PX, left: 0, right: 0, alignItems: "center", zIndex: 3 }}>
+            <SegmentedCountrySelector uiLang={uiLang} ordered={ordered} value={selectedCountries} onChange={handleCountriesChange} fixedHeight={SEGMENT_H} />
           </View>
 
           {/* 3) 본문 카드 */}
-          <FullBleedCard topInset={HEADER_H} cardBg={cardBg} customBgColor={customBgColor}>
+          <FullBleedCard topInset={HEADER_H - 15} cardBg={cardBg} customBgColor={customBgColor}>
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={{
-                flexGrow: 1,
-                paddingHorizontal: 16,
-                paddingBottom: 24 + (ENABLE_BOTTOM_BANNER ? bannerHeight + 12 + tabBarHeight : 0),
-              }}
+              contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingBottom: 24 + (ENABLE_BOTTOM_BANNER ? bannerHeight + 12 + tabBarHeight : 0) }}
             >
               <View style={{ paddingTop: 20, width: CONTENT_W, alignSelf: "center" }}>
                 {/* 제목/날짜 */}
@@ -1097,29 +873,34 @@ export default function Home() {
                     <Text style={{ color: "#6b7280" }}>{loading ? "..." : UI_STR.empty[uiLang] || UI_STR.empty.en}</Text>
                   ) : (
                     list.map((p) => {
-                      const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
-                      const dateLine = formatRowDate(p.row, uiLang);
-                      return (
-                        <View key={p.key} style={{ gap: 6 }}>
-                          <Text style={{ fontWeight: "700" }}>
-                            {label}
-                            {!!dateLine && <Text style={{ fontSize: 12, color: "#64748b" }}> ({dateLine})</Text>}
-                          </Text>
-                          <Text
-                            style={{
-                              marginTop: 14,
-                              marginBottom: 14,
-                              fontSize: customFontSize,
-                              lineHeight: bodyLineHeight,
-                              fontFamily: getFontFamily(customFont),
-                              color: customFontColor,
-                            }}
-                          >
-                            {p.body}
-                          </Text>
-                        </View>
-                      );
-                    })
+                        const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
+                        const eventYear = getYearFromRow(p.row);
+                        const yearLabel = formatYearOnly(eventYear, uiLang); // ← 로컬라이즈된 연도만
+
+                        return (
+                          <View key={p.key} style={{ gap: 6 }}>
+                            <Text style={{ fontWeight: "700" }}>
+                              {label}
+                              {!!yearLabel && (
+                                <Text style={{ fontSize: 12, color: "#64748b" }}> ({yearLabel})</Text>
+                              )}
+                            </Text>
+
+                            <Text
+                              style={{
+                                marginTop: 14,
+                                marginBottom: 14,
+                                fontSize: customFontSize,
+                                lineHeight: bodyLineHeight,
+                                fontFamily: getFontFamily(customFont),
+                                color: customFontColor,
+                              }}
+                            >
+                              {p.body}
+                            </Text>
+                          </View>
+                        );
+                      })
                   )}
                 </View>
 
@@ -1128,46 +909,26 @@ export default function Home() {
             </ScrollView>
           </FullBleedCard>
 
-          {/* 하단 고정형 배너: 탭바 위 */}
+          {/* 하단 고정 배너 (광고) */}
           {ENABLE_BOTTOM_BANNER && (
-            <View
-              pointerEvents="box-none"
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: tabBarHeight - 40,
-                alignItems: "center",
-                zIndex: 10000,
-                elevation: 10000,
-              }}
-            >
+            <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: tabBarHeight - 40, alignItems: "center", zIndex: 10000, elevation: 10000 }}>
               <View style={{ height: bannerHeight }}>
                 <BannerPlaceholder maxWidth={Math.min(340, width - 24)} />
               </View>
             </View>
           )}
 
-          {loading && !err && (
+          {loading && (
             <View style={{ position: "absolute", top: 12, right: 12 }}>
               <ActivityIndicator />
             </View>
           )}
           {!!err && (
-            <View
-              style={{
-                position: "absolute",
-                bottom: 12,
-                left: 12,
-                right: 12,
-                backgroundColor: "#fee2e2",
-                padding: 10,
-                borderRadius: 8,
-              }}
-            >
+            <View style={{ position: "absolute", bottom: 12, left: 12, right: 12, backgroundColor: "#fee2e2", padding: 10, borderRadius: 8 }}>
               <Text style={{ color: "#b91c1c" }}>Error: {err}</Text>
             </View>
           )}
+
           <CopyToast trigger={copyTick} message={COPY_TOAST[uiLang] || COPY_TOAST.en} />
         </>
       )}
