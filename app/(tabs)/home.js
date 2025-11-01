@@ -15,8 +15,8 @@ import { Stack } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "../../lib/amplitude";
 import { scheduleDailyAt, cancelAllScheduled } from "./settings/notification";
-import { fetchHistory } from "../../api/history";            // ← Apps Script API (최적화)
-import { fetchImageForContent } from "../../lib/googleSearch";
+import { fetchHistory } from "../../api/history";
+import { fetchWikipediaImageFromAnchors } from "../../lib/wikipediaSearch";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
 // 개발 모드 콘솔 필터링
@@ -114,6 +114,23 @@ function bodyOfRowByLang(raw, uiLang, cid) {
   const unique = Array.from(new Set([...order, "한국어", "日本語"]));
   return pickFirstNonEmpty(raw, unique);
 }
+
+/**
+ * 언어별 Anchor Text 추출
+ * @param {object} row - 데이터 행 (API에서 이미 enAnchors, koAnchors, jaAnchors 배열로 옴)
+ * @param {string} uiLang - 'ko', 'ja', 'en'
+ * @returns {Array<string>} anchor text 배열
+ */
+function getAnchorTextsForLang(row, uiLang) {
+  const anchorMap = {
+    ko: row.koAnchors || [],
+    ja: row.jaAnchors || [],
+    en: row.enAnchors || [],
+  };
+  
+  return anchorMap[uiLang] || anchorMap.en || [];
+}
+
 function formatRowDate(row, uiLang) {
   let y, m, d;
   const iso = row?.isoDate || row?.dateISO || row?.dateString || "";
@@ -318,16 +335,42 @@ function HeaderHero({ height, bgSource, imageUrl }) {
     </View>
   );
 }
-function BannerPlaceholder({ maxWidth = 340 }) {
+function WikipediaBanner({ imageUrl, maxWidth = 340, cardBg = "none", customBgColor = null }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageFailed, setImageFailed] = useState(false);
   const w = Math.min(maxWidth, AD_TARGET.w);
   const h = Math.round(w / AD_RATIO);
+  
+  // FullBleedCard와 동일한 배경색 로직
+  const BG_MAP = { none: "#FFFFFF", bg1: "#F9FAFB", bg2: "#FFF7ED", bg3: "#ECFEFF" };
+  const bgColor = (customBgColor && typeof customBgColor === "string" && customBgColor.trim()) ? customBgColor : (BG_MAP[cardBg] ?? "#FFFFFF");
+  
   return (
     <View style={{
       width: w, height: h, borderRadius: 12, alignSelf: "center",
-      backgroundColor: "#E5E7EB", borderWidth: 1, borderColor: "#D1D5DB",
-      alignItems: "center", justifyContent: "center",
+      backgroundColor: bgColor,
+      overflow: "hidden"
     }}>
-      <Text style={{ color: "#6B7280", fontWeight: "700" }}>320 × 100 Placeholder</Text>
+      {imageUrl && !imageFailed ? (
+        <>
+          <Image
+            source={{ uri: imageUrl }}
+            style={{ width: "100%", height: "100%" }}
+            resizeMode="contain"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => setImageFailed(true)}
+          />
+          {!imageLoaded && (
+            <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: bgColor }}>
+              <ActivityIndicator color="#6B7280" />
+            </View>
+          )}
+        </>
+      ) : (
+        <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#6B7280", fontWeight: "700" }}>320 × 100 Placeholder</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -344,17 +387,6 @@ function FullBleedCard({ children, topInset, cardBg, customBgColor }) {
   );
 }
 
-// API 호출 및 데이터 정규화
-function normalizeItemsToRows(items, iso, parts) {
-  const mm = String(parts.m).padStart(2, "0");
-  const dd = String(parts.d).padStart(2, "0");
-  return (items || []).map((it) => ({
-    isoDate: iso, date: `D${mm}${dd}`, Date: `D${mm}${dd}`,
-    Year: it.year, year: it.year,
-    English: it.en || "", "한국어": it.ko || "", "日本語": it.ja || "",
-    enAnchors: it.enAnchors, koAnchors: it.koAnchors, jaAnchors: it.jaAnchors,
-  }));
-}
 function resolveQuarterFromMonth(m) {
   const mm = parseInt(String(m), 10);
   if (mm >= 1 && mm <= 3) return "Q1";
@@ -392,12 +424,26 @@ async function loadCache(mode, parts){
   } catch { return null; }
 }
 
-/** 서버 호출 (한국/일본/세계) */
+// API 응답을 정규화
+function normalizeItemsToRows(items, iso, parts) {
+  const mm = String(parts.m).padStart(2, "0");
+  const dd = String(parts.d).padStart(2, "0");
+  return (items || []).map((it) => ({
+    isoDate: iso, date: `D${mm}${dd}`, Date: `D${mm}${dd}`,
+    Year: it.year, year: it.year,
+    English: it.en || "", "한국어": it.ko || "", "日본語": it.ja || "",
+    // Anchor texts (API가 배열로 반환)
+    enAnchors: (it.enAnchors || []).map(a => a?.text).filter(t => t && t !== "#VALUE!"),
+    koAnchors: (it.koAnchors || []).map(a => a?.text).filter(t => t && t !== "#VALUE!"),
+    jaAnchors: (it.jaAnchors || []).map(a => a?.text).filter(t => t && t !== "#VALUE!")
+  }));
+}
+
+/** 서버 호출 (Apps Script API) */
 async function apiFetchForMode(mode, todayParts) {
   const iso = `${todayParts.y}-${String(todayParts.m).padStart(2, "0")}-${String(todayParts.d).padStart(2, "0")}`;
   if (mode === "world") {
     const quarter = resolveQuarterFromMonth(todayParts.m);
-    // 단일 호출 + 실패시에만 1회 폴백
     try {
       const items = await fetchHistory({ mode: "world", date: iso, quarter, n: 20, shuffle: false });
       return normalizeItemsToRows(items, iso, todayParts);
@@ -562,7 +608,7 @@ export default function Home() {
       } catch (e) {
         console.warn("Init restore failed:", e);
       } finally {
-        setHydrated(true); // 기존 내용 유지 위해 loading은 아래 로딩 훅에서 관리
+        setHydrated(true);
       }
     })();
     return () => { alive = false; };
@@ -636,7 +682,7 @@ export default function Home() {
     });
   }, [uiLang]);
 
-  // 데이터 로드: **캐시 → 즉시 표시 → 백그라운드 최신화**
+  // 데이터 로드: 캐시 → 즉시 표시 → 백그라운드 최신화
   useEffect(() => {
     if (!hydrated || !uiLang) return;
     let canceled = false;
@@ -670,25 +716,31 @@ export default function Home() {
           const picks = makePicksFromPool(cachedPools, uiLang, seedKey + "::cache");
           if (picks.length) {
             setOnePick(picks);
-            setLoading(false); // 캐시로 즉시 종결
-            // 헤더 이미지 비동기
+            setLoading(false);
+            
+            // Wikipedia 이미지 검색 (비동기)
             setTimeout(async () => {
               try {
-                const searchQuery = picks[0]?.body || "";
-                if (searchQuery) {
-                  const imageUrl = await fetchImageForContent(searchQuery);
-                  if (!canceled && imageUrl) setHeaderImageUrl(imageUrl);
+                const anchorTexts = getAnchorTextsForLang(picks[0].row, uiLang);
+                console.log('Fetching Wikipedia image for anchors:', anchorTexts);
+                
+                const imageUrl = await fetchWikipediaImageFromAnchors(anchorTexts, uiLang);
+                if (!canceled && imageUrl) {
+                  console.log('Wikipedia image found:', imageUrl);
+                  setHeaderImageUrl(imageUrl);
                 }
-              } catch {}
+              } catch (e) {
+                console.warn('Wikipedia image fetch failed:', e);
+              }
             }, 0);
           }
         }
 
-        // 2) 네트워크로 최신화(백그라운드) — 한국/일본 포함 확실
+        // 2) 네트워크로 최신화(백그라운드)
         const pool = [];
         for (const cid of chosen) {
           const rows = await apiFetchForMode(cid, todayParts);
-          await saveCache(cid, todayParts, rows); // 최신 캐시 저장
+          await saveCache(cid, todayParts, rows);
           for (const r of rows) {
             const body = bodyOfRowByLang(r, uiLang, cid);
             if (!hasAnyText(body)) continue;
@@ -700,13 +752,14 @@ export default function Home() {
           const picks = makePicksFromPool(pool, uiLang, seedKey + "::net");
           setOnePick(picks);
           setLoading(false);
-          // 헤더 이미지 비동기
+          
+          // Wikipedia 이미지 검색 (비동기)
           setTimeout(async () => {
             try {
-              const searchQuery = picks[0]?.body || "";
-              if (searchQuery) {
-                const imageUrl = await fetchImageForContent(searchQuery);
-                if (!canceled && imageUrl) setHeaderImageUrl(imageUrl);
+              const anchorTexts = getAnchorTextsForLang(picks[0].row, uiLang);
+              const imageUrl = await fetchWikipediaImageFromAnchors(anchorTexts, uiLang);
+              if (!canceled && imageUrl) {
+                setHeaderImageUrl(imageUrl);
               }
             } catch {}
           }, 0);
@@ -774,7 +827,7 @@ export default function Home() {
     return () => { offShare && offShare(); };
   }, [onCopyPress]);
 
-  // (생략 가능) 알림/공유 캐시 업데이트 — 필요 로직 유지
+  // 알림/공유 캐시 업데이트
   useEffect(() => {
     (async () => {
       try {
@@ -802,7 +855,6 @@ export default function Home() {
         });
         const shareText = [header, ...blocks, APP_DOWNLOAD_URL].join("\n\n");
 
-        // 필요 시 전역캐시/AsyncStorage 갱신 …
         await AsyncStorage.setItem("@notification_body", notificationBody);
       } catch {}
     })();
@@ -845,7 +897,7 @@ export default function Home() {
           <Stack.Screen options={{ headerShown: false, freezeOnBlur: true }} />
 
           {/* 1) 헤더 이미지 */}
-          <HeaderHero height={HEADER_H + 15} bgSource={require("../../assets/bg-images/k-photo1.jpg")} imageUrl={headerImageUrl} />
+          <HeaderHero height={HEADER_H + 15} bgSource={require("../../assets/bg-images/k-photo1.jpg")} imageUrl={null} />
 
           {/* 2) 나라 선택 */}
           <View pointerEvents="box-none" style={{ position: "absolute", top: insets.top + TOP_PX, left: 0, right: 0, alignItems: "center", zIndex: 3 }}>
@@ -875,7 +927,7 @@ export default function Home() {
                     list.map((p) => {
                         const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
                         const eventYear = getYearFromRow(p.row);
-                        const yearLabel = formatYearOnly(eventYear, uiLang); // ← 로컬라이즈된 연도만
+                        const yearLabel = formatYearOnly(eventYear, uiLang);
 
                         return (
                           <View key={p.key} style={{ gap: 6 }}>
@@ -909,11 +961,16 @@ export default function Home() {
             </ScrollView>
           </FullBleedCard>
 
-          {/* 하단 고정 배너 (광고) */}
+          {/* 하단 고정 배너 (Wikipedia 이미지) */}
           {ENABLE_BOTTOM_BANNER && (
             <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: tabBarHeight - 40, alignItems: "center", zIndex: 10000, elevation: 10000 }}>
               <View style={{ height: bannerHeight }}>
-                <BannerPlaceholder maxWidth={Math.min(340, width - 24)} />
+                <WikipediaBanner 
+                  imageUrl={headerImageUrl} 
+                  maxWidth={Math.min(340, width - 24)}
+                  cardBg={cardBg}
+                  customBgColor={customBgColor}
+                />
               </View>
             </View>
           )}
