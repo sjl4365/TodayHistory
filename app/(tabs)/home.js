@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import {
   ActivityIndicator, Text, View, Pressable, ScrollView, Animated, Easing,
   useWindowDimensions, Platform, InteractionManager, Image, StyleSheet, StatusBar,
+  Linking, RefreshControl, Share as NativeShare,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onRefresh, onGoPrevDay, onGoNextDay, onShareAttach } from "../../lib/bus";
@@ -17,7 +18,9 @@ import { initAmplitude, trackEvent, setUserProperties, AMPLITUDE_EVENTS } from "
 import { scheduleDailyAt, cancelAllScheduled } from "./settings/notification";
 import { fetchHistory } from "../../api/history";
 import { fetchWikipediaImageFromAnchors } from "../../lib/wikipediaSearch";
+import { fetchImageForContent } from "../../lib/googleSearch";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { getLocalHistory, monthToQuarter } from "../../lib/localHistory";
 
 // 개발 모드 콘솔 필터링
 if (__DEV__) {
@@ -57,6 +60,7 @@ const UI_STR = {
     ja: { prev: "昨日の歴史", today: "今日の歴史", next: "明日の歴史" },
   },
   empty: { ko: "표시할 항목이 없습니다.", en: "No items to display.", ja: "表示する項目がありません。" },
+  imageLoading: { ko: "사진을 불러오는 중입니다…", en: "Loading image…", ja: "画像を読み込み中…" },
 };
 const COPY_TOAST = { ko: "복사", en: "Copied", ja: "コピーしました" };
 const SOURCE_LABEL = { ko: "출처", en: "Source", ja: "出典" };
@@ -115,52 +119,52 @@ function bodyOfRowByLang(raw, uiLang, cid) {
   return pickFirstNonEmpty(raw, unique);
 }
 
-/**
- * 언어별 Anchor Text 추출
- * @param {object} row - 데이터 행 (API에서 이미 enAnchors, koAnchors, jaAnchors 배열로 옴)
- * @param {string} uiLang - 'ko', 'ja', 'en'
- * @returns {Array<string>} anchor text 배열
- */
-function getAnchorTextsForLang(row, uiLang) {
-  const anchorMap = {
-    ko: row.koAnchors || [],
-    ja: row.jaAnchors || [],
-    en: row.enAnchors || [],
-  };
-  
-  return anchorMap[uiLang] || anchorMap.en || [];
-}
+/** 언어별 앵커 배열(텍스트+URL) 통합 추출 */
+function getAnchorsForLang(row, uiLang) {
+  const byArr = {
+    en: row?.enAnchors || [],
+    ko: row?.koAnchors || [],
+    ja: row?.jaAnchors || [],
+  }[uiLang] || [];
+  const arrNormalized = byArr
+    .map(a => ({ text: a?.text || "", url: a?.url || "" }))
+    .filter(a => a.text || a.url);
 
-function formatRowDate(row, uiLang) {
-  let y, m, d;
-  const iso = row?.isoDate || row?.dateISO || row?.dateString || "";
-  const dateStr = row?.Date || row?.date || row?.__DATE || "";
-  const trySplit = (s) => {
-    if (!s || typeof s !== "string") return null;
-    const mat = s.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
-    if (mat) return { y: mat[1], m: mat[2], d: mat[3] };
-    return null;
-  };
-  const isoHit = trySplit(iso);
-  const dateHit = trySplit(dateStr);
-  if (isoHit) ({ y, m, d } = isoHit);
-  else if (dateHit) ({ y, m, d } = dateHit);
-  else {
-    y = String(row?.Year || row?.year || "").trim() || "";
-    if (typeof dateStr === "string" && /^\d{2}-\d{2}$/.test(dateStr.trim())) {
-      const [mm, dd] = dateStr.trim().split("-");
-      m = mm; d = dd;
-    } else if (row?.month && row?.day) {
-      m = String(row.month).padStart(2, "0"); d = String(row.day).padStart(2, "0");
+  const colMap = {
+    en: [
+      { t: "Anchor_text1_english", u: "URL1_english" },
+      { t: "Anchor_text2_english", u: "URL2_english" },
+    ],
+    ko: [
+      { t: "Anchor_text1_korean", u: "URL1_korean" },
+      { t: "Anchor_text2_korean", u: "URL2_korean" },
+    ],
+    ja: [
+      { t: "Anchor_text1_japanese", u: "URL1_japanese" },
+      { t: "Anchor_text2_japanese", u: "URL2_japanese" },
+    ],
+  }[uiLang] || [];
+
+  const byCols = colMap
+    .map(({ t, u }) => ({
+      text: String(row?.[t] || "").trim(),
+      url: String(row?.[u] || "").trim(),
+    }))
+    .filter(a => a.text || a.url);
+
+  const merged = [...arrNormalized, ...byCols];
+  const dedup = [];
+  const seen = new Set();
+  for (const a of merged) {
+    const key = `${a.text}__${a.url}`;
+    if (!seen.has(key) && (a.text || a.url)) {
+      seen.add(key);
+      dedup.push(a);
     }
   }
-  const L = {
-    ko: (Y, M, D) => [Y && `${Y}년`, M && `${parseInt(M, 10)}월`, D && `${parseInt(D, 10)}일`].filter(Boolean).join(" "),
-    ja: (Y, M, D) => [Y && `${Y}年`, M && `${parseInt(M, 10)}月`, D && `${parseInt(D, 10)}日`].filter(Boolean).join(" "),
-    en: (Y, M, D) => [M && parseInt(M, 10), D && parseInt(D, 10), Y].filter(Boolean).join(" "),
-  }[uiLang] || ((Y, M, D) => [Y, M, D].filter(Boolean).join("-"));
-  return L(y || "", m || "", d || "") || "";
+  return dedup;
 }
+
 function getMonthDayOnly(baseDate, uiLang, tz) {
   return baseDate.toLocaleDateString(LOCALE_BY_LANG[uiLang] || "en-US", { month: "long", day: "numeric", timeZone: tz });
 }
@@ -209,47 +213,47 @@ function ensureNonEmptySelection(inputSet, uiLang) {
 }
 
 // 토스트
-function CopyToast({ trigger, message }) {
-  const [visible, setVisible] = useState(false);
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(10)).current;
-  const mounted = useRef(false);
-  const lastSeen = useRef(trigger);
-  const insets = useSafeAreaInsets();
-  const bottom = (insets && typeof insets.bottom === "number") ? insets.bottom : 0;
+// function CopyToast({ trigger, message }) {
+//   const [visible, setVisible] = useState(false);
+//   const opacity = useRef(new Animated.Value(0)).current;
+//   const translateY = useRef(new Animated.Value(10)).current;
+//   const mounted = useRef(false);
+//   const lastSeen = useRef(trigger);
+//   const insets = useSafeAreaInsets();
+//   const bottom = (insets && typeof insets.bottom === "number") ? insets.bottom : 0;
 
-  useEffect(() => {
-    if (!mounted.current) { mounted.current = true; lastSeen.current = trigger; return; }
-    if (!trigger || trigger === lastSeen.current) return;
-    lastSeen.current = trigger;
+//   useEffect(() => {
+//     if (!mounted.current) { mounted.current = true; lastSeen.current = trigger; return; }
+//     if (!trigger || trigger === lastSeen.current) return;
+//     lastSeen.current = trigger;
 
-    setVisible(true);
-    Animated.parallel([
-      Animated.timing(opacity, { toValue: 1, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(translateY, { toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-    ]).start(() => {
-      const t = setTimeout(() => {
-        Animated.parallel([
-          Animated.timing(opacity, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-          Animated.timing(translateY, { toValue: 10, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-        ]).start(() => setVisible(false));
-      }, 1000);
-      return () => clearTimeout(t);
-    });
-  }, [trigger, opacity, translateY]);
+//     setVisible(true);
+//     Animated.parallel([
+//       Animated.timing(opacity, { toValue: 1, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+//       Animated.timing(translateY, { toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+//     ]).start(() => {
+//       const t = setTimeout(() => {
+//         Animated.parallel([
+//           Animated.timing(opacity, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+//           Animated.timing(translateY, { toValue: 10, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
+//         ]).start(() => setVisible(false));
+//       }, 1000);
+//       return () => clearTimeout(t);
+//     });
+//   }, [trigger, opacity, translateY]);
 
-  if (!visible) return null;
-  return (
-    <Animated.View pointerEvents="none" style={{
-      position: "absolute", left: 0, right: 0, bottom: bottom + 24, alignItems: "center",
-      opacity, transform: [{ translateY }], zIndex: 9999, elevation: 9999,
-    }}>
-      <View style={{ backgroundColor: "#111827", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 }}>
-        <Text style={{ color: "white", fontWeight: "700" }}>{message}</Text>
-      </View>
-    </Animated.View>
-  );
-}
+//   if (!visible) return null;
+//   return (
+//     <Animated.View pointerEvents="none" style={{
+//       position: "absolute", left: 0, right: 0, bottom: bottom + 24, alignItems: "center",
+//       opacity, transform: [{ translateY }], zIndex: 9999, elevation: 9999,
+//     }}>
+//       <View style={{ backgroundColor: "#111827", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 }}>
+//         <Text style={{ color: "white", fontWeight: "700" }}>{message}</Text>
+//       </View>
+//     </Animated.View>
+//   );
+// }
 
 //  UI 스케일링
 function useUIScale() {
@@ -301,7 +305,7 @@ function SegmentedCountrySelector({ uiLang, ordered, value, onChange, fixedHeigh
                 <Image source={FLAG_ICON[iconId]} style={{ width: ICON, height: ICON, marginRight: 6, opacity: active ? 1 : 0.9 }} resizeMode="contain" />
               )}
               <Text style={{
-                fontWeight: "700", fontSize: scale(13), color: "#000",
+                fontWeight: "700", fontSize: useUIScale().scale(13), color: "#000",
                 textShadowColor: active ? "transparent" : "rgba(0,0,0,0.25)",
                 textShadowOffset: active ? undefined : { width: 0, height: 1 }, textShadowRadius: active ? 0 : 2,
               }}>
@@ -315,36 +319,39 @@ function SegmentedCountrySelector({ uiLang, ordered, value, onChange, fixedHeigh
   );
 }
 
-// 헤더 이미지
-function HeaderHero({ height, bgSource, imageUrl }) {
+// 헤더 이미지 (헤더는 assets만 사용)
+function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   return (
     <View style={{ height, width: "100%", position: "relative", zIndex: 0 }}>
       <Image
-        source={imageUrl && !imageFailed ? { uri: imageUrl } : bgSource || require("../../assets/bg-images/k-photo1.jpg")}
+        source={bgSource || require("../../assets/bg-images/k-photo1.jpg")}
         style={{ width: "100%", height: "100%" }} resizeMode="cover" pointerEvents="none"
         onLoad={() => setImageLoaded(true)} onError={() => { setImageFailed(true); }}
       />
       {imageUrl && !imageLoaded && !imageFailed && (
-        <View style={{ position: "absolute", top:0, left:0, right:0, bottom:0, alignItems:"center", justifyContent:"center", backgroundColor:"rgba(0,0,0,0.3)" }}>
+        <View style={{ position: "absolute", top:0, left:0, right:0, bottom:0, alignItems:"center", justifyContent:"center", backgroundColor:"rgba(0,0,0,0.35)" }}>
           <ActivityIndicator color="#fff" />
+          <Text style={{ marginTop: 8, color: "#fff", fontWeight: "700" }}>
+            {UI_STR.imageLoading[uiLang] || UI_STR.imageLoading.en}
+          </Text>
         </View>
       )}
       <View pointerEvents="none" style={{ ...StyleSheet.absoluteFillObject, backgroundColor: "rgba(0,0,0,0.12)" }} />
     </View>
   );
 }
-function WikipediaBanner({ imageUrl, maxWidth = 340, cardBg = "none", customBgColor = null }) {
+
+function WikipediaBanner({ imageUrl, maxWidth = 340, cardBg = "none", customBgColor = null, uiLang = "en" }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
   const w = Math.min(maxWidth, AD_TARGET.w);
   const h = Math.round(w / AD_RATIO);
-  
-  // FullBleedCard와 동일한 배경색 로직
+
   const BG_MAP = { none: "#FFFFFF", bg1: "#F9FAFB", bg2: "#FFF7ED", bg3: "#ECFEFF" };
   const bgColor = (customBgColor && typeof customBgColor === "string" && customBgColor.trim()) ? customBgColor : (BG_MAP[cardBg] ?? "#FFFFFF");
-  
+
   return (
     <View style={{
       width: w, height: h, borderRadius: 12, alignSelf: "center",
@@ -362,7 +369,10 @@ function WikipediaBanner({ imageUrl, maxWidth = 340, cardBg = "none", customBgCo
           />
           {!imageLoaded && (
             <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, alignItems: "center", justifyContent: "center", backgroundColor: bgColor }}>
-              <ActivityIndicator color="#6B7280" />
+              <ActivityIndicator />
+              <Text style={{ marginTop: 6, color: "#6B7280", fontSize: 12 }}>
+                {UI_STR.imageLoading[uiLang] || UI_STR.imageLoading.en}
+              </Text>
             </View>
           )}
         </>
@@ -387,31 +397,21 @@ function FullBleedCard({ children, topInset, cardBg, customBgColor }) {
   );
 }
 
-function resolveQuarterFromMonth(m) {
-  const mm = parseInt(String(m), 10);
-  if (mm >= 1 && mm <= 3) return "Q1";
-  if (mm >= 4 && mm <= 6) return "Q2";
-  if (mm >= 7 && mm <= 9) return "Q3";
-  return "Q4";
-}
-
 function formatYearOnly(year, uiLang) {
   const y = String(year || "").trim();
   if (!y) return "";
   if (uiLang === "ko") return `${y}년`;
   if (uiLang === "ja") return `${y}年`;
-  return y; 
+  return y;
 }
 
-/** 캐시 키 */
+/** 캐시 키/저장/로드 */
 function cacheKey(mode, parts){ return `@hist_cache:${mode}:${String(parts.m).padStart(2,"0")}${String(parts.d).padStart(2,"0")}`; }
-/** 캐시 저장 */
 async function saveCache(mode, parts, rows){
   const key = cacheKey(mode, parts);
   const payload = JSON.stringify({ t: Date.now(), rows });
   try { await AsyncStorage.setItem(key, payload); } catch {}
 }
-/** 캐시 로드 (TTL 검사) */
 async function loadCache(mode, parts){
   const key = cacheKey(mode, parts);
   try {
@@ -419,31 +419,38 @@ async function loadCache(mode, parts){
     if (!raw) return null;
     const obj = JSON.parse(raw);
     if (!obj?.t || !Array.isArray(obj?.rows)) return null;
-    if (Date.now() - obj.t > DATA_CACHE_TTL_MS) return null; // TTL 만료
+    if (Date.now() - obj.t > DATA_CACHE_TTL_MS) return null;
     return obj.rows;
   } catch { return null; }
 }
 
-// API 응답을 정규화
+// API/로컬 응답 정규화 (앵커 유지)
 function normalizeItemsToRows(items, iso, parts) {
   const mm = String(parts.m).padStart(2, "0");
   const dd = String(parts.d).padStart(2, "0");
   return (items || []).map((it) => ({
     isoDate: iso, date: `D${mm}${dd}`, Date: `D${mm}${dd}`,
     Year: it.year, year: it.year,
-    English: it.en || "", "한국어": it.ko || "", "日본語": it.ja || "",
-    // Anchor texts (API가 배열로 반환)
-    enAnchors: (it.enAnchors || []).map(a => a?.text).filter(t => t && t !== "#VALUE!"),
-    koAnchors: (it.koAnchors || []).map(a => a?.text).filter(t => t && t !== "#VALUE!"),
-    jaAnchors: (it.jaAnchors || []).map(a => a?.text).filter(t => t && t !== "#VALUE!")
+    English: it.en || "", "한국어": it.ko || "", "日本語": it.ja || "",
+    enAnchors: (it.enAnchors || []).map(a => ({ text: a?.text, url: a?.url })).filter(a => (a.text && a.text !== "#VALUE!") || a.url),
+    koAnchors: (it.koAnchors || []).map(a => ({ text: a?.text, url: a?.url })).filter(a => (a.text && a.text !== "#VALUE!") || a.url),
+    jaAnchors: (it.jaAnchors || []).map(a => ({ text: a?.text, url: a?.url })).filter(a => (a.text && a.text !== "#VALUE!") || a.url),
   }));
 }
 
-/** 서버 호출 (Apps Script API) */
+/** 로컬(Q1~Q4) 우선 → API 폴백 */
 async function apiFetchForMode(mode, todayParts) {
   const iso = `${todayParts.y}-${String(todayParts.m).padStart(2, "0")}-${String(todayParts.d).padStart(2, "0")}`;
+
+  try {
+    const local = getLocalHistory(mode, todayParts);
+    if (Array.isArray(local) && local.length) {
+      return normalizeItemsToRows(local, iso, todayParts);
+    }
+  } catch {}
+
   if (mode === "world") {
-    const quarter = resolveQuarterFromMonth(todayParts.m);
+    const quarter = monthToQuarter(todayParts.m);
     try {
       const items = await fetchHistory({ mode: "world", date: iso, quarter, n: 20, shuffle: false });
       return normalizeItemsToRows(items, iso, todayParts);
@@ -452,47 +459,48 @@ async function apiFetchForMode(mode, todayParts) {
       return normalizeItemsToRows(items2, iso, todayParts);
     }
   }
-  // korea / japan
   const items = await fetchHistory({ mode, date: iso, n: 20, shuffle: false });
   return normalizeItemsToRows(items, iso, todayParts);
 }
 
-// 홈 화면용 파라미터 불러오기
-export async function getLastHomeParams() {
-  const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC";
-  const deviceLang = resolveUiLangFromDevice();
-  const storedLang = await AsyncStorage.getItem(STORAGE_KEY_UI_LANG).catch(() => null);
-  const uiLang = storedLang === "ko" || storedLang === "en" || storedLang === "ja" ? storedLang : deviceLang;
+/** 본문 아래 앵커: 텍스트만 파란색/밑줄로, 탭 시 URL 열기 */
+function AnchorList({ anchors, uiLang }) {
+  if (!anchors || !anchors.length) return null;
 
-  let selectedCountries;
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY_SELECTED).catch(() => null);
-    const arr = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(arr) && arr.length) selectedCountries = arr;
-  } catch {}
-  if (!selectedCountries) selectedCountries = (DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default).slice();
-
-  const today = startOfDayInTz(new Date(), tz);
-  return { today, selectedCountries, uiLang, tz };
+  return (
+    <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap" }}>
+      {anchors.map((a, idx) => {
+        const text = String(a?.text || "").trim();
+        const url  = String(a?.url  || "").trim();
+        if (!text) return null;
+        const onPress = () => { if (url) Linking.openURL(url).catch(() => {}); };
+        return (
+          <Pressable
+            key={`${text}-${url}-${idx}`}
+            onPress={onPress}
+            disabled={!url}
+            accessibilityRole="link"
+            hitSlop={6}
+            style={{ marginRight: 10, marginBottom: 4 }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                color: url ? "#2563EB" : "#6B7280",
+                textDecorationLine: url ? "underline" : "none",
+                fontWeight: "600",
+              }}
+              numberOfLines={1}
+            >
+              {text}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
 }
-export async function loadOnePickForDay({ today, selectedCountries, uiLang }) {
-  const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || "UTC";
-  const todayParts = getDayPartsFrom(today, tz);
-  const chosen = Array.isArray(selectedCountries) ? selectedCountries : [...selectedCountries];
 
-  const pool = [];
-  for (const cid of chosen) {
-    const rows = await apiFetchForMode(cid, todayParts);
-    for (const r of rows) {
-      const body = bodyOfRowByLang(r, uiLang, cid);
-      if (!hasAnyText(body)) continue;
-      const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
-      pool.push({ cid, row: r, key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`, body });
-    }
-  }
-  const stableKey = `${startOfDayInTz(today, tz).toISOString()}__${uiLang}__${chosen.slice().sort().join(",")}`;
-  return makePicksFromPool(pool, uiLang, stableKey);
-}
 
 // 홈 화면 컴포넌트
 export default function Home() {
@@ -514,6 +522,7 @@ export default function Home() {
   const [err, setErr] = useState("");
   const [refreshTick, setRefreshTick] = useState(0);
   const [copyTick, setCopyTick] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [headerImageUrl, setHeaderImageUrl] = useState(null);
 
@@ -548,30 +557,111 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  /* 날짜 이동 */
+  // ---- 날짜 이동: 오늘 기준 -1/0/+1만 ----
   const DAY_MS = 86400000;
-  const getIndexFromToday = useCallback((date) => {
-    const base0 = startOfDayInTz(date, tz).getTime();
-    const today0 = startOfDayInTz(new Date(), tz).getTime();
-    return Math.round((base0 - today0) / DAY_MS);
+  const idxFromToday = useCallback((dt) => {
+    const todayStart = startOfDayInTz(new Date(), tz).getTime();
+    const tgtStart = startOfDayInTz(dt, tz).getTime();
+    const diff = Math.round((tgtStart - todayStart) / DAY_MS);
+    return Math.max(-1, Math.min(1, diff));
   }, [tz]);
-  const goBy = useCallback((delta) => {
-    setBaseDate((prev) => {
-      const curIdx = getIndexFromToday(prev);
-      const nextIdx = Math.max(-1, Math.min(1, curIdx + delta)); // 어제/오늘/내일
-      if (nextIdx === curIdx) return prev;
-      const today0 = startOfDayInTz(new Date(), tz);
-      const target = new Date(today0); target.setDate(target.getDate() + nextIdx);
-      return target;
-    });
-  }, [tz, getIndexFromToday]);
 
+  const setDayIndex = useCallback((idx) => {
+    const clamped = Math.max(-1, Math.min(1, idx));
+    const todayStart = startOfDayInTz(new Date(), tz);
+    const next = new Date(todayStart);
+    next.setDate(todayStart.getDate() + clamped);
+    if (idxFromToday(baseDate) === clamped) return; // 동일 인덱스면 무시(깜빡임 방지)
+    setBaseDate(next);
+  }, [tz, baseDate, idxFromToday]);
+
+  const goBy = useCallback((delta) => {
+    const cur = idxFromToday(baseDate);
+    const next = Math.max(-1, Math.min(1, cur + (delta < 0 ? -1 : delta > 0 ? 1 : 0)));
+    setDayIndex(next);
+  }, [baseDate, idxFromToday, setDayIndex]);
+
+  // ===== 공유/복사 페이로드 빌더 =====
+  const buildSharePayload = useCallback(() => {
+    const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
+    const header = getMonthDayOnly(today0, uiLang || "en", tz);
+    const appName = APP_NAME_BY_LANG[uiLang || "en"] || APP_NAME_BY_LANG.en;
+    const sourceLabel = SOURCE_LABEL[uiLang || "en"] || SOURCE_LABEL.en;
+
+    const blocks = (list || []).map((p) => {
+      const label = COUNTRY_CFG[p.cid]?.label?.[uiLang || "en"] || p.cid;
+      const yr = getYearFromRow(p.row) || "";
+      const content = (p.body || "").trim();
+      const anchors = getAnchorsForLang(p.row, uiLang || "en").slice(0, 2);
+      const anchorLines = anchors
+        .map(a => {
+          const text = (a?.text || "").trim();
+          const url  = (a?.url  || "").trim();
+          // 1) 텍스트와 URL 모두 있으면: "텍스트 — URL"
+          if (text && url) return `${text} — ${url}`;
+          // 2) URL만 있으면: "URL"
+          if (url) return url;
+          // 3) 텍스트만 있으면: "텍스트"
+          if (text) return text;
+          return null;
+        })
+        .filter(Boolean);
+
+
+      return [label, yr, content, ...anchorLines, `${sourceLabel}: ${appName}`]
+        .filter(Boolean).join("\n");
+    });
+
+    const payload = [header, ...blocks, APP_DOWNLOAD_URL].join("\n\n");
+    return { header, payload };
+  }, [onePick, today0, uiLang, tz]);
+
+  // ===== 시스템 공유 시트 (네비게이션 바 Share) =====
+  const onSystemSharePress = useCallback(async () => {
+    try {
+      const { header, payload } = buildSharePayload();
+      try {
+        await NativeShare.share({ message: payload, title: header });
+        return;
+      } catch (_) {}
+      if (await Sharing.isAvailableAsync()) {
+        const uri = FileSystem.cacheDirectory + `history_${Date.now()}.txt`;
+        await FileSystem.writeAsStringAsync(uri, payload, { encoding: FileSystem.EncodingType.UTF8 });
+        await Sharing.shareAsync(uri, { dialogTitle: header, UTI: "public.plain-text", mimeType: "text/plain" });
+        return;
+      }
+      await Clipboard.setStringAsync(payload);
+      setCopyTick((t) => t + 1);
+    } catch {}
+  }, [buildSharePayload]);
+
+  // 버스 핸들러들
   useEffect(() => {
-    const offPrev = onGoPrevDay?.(() => { if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, { language: uiLang, countries: [...selectedCountries] }); goBy(-1); });
-    const offNext = onGoNextDay?.(() => { if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, { language: uiLang, countries: [...selectedCountries] }); goBy(+1); });
-    const offRefresh = onRefresh?.(() => { if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, { language: uiLang, countries: [...selectedCountries] }); setRefreshTick((t) => t + 1); });
-    return () => { offPrev && offPrev(); offNext && offNext(); offRefresh && offRefresh(); };
-  }, [goBy, uiLang, selectedCountries]);
+    const offPrev = onGoPrevDay?.(() => {
+      if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, { language: uiLang, countries: [...selectedCountries] });
+      goBy(-1);
+    });
+    const offNext = onGoNextDay?.(() => {
+      if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, { language: uiLang, countries: [...selectedCountries] });
+      goBy(+1);
+    });
+    const offRefresh = onRefresh?.(() => {
+      if (amplitudeReadyRef.current) trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, { language: uiLang, countries: [...selectedCountries] });
+      handlePullToRefresh();
+    });
+    const offShare = onShareAttach?.(() => {
+      onSystemSharePress();
+    });
+    return () => { offPrev && offPrev(); offNext && offNext(); offRefresh && offRefresh(); offShare && offShare(); };
+  }, [goBy, uiLang, selectedCountries, onSystemSharePress]);
+
+  // 당겨서 새로고침
+  const fetchingRef = useRef(false);
+  const handlePullToRefresh = useCallback(() => {
+    if (fetchingRef.current) return;
+    setIsRefreshing(true);
+    setRefreshTick(t => t + 1);
+  }, []);
 
   /* 초기 복원 */
   useEffect(() => {
@@ -682,14 +772,19 @@ export default function Home() {
     });
   }, [uiLang]);
 
-  // 데이터 로드: 캐시 → 즉시 표시 → 백그라운드 최신화
+  const endLoading = useCallback(() => {
+    setLoading(false);
+    setIsRefreshing(false);
+  }, []);
+
+  // 데이터 로드: 캐시 → 즉시 표시 → 네트워크 최신화
   useEffect(() => {
     if (!hydrated || !uiLang) return;
     let canceled = false;
+    fetchingRef.current = true;
     (async () => {
       try {
         setErr("");
-        setLoading(true);
 
         const safeSelected = ensureNonEmptySelection(selectedCountries, uiLang);
         if (!equalSets(safeSelected, selectedCountries)) {
@@ -697,9 +792,9 @@ export default function Home() {
           try { await AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...safeSelected])); } catch {}
         }
         const chosen = [...safeSelected];
-        if (!chosen.length) { if (!canceled) setLoading(false); return; }
+        if (!chosen.length) { if (!canceled) endLoading(); return; }
 
-        // 1) 캐시 먼저 모아서 즉시 노출
+        // 1) 캐시 먼저
         const cachedPools = [];
         for (const cid of chosen) {
           const c = await loadCache(cid, todayParts);
@@ -712,31 +807,30 @@ export default function Home() {
             }
           }
         }
-        if (!canceled && cachedPools.length) {
-          const picks = makePicksFromPool(cachedPools, uiLang, seedKey + "::cache");
+        const hadCache = cachedPools.length > 0;
+        if (!canceled && hadCache) {
+          const picks = makePicksFromPool(cachedPools, uiLang, seedKey);
           if (picks.length) {
             setOnePick(picks);
-            setLoading(false);
-            
-            // Wikipedia 이미지 검색 (비동기)
+            endLoading();
             setTimeout(async () => {
               try {
-                const anchorTexts = getAnchorTextsForLang(picks[0].row, uiLang);
-                console.log('Fetching Wikipedia image for anchors:', anchorTexts);
-                
-                const imageUrl = await fetchWikipediaImageFromAnchors(anchorTexts, uiLang);
-                if (!canceled && imageUrl) {
-                  console.log('Wikipedia image found:', imageUrl);
-                  setHeaderImageUrl(imageUrl);
+                const anchors = getAnchorsForLang(picks[0].row, uiLang).map(a => a.text).filter(Boolean);
+                let imageUrl = null;
+                try { imageUrl = await fetchWikipediaImageFromAnchors(anchors, uiLang); } catch {}
+                if (!imageUrl) {
+                  const y = getYearFromRow(picks[0].row);
+                  const q = picks[0].body;
+                  imageUrl = await fetchImageForContent(q, y, picks[0].cid).catch(() => null);
                 }
-              } catch (e) {
-                console.warn('Wikipedia image fetch failed:', e);
-              }
+                if (!canceled && imageUrl) setHeaderImageUrl(imageUrl);
+              } catch (e) { console.warn("Banner image fetch failed:", e); }
             }, 0);
           }
         }
+        if (!hadCache) setLoading(true);
 
-        // 2) 네트워크로 최신화(백그라운드)
+        // 2) 네트워크 최신화
         const pool = [];
         for (const cid of chosen) {
           const rows = await apiFetchForMode(cid, todayParts);
@@ -749,38 +843,38 @@ export default function Home() {
           }
         }
         if (!canceled && pool.length) {
-          const picks = makePicksFromPool(pool, uiLang, seedKey + "::net");
+          const picks = makePicksFromPool(pool, uiLang, seedKey );
           setOnePick(picks);
-          setLoading(false);
-          
-          // Wikipedia 이미지 검색 (비동기)
+          endLoading();
           setTimeout(async () => {
             try {
-              const anchorTexts = getAnchorTextsForLang(picks[0].row, uiLang);
-              const imageUrl = await fetchWikipediaImageFromAnchors(anchorTexts, uiLang);
-              if (!canceled && imageUrl) {
-                setHeaderImageUrl(imageUrl);
+              const anchors = getAnchorsForLang(picks[0].row, uiLang).map(a => a.text).filter(Boolean);
+              let imageUrl = null;
+              try { imageUrl = await fetchWikipediaImageFromAnchors(anchors, uiLang); } catch {}
+              if (!imageUrl) {
+                const y = getYearFromRow(picks[0].row);
+                const q = picks[0].body;
+                imageUrl = await fetchImageForContent(q, y, picks[0].cid).catch(() => null);
               }
+              if (!canceled && imageUrl) setHeaderImageUrl(imageUrl);
             } catch {}
           }, 0);
-        } else if (!cachedPools.length && !canceled) {
+        } else if (!hadCache && !canceled) {
           setOnePick([]);
           setHeaderImageUrl(null);
-          setLoading(false);
+          endLoading();
         }
-
       } catch (e) {
-        if (!canceled) { setErr(String(e?.message || e)); setLoading(false); }
+        if (!canceled) { setErr(String(e?.message || e)); endLoading(); }
       }
-    })();
+    })().finally(() => { fetchingRef.current = false; });
     return () => { canceled = true; };
-  }, [hydrated, todayParts, uiLang, selectedCountries, seedKey]);
+  }, [hydrated, todayParts, uiLang, selectedCountries, seedKey, endLoading]);
 
   const deltaDay = useMemo(() => {
-    const todayBase = startOfDayInTz(new Date(), tz).getTime();
-    const diff = Math.round((today0.getTime() - todayBase) / 86400000);
-    return diff < 0 ? -1 : diff > 0 ? 1 : 0;
-  }, [today0, tz]);
+    const idx = idxFromToday(baseDate);
+    return idx; // -1 / 0 / +1
+  }, [baseDate, idxFromToday]);
 
   const handleCountriesChange = useCallback((nextSetRaw) => {
     const ensured = ensureNonEmptySelection(nextSetRaw, uiLang);
@@ -796,20 +890,10 @@ export default function Home() {
     setRefreshTick((t) => t + 1);
   }, [selectedCountries, uiLang]);
 
+  // 복사(오버레이 버튼/폴백 용)
   const onCopyPress = useCallback(async () => {
     try {
-      const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
-      const header = getMonthDayOnly(today0, uiLang, tz);
-      const appName = APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en;
-      const sourceLabel = SOURCE_LABEL[uiLang] || SOURCE_LABEL.en;
-      const blocks = (list || []).map((p) => {
-        const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
-        const yr = getYearFromRow(p.row) || "";
-        const content = (p.body || "").trim();
-        return [label, yr, content, `${sourceLabel}: ${appName}`].filter(Boolean).join("\n");
-      });
-      const payload = [header, ...blocks, APP_DOWNLOAD_URL].join("\n\n");
-
+      const { header, payload } = buildSharePayload();
       await Clipboard.setStringAsync(payload);
       setCopyTick((t) => t + 1);
 
@@ -820,45 +904,29 @@ export default function Home() {
         await Sharing.shareAsync(uri, { dialogTitle: header, UTI: "public.plain-text", mimeType: "text/plain" });
       }
     } catch {}
-  }, [onePick, today0, uiLang, tz]);
+  }, [buildSharePayload]);
 
-  useEffect(() => {
-    const offShare = onShareAttach?.(() => onCopyPress());
-    return () => { offShare && offShare(); };
-  }, [onCopyPress]);
-
-  // 알림/공유 캐시 업데이트
+  // 알림/공유 캐시 업데이트 (항상 "당일" 텍스트로 요약 생성)
   useEffect(() => {
     (async () => {
       try {
         const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
-        const monthDay = getMonthDayOnly(today0, uiLang, tz);
-        const maxBodyLen = uiLang === "ko" || uiLang === "ja" ? 20 : 40;
+        const monthDay = getMonthDayOnly(startOfDayInTz(new Date(), tz), uiLang || "en", tz);
+        const maxBodyLen = (uiLang === "ko" || uiLang === "ja") ? 20 : 40;
         const notificationBody = list.length
           ? `${monthDay} — ` + list.map((p) => {
-              const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
+              const label = COUNTRY_CFG[p.cid]?.label?.[uiLang || "en"] || p.cid;
               const yr = getYearFromRow(p.row);
               const body = p.body || "";
               const trunc = body.length > maxBodyLen ? body.slice(0, maxBodyLen) + "..." : body;
               return `${label}${yr ? ` ${yr}` : ""}: ${trunc}`;
             }).join(" • ")
-          : `${monthDay} — ${APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en}`;
-
-        const header = getMonthDayOnly(today0, uiLang, tz);
-        const appName = APP_NAME_BY_LANG[uiLang] || APP_NAME_BY_LANG.en;
-        const sourceLabel = SOURCE_LABEL[uiLang] || SOURCE_LABEL.en;
-        const blocks = (list || []).map((p) => {
-          const countryLabel = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
-          const yr = getYearFromRow(p.row) || "";
-          const content = (p.body || "").trim();
-          return [countryLabel, yr, content, `${sourceLabel}: ${appName}`].filter(Boolean).join("\n");
-        });
-        const shareText = [header, ...blocks, APP_DOWNLOAD_URL].join("\n\n");
+          : `${monthDay} — ${APP_NAME_BY_LANG[uiLang || "en"] || APP_NAME_BY_LANG.en}`;
 
         await AsyncStorage.setItem("@notification_body", notificationBody);
       } catch {}
     })();
-  }, [onePick, today0, uiLang, tz]);
+  }, [onePick, uiLang, tz]);
 
   // 알림 스케줄
   const applySchedule = useCallback(async (timeStr) => {
@@ -896,12 +964,17 @@ export default function Home() {
           <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
           <Stack.Screen options={{ headerShown: false, freezeOnBlur: true }} />
 
-          {/* 1) 헤더 이미지 */}
-          <HeaderHero height={HEADER_H + 15} bgSource={require("../../assets/bg-images/k-photo1.jpg")} imageUrl={null} />
+          {/* 1) 헤더 이미지 (assets 고정) */}
+          <HeaderHero
+            height={HEADER_H + 15}
+            bgSource={require("../../assets/bg-images/k-photo1.jpg")}
+            imageUrl={null}
+            uiLang={uiLang}
+          />
 
           {/* 2) 나라 선택 */}
           <View pointerEvents="box-none" style={{ position: "absolute", top: insets.top + TOP_PX, left: 0, right: 0, alignItems: "center", zIndex: 3 }}>
-            <SegmentedCountrySelector uiLang={uiLang} ordered={ordered} value={selectedCountries} onChange={handleCountriesChange} fixedHeight={SEGMENT_H} />
+            <SegmentedCountrySelector uiLang={uiLang || "en"} ordered={ordered} value={selectedCountries} onChange={handleCountriesChange} fixedHeight={SEGMENT_H} />
           </View>
 
           {/* 3) 본문 카드 */}
@@ -909,25 +982,29 @@ export default function Home() {
             <ScrollView
               style={{ flex: 1 }}
               contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingBottom: 24 + (ENABLE_BOTTOM_BANNER ? bannerHeight + 12 + tabBarHeight : 0) }}
+              refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={handlePullToRefresh} />
+              }
             >
               <View style={{ paddingTop: 20, width: CONTENT_W, alignSelf: "center" }}>
                 {/* 제목/날짜 */}
                 <View style={{ paddingVertical: 20 }}>
-                  <Text style={{ fontSize: 20, fontWeight: "800" }}>{getHistoryTitle(uiLang, deltaDay)}</Text>
+                  <Text style={{ fontSize: 20, fontWeight: "800" }}>{getHistoryTitle(uiLang || "en", deltaDay)}</Text>
                   <Text style={{ marginTop: 6, fontSize: 14, color: "#374151" }}>
-                    {today0.toLocaleDateString(LOCALE_BY_LANG[uiLang] || "en-US", { year: "numeric", month: "long", day: "numeric", timeZone: tz })}
+                    {today0.toLocaleDateString(LOCALE_BY_LANG[uiLang || "en"] || "en-US", { year: "numeric", month: "long", day: "numeric", timeZone: tz })}
                   </Text>
                 </View>
 
                 {/* 이벤트 리스트 */}
                 <View style={{ marginTop: 0, gap: 14 }}>
                   {list.length === 0 ? (
-                    <Text style={{ color: "#6b7280" }}>{loading ? "..." : UI_STR.empty[uiLang] || UI_STR.empty.en}</Text>
+                    <Text style={{ color: "#6b7280" }}>{loading ? "..." : UI_STR.empty[uiLang || "en"] || UI_STR.empty.en}</Text>
                   ) : (
                     list.map((p) => {
-                        const label = COUNTRY_CFG[p.cid]?.label?.[uiLang] || p.cid;
+                        const label = COUNTRY_CFG[p.cid]?.label?.[uiLang || "en"] || p.cid;
                         const eventYear = getYearFromRow(p.row);
-                        const yearLabel = formatYearOnly(eventYear, uiLang);
+                        const yearLabel = formatYearOnly(eventYear, uiLang || "en");
+                        const anchors = getAnchorsForLang(p.row, uiLang || "en");
 
                         return (
                           <View key={p.key} style={{ gap: 6 }}>
@@ -950,6 +1027,9 @@ export default function Home() {
                             >
                               {p.body}
                             </Text>
+
+                            {/* 본문 아래 앵커 (있을 때만) */}
+                            <AnchorList anchors={anchors} uiLang={uiLang || "en"} />
                           </View>
                         );
                       })
@@ -961,21 +1041,22 @@ export default function Home() {
             </ScrollView>
           </FullBleedCard>
 
-          {/* 하단 고정 배너 (Wikipedia 이미지) */}
+          {/* 하단 고정 배너 (Wikipedia/Google 이미지) */}
           {ENABLE_BOTTOM_BANNER && (
             <View pointerEvents="box-none" style={{ position: "absolute", left: 0, right: 0, bottom: tabBarHeight - 40, alignItems: "center", zIndex: 10000, elevation: 10000 }}>
               <View style={{ height: bannerHeight }}>
-                <WikipediaBanner 
-                  imageUrl={headerImageUrl} 
+                <WikipediaBanner
+                  imageUrl={headerImageUrl}
                   maxWidth={Math.min(340, width - 24)}
                   cardBg={cardBg}
                   customBgColor={customBgColor}
+                  uiLang={uiLang || "en"}
                 />
               </View>
             </View>
           )}
 
-          {loading && (
+          {loading && !isRefreshing && (
             <View style={{ position: "absolute", top: 12, right: 12 }}>
               <ActivityIndicator />
             </View>
@@ -986,7 +1067,7 @@ export default function Home() {
             </View>
           )}
 
-          <CopyToast trigger={copyTick} message={COPY_TOAST[uiLang] || COPY_TOAST.en} />
+          {/* <CopyToast trigger={copyTick} message={COPY_TOAST[uiLang || "en"] || COPY_TOAST.en} /> */}
         </>
       )}
     </SafeAreaView>
