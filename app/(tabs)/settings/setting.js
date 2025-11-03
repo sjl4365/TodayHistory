@@ -181,7 +181,7 @@ export default function SettingsIndex() {
         />
       </View>
       <View style={styles.versionContainer}>
-        <Text style={styles.versionText}>Test Build 2025.10.22 (Version 0.0.2)</Text>
+        <Text style={styles.versionText}>Test Build 2025.10.22 (Version 0.0.3)</Text>
       </View>
     <View style={styles.bottomSpacing} />
 

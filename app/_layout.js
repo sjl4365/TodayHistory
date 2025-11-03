@@ -3,11 +3,11 @@ import { Stack } from 'expo-router';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
-import { Platform,LogBox } from "react-native";
+import { Platform, LogBox } from "react-native";
 
 export default function RootLayout() {
 
-    useEffect(() => {
+  useEffect(() => {
     if (__DEV__) {
       LogBox.ignoreLogs([
         'Amplitude Logger [Error]: Request missing required field',
@@ -16,7 +16,8 @@ export default function RootLayout() {
       ]);
     }
   }, []);
-  // ANDROID 전용: 앱 시작 시 네비게이션 바 스타일 적용 (동적 임포트로 iOS 빌드 오류 방지)
+
+  // ANDROID 전용: 앱 시작 시 네비게이션 바 스타일 적용
   useEffect(() => {
     if (Platform.OS !== 'android') return;
     (async () => {
@@ -33,7 +34,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="dark" translucent backgroundColor="transparent" />
+      <StatusBar style="dark" translucent={false} backgroundColor="transparent" />
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
