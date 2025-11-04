@@ -212,49 +212,6 @@ function ensureNonEmptySelection(inputSet, uiLang) {
   return s;
 }
 
-// 토스트
-// function CopyToast({ trigger, message }) {
-//   const [visible, setVisible] = useState(false);
-//   const opacity = useRef(new Animated.Value(0)).current;
-//   const translateY = useRef(new Animated.Value(10)).current;
-//   const mounted = useRef(false);
-//   const lastSeen = useRef(trigger);
-//   const insets = useSafeAreaInsets();
-//   const bottom = (insets && typeof insets.bottom === "number") ? insets.bottom : 0;
-
-//   useEffect(() => {
-//     if (!mounted.current) { mounted.current = true; lastSeen.current = trigger; return; }
-//     if (!trigger || trigger === lastSeen.current) return;
-//     lastSeen.current = trigger;
-
-//     setVisible(true);
-//     Animated.parallel([
-//       Animated.timing(opacity, { toValue: 1, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-//       Animated.timing(translateY, { toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-//     ]).start(() => {
-//       const t = setTimeout(() => {
-//         Animated.parallel([
-//           Animated.timing(opacity, { toValue: 0, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-//           Animated.timing(translateY, { toValue: 10, duration: 180, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
-//         ]).start(() => setVisible(false));
-//       }, 1000);
-//       return () => clearTimeout(t);
-//     });
-//   }, [trigger, opacity, translateY]);
-
-//   if (!visible) return null;
-//   return (
-//     <Animated.View pointerEvents="none" style={{
-//       position: "absolute", left: 0, right: 0, bottom: bottom + 24, alignItems: "center",
-//       opacity, transform: [{ translateY }], zIndex: 9999, elevation: 9999,
-//     }}>
-//       <View style={{ backgroundColor: "#111827", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 }}>
-//         <Text style={{ color: "white", fontWeight: "700" }}>{message}</Text>
-//       </View>
-//     </Animated.View>
-//   );
-// }
-
 //  UI 스케일링
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -557,7 +514,7 @@ export default function Home() {
     return () => { cancelled = true; };
   }, []);
 
-  // ---- 날짜 이동: 오늘 기준 -1/0/+1만 ----
+  // 날짜 이동
   const DAY_MS = 86400000;
   const idxFromToday = useCallback((dt) => {
     const todayStart = startOfDayInTz(new Date(), tz).getTime();
@@ -581,7 +538,8 @@ export default function Home() {
     setDayIndex(next);
   }, [baseDate, idxFromToday, setDayIndex]);
 
-  // ===== 공유/복사 페이로드 빌더 =====
+  // 공유/복사 페이로드 빌더
+  const today0 = useMemo(() => startOfDayInTz(baseDate, tz), [baseDate, tz]);
   const buildSharePayload = useCallback(() => {
     const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
     const header = getMonthDayOnly(today0, uiLang || "en", tz);
@@ -592,21 +550,23 @@ export default function Home() {
       const label = COUNTRY_CFG[p.cid]?.label?.[uiLang || "en"] || p.cid;
       const yr = getYearFromRow(p.row) || "";
       const content = (p.body || "").trim();
-      const anchors = getAnchorsForLang(p.row, uiLang || "en").slice(0, 2);
+
+      // FIX(world anchors): World은 en 고정
+      const anchors = getAnchorsForLang(
+        p.row,
+        p.cid === "world" ? "en" : (uiLang || "en")
+      ).slice(0, 2);
+
       const anchorLines = anchors
         .map(a => {
           const text = (a?.text || "").trim();
           const url  = (a?.url  || "").trim();
-          // 1) 텍스트와 URL 모두 있으면: "텍스트 — URL"
           if (text && url) return `${text} — ${url}`;
-          // 2) URL만 있으면: "URL"
           if (url) return url;
-          // 3) 텍스트만 있으면: "텍스트"
           if (text) return text;
           return null;
         })
         .filter(Boolean);
-
 
       return [label, yr, content, ...anchorLines, `${sourceLabel}: ${appName}`]
         .filter(Boolean).join("\n");
@@ -756,7 +716,6 @@ export default function Home() {
     return () => { alive = false; };
   }, [hydrated, uiLang, selectedCountries, cardBg, customBgColor, deviceLang]));
 
-  const today0 = useMemo(() => startOfDayInTz(baseDate, tz), [baseDate, tz]);
   const todayParts = useMemo(() => getDayPartsFrom(today0, tz), [today0, tz]);
   const stableKey = useMemo(() => `${today0.toISOString()}__${uiLang}__${[...selectedCountries].sort().join(",")}`, [today0, uiLang, selectedCountries]);
   const seedKey = useMemo(() => `${stableKey}__r${refreshTick}`, [stableKey, refreshTick]);
@@ -815,7 +774,12 @@ export default function Home() {
             endLoading();
             setTimeout(async () => {
               try {
-                const anchors = getAnchorsForLang(picks[0].row, uiLang).map(a => a.text).filter(Boolean);
+                // FIX(world anchors): World은 en 고정
+                const anchors = getAnchorsForLang(
+                  picks[0].row,
+                  picks[0].cid === "world" ? "en" : (uiLang || "en")
+                ).map(a => a.text).filter(Boolean);
+
                 let imageUrl = null;
                 try { imageUrl = await fetchWikipediaImageFromAnchors(anchors, uiLang); } catch {}
                 if (!imageUrl) {
@@ -848,7 +812,12 @@ export default function Home() {
           endLoading();
           setTimeout(async () => {
             try {
-              const anchors = getAnchorsForLang(picks[0].row, uiLang).map(a => a.text).filter(Boolean);
+              // FIX(world anchors): World은 en 고정
+              const anchors = getAnchorsForLang(
+                picks[0].row,
+                picks[0].cid === "world" ? "en" : (uiLang || "en")
+              ).map(a => a.text).filter(Boolean);
+
               let imageUrl = null;
               try { imageUrl = await fetchWikipediaImageFromAnchors(anchors, uiLang); } catch {}
               if (!imageUrl) {
@@ -1004,7 +973,12 @@ export default function Home() {
                         const label = COUNTRY_CFG[p.cid]?.label?.[uiLang || "en"] || p.cid;
                         const eventYear = getYearFromRow(p.row);
                         const yearLabel = formatYearOnly(eventYear, uiLang || "en");
-                        const anchors = getAnchorsForLang(p.row, uiLang || "en");
+
+                        // FIX(world anchors): World은 en 고정
+                        const anchors = getAnchorsForLang(
+                          p.row,
+                          p.cid === "world" ? "en" : (uiLang || "en")
+                        );
 
                         return (
                           <View key={p.key} style={{ gap: 6 }}>
@@ -1066,8 +1040,6 @@ export default function Home() {
               <Text style={{ color: "#b91c1c" }}>Error: {err}</Text>
             </View>
           )}
-
-          {/* <CopyToast trigger={copyTick} message={COPY_TOAST[uiLang || "en"] || COPY_TOAST.en} /> */}
         </>
       )}
     </SafeAreaView>
