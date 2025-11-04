@@ -31,7 +31,7 @@ export default function CreditScreen() {
 
           <View style={styles.creditRow}>
             <Text style={styles.roleLabel}>Programmer</Text>
-            <Text style={styles.nameValue}>Kwanyeob, Sam, Taeyeon</Text>
+            <Text style={styles.nameValue}>Kwanyeob, Sam, TK</Text>
           </View>
 
           <View style={styles.creditRow}>

@@ -1,10 +1,12 @@
 {
   "expo": {
     "name": "TodayHistory",
-    "slug": "todayhistory",                 
+    "slug": "todayhistory",
     "owner": "todayhistory",
-    "version": "1.0.0",                  
-    "runtimeVersion": { "policy": "appVersion" },  
+    "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "scheme": "todayhistory",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,30 +17,26 @@
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
-      "package": "com.todayhistory.todayhistory",  
-      "versionCode": 2,                             
+      "package": "com.todayhistory.todayhistory",
+      "versionCode": 2,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "plugins": [
       "expo-router",
-      "expo-localization"
+      "expo-localization",
+      "expo-web-browser"
     ],
-
     "extra": {
       "router": {},
       "eas": {
