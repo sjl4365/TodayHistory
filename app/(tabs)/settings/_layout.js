@@ -1,11 +1,11 @@
 // app/(tabs)/settings/_layout.js
 // Settings stack navigation within the settings tab
 import React from 'react';
-import { Stack } from 'expo-router';
-import { TouchableOpacity, Image } from 'react-native';
+import {Stack} from 'expo-router';
+import { TouchableOpacity, Image} from 'react-native';
 
-export default function SettingsLayout() {
-  return (
+export default function SettingsLayout(){
+  return(
     <Stack
       screenOptions={{
         headerStyle: {
@@ -68,6 +68,14 @@ export default function SettingsLayout() {
           title: 'Credit',
           presentation: 'card',
         }} 
+      />
+
+      <Stack.Screen
+        name="sunnygame"
+        options={{
+          title: 'Sunny Games and Apps',
+          presentation: 'card',
+        }}
       />
     </Stack>
 

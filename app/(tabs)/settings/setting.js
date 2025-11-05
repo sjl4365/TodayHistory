@@ -75,7 +75,7 @@ export default function SettingsIndex() {
   };
 
   const openTwitter = async () => {
-    const twitterUsername = 'Sunnyinnolab'; // Replace with your X (Twitter) username
+    const twitterUsername = 'Sunnyinnolab';
     const twitterUrl = `twitter://user?screen_name=${twitterUsername}`;
     const webUrl = `https://x.com/Sunnyinnolab`;
 
@@ -170,6 +170,13 @@ export default function SettingsIndex() {
           onPress={openTwitter}
           rightComponent={<Text style={styles.linkText}>Link</Text>}
           showArrow={false}
+        />
+      </View>
+        
+        <View style={styles.section}>
+        <SettingItem
+          title="Sunny's Game and Apps"
+          onPress={()=>router.push('/settings/sunnygame')}
         />
       </View>
 
@@ -269,12 +276,12 @@ const styles = StyleSheet.create({
     height: 100,
   },
   versionContainer: {
-  alignItems: 'center',
-  paddingVertical: 20,
-},
-versionText: {
-  fontSize: 13,
-  color: 'grey',
-  opacity: 0.6,
-},
+    alignItems: 'center',
+    paddingVertical: 20,
+  },
+  versionText: {
+    fontSize: 13,
+    color: 'grey',
+    opacity: 0.6,
+  },
 });
