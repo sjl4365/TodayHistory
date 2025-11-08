@@ -929,7 +929,7 @@ function normalizeItemsToRows(items, iso, parts) {
           (a.text && a.text !== "#VALUE!") ||
           a.url
       ),
-  }))[1]; // 작은 최적화: 배열 리터럴로 파싱 방지
+  })); // 작은 최적화: 배열 리터럴로 파싱 방지
 }
 
 // 로컬 우선 → API 폴백
