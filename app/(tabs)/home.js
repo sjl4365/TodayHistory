@@ -60,7 +60,7 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 
-// ───────────────── 개발 모드 로그 필터 ─────────────────
+// 콘솔
 if (__DEV__) {
   const ignore = ["Amplitude Logger", "ENOENT", "InternalBytecode.js"];
   const _e = console.error;
@@ -71,7 +71,7 @@ if (__DEV__) {
     ignore.some((t) => a.join(" ").includes(t)) ? undefined : _w(...a);
 }
 
-// ───────────────── 상수 ─────────────────
+// 상수
 const STORAGE_KEY_SELECTED = "selectedCountries";
 const STORAGE_KEY_UI_LANG = "@app_language";
 const STORAGE_KEY_FONT = "@app_font";
@@ -174,7 +174,7 @@ const AD_RATIO = 3.2;
 const AD_TARGET = { w: 320, h: 100 };
 const ENABLE_BOTTOM_BANNER = true;
 
-// ───────────────── Intl / Locale Safe Wrappers ─────────────────
+// 날짜 시간
 function safeTimeZone(tzCandidate) {
   const tz = String(tzCandidate || "");
   try {
@@ -241,7 +241,7 @@ function safeFormatParts(date, tz) {
   }
 }
 
-// ───────────────── 유틸 ─────────────────
+// 유틸
 function resolveUiLangFromDevice() {
   const locales =
     (Localization.getLocales && Localization.getLocales()) || [];
@@ -384,7 +384,7 @@ function equalSets(a, b) {
   return true;
 }
 
-// ───────────────── 난수/픽커 ─────────────────
+// 난수
 function hash32(str) {
   let h = 2166136261 >>> 0;
   for (let i = 0; i < str.length; i++) {
@@ -457,7 +457,7 @@ function ensureNonEmptySelection(inputSet, uiLang) {
   return s;
 }
 
-// ───────────────── 이미지 가드 ─────────────────
+// 이미지로드
 const RENDERABLE_EXT_RE = /\.(jpg|jpeg|png|webp)(\?.*)?$/i;
 
 function sanitizeImageUrl(input) {
@@ -550,7 +550,7 @@ async function bestWikiThumb(rawUrl, desiredPx = 640) {
   return null;
 }
 
-// ───────────────── UI 스케일 ─────────────────
+// ui
 function useUIScale() {
   const { width } = useWindowDimensions();
   const BASE = 393;
@@ -560,7 +560,7 @@ function useUIScale() {
 
 const FIXED_ORDER = ["world", "korea", "japan"];
 
-// ───────────────── 색 검증 ─────────────────
+// 색상 유효성 검사
 function isValidColorString(s) {
   if (typeof s !== "string") return false;
   const v = s.trim();
@@ -576,7 +576,7 @@ function isValidColorString(s) {
   return false;
 }
 
-// ───────────────── 나라 선택 UI ─────────────────
+// \나라 선택 UI
 function SegmentedCountrySelector({
   uiLang,
   ordered,
@@ -687,7 +687,7 @@ function SegmentedCountrySelector({
   );
 }
 
-// ───────────────── 헤더 (assets만) ─────────────────
+// 헤더 (assets만)
 function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
@@ -751,7 +751,7 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
   );
 }
 
-// ───────────────── Wikipedia Banner ─────────────────
+// Wikipedia Banner
 function WikipediaBanner({
   imageUrl,
   maxWidth = 340,
@@ -804,7 +804,7 @@ function WikipediaBanner({
   );
 }
 
-// ───────────────── 기타 UI ─────────────────
+// 기타 UI
 function FullBleedCard({
   children,
   topInset,
@@ -849,7 +849,7 @@ function formatYearOnly(year, uiLang) {
   return y;
 }
 
-// ───────────────── 캐시 ─────────────────
+// 캐시 
 function cacheKey(mode, parts) {
   return `@hist_cache:${mode}:${String(parts.m).padStart(
     2,
@@ -1239,7 +1239,7 @@ function scheduleMidnightWarmup({
   return () => clearTimeout(timer);
 }
 
-// ───────────────── Home Component ─────────────────
+// 홈 화면
 export default function Home() {
   const insets = useSafeAreaInsets();
   const { scale } = useUIScale();
@@ -1737,7 +1737,7 @@ export default function Home() {
     };
   }, [deviceLang]);
 
-  // ✅ 포커스 시 설정/언어 동기화 (언어 되돌림 방지)
+  // 포커스 시 설정/언어 동기화 (언어 되돌림 방지)
   useFocusEffect(
     useCallback(() => {
       if (!hydrated) return () => {};
