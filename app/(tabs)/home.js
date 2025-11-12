@@ -22,6 +22,7 @@ import {
   RefreshControl,
   Share as NativeShare,
   AppState,
+  Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -59,6 +60,7 @@ import {
 } from "../../lib/localHistory";
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
+import { WebView } from "react-native-webview";
 
 // 콘솔
 if (__DEV__) {
@@ -728,6 +730,87 @@ function SegmentedCountrySelector({
   );
 }
 
+// WebView Modal Component
+function WebViewModal({ visible, url, onClose }) {
+  const { scale } = useUIScale();
+  
+  if (!visible || !url) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["top"]}>
+        {/* Header with close button */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingHorizontal: 16,
+            paddingVertical: 12,
+            borderBottomWidth: 1,
+            borderBottomColor: "#E5E7EB",
+            backgroundColor: "#FFFFFF",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              flex: 1,
+              color: "#111827",
+            }}
+            numberOfLines={1}
+          >
+            {url}
+          </Text>
+          <Pressable
+            onPress={onClose}
+            hitSlop={10}
+            style={{
+              marginLeft: 12,
+              padding: 8,
+              borderRadius: 8,
+              backgroundColor: "#F3F4F6",
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
+              ✕
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* WebView */}
+        <WebView
+          source={{ uri: url }}
+          style={{ flex: 1 }}
+          startInLoadingState={true}
+          renderLoading={() => (
+            <View
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#FFFFFF",
+              }}
+            >
+              <ActivityIndicator size="large" color="#2563EB" />
+            </View>
+          )}
+        />
+      </SafeAreaView>
+    </Modal>
+  );
+};
+
 // 헤더 (assets만)
 function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -1079,35 +1162,57 @@ async function apiFetchForMode(mode, todayParts) {
 }
 
 // 본문 아래 앵커
-function AnchorList({ anchors }) {
+// function AnchorList({ anchors }) {
+//   if (!anchors || !anchors.length) return null;
+  // return (
+  //   <View
+  //     style={{
+  //       marginTop: 6,
+  //       flexDirection: "row",
+  //       flexWrap: "wrap",
+  //     }}
+  //   >
+  //     {anchors.map((a, idx) => {
+  //       const text = String(a?.text || "").trim();
+  //       const url = String(a?.url || "").trim();
+  //       if (!text || !url) return null;
+  //       const onPress = () => Linking.openURL(url).catch(() => {});
+  //       return (
+  //         <Pressable
+  //           key={`${text}-${url}-${idx}`}
+  //           onPress={onPress}
+function AnchorList({ anchors, onLinkPress }) {  // ADDED onLinkPress prop
   if (!anchors || !anchors.length) return null;
-  return (
-    <View
-      style={{
-        marginTop: 6,
-        flexDirection: "row",
-        flexWrap: "wrap",
-      }}
-    >
-      {anchors.map((a, idx) => {
-        const text = String(a?.text || "").trim();
-        const url = String(a?.url || "").trim();
-        if (!text || !url) return null;
-        const onPress = () => Linking.openURL(url).catch(() => {});
-        return (
-          <Pressable
-            key={`${text}-${url}-${idx}`}
-            onPress={onPress}
+    return (
+      <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap" }}>
+        {anchors.map((a, idx) => {
+          const text = String(a?.text || "").trim();
+          const url = String(a?.url || "").trim();
+          if (!text || !url) return null;
+          
+          // NEW LOGIC
+          const onPress = () => {
+            if (onLinkPress) {
+              onLinkPress(url);  // Use modal
+            } else {
+              Linking.openURL(url).catch(() => {});  // Fallback
+            }
+          };
+          
+          return (
+            <Pressable
+              key={`${text}-${url}-${idx}`}
+              onPress={onPress}
             accessibilityRole="link"
             hitSlop={6}
             style={{
-              marginRight: 10,
+              marginRight: 3,
               marginBottom: 4,
             }}
           >
             <Text
               style={{
-                fontSize: 13,
+                fontSize: 10,
                 color: "#2563EB",
                 textDecorationLine: "underline",
                 fontWeight: "600",
@@ -1393,6 +1498,8 @@ export default function Home() {
     useState(18);
   const [customFontColor, setCustomFontColor] =
     useState("#111827");
+  const [webViewVisible, setWebViewVisible] = useState(false);
+  const [webViewUrl, setWebViewUrl] = useState("");
 
   const getFontFamily = (font) => {
     switch (font) {
@@ -1432,6 +1539,18 @@ export default function Home() {
   );
 
   const amplitudeReadyRef = useRef(false);
+
+  //linking Wikipedia
+  const handleLinkPress = useCallback((url)=>{
+    setWebViewUrl(url);
+    setWebViewVisible(true);
+  },[]);
+
+  const handleCloseWebView = useCallback(()=>{
+    setWebViewVisible(false);
+    setWebViewUrl("");
+  },[]);
+
 
   useEffect(() => {
     let cancelled = false;
@@ -2760,6 +2879,7 @@ export default function Home() {
                   style={{
                     marginTop: 0,
                     gap: 14,
+                    paddingBottom: 80,
                   }}
                 >
                   {list.length === 0 ? (
@@ -2861,11 +2981,12 @@ export default function Home() {
                             {p.body}
                           </Text>
 
+
                           {/* Anchor 텍스트 */}
-                          <AnchorList
-                            anchors={
-                              anchors
-                            }
+                          
+                          <AnchorList 
+                            anchors={anchors}
+                            onLinkPress={handleLinkPress}
                           />
 
                           {/* 사진: 이벤트 밑, 네비게이션 위 여유 있게 */}
@@ -2912,6 +3033,11 @@ export default function Home() {
               </View>
             </ScrollView>
           </FullBleedCard>
+          <WebViewModal
+            visible={webViewVisible}
+            url={webViewUrl}
+            onClose={handleCloseWebView}
+          />
 
           {/* 상단 로딩 인디케이터 */}
           {loading &&
@@ -2953,7 +3079,7 @@ export default function Home() {
             </View>
           )}
         </>
-      )}
+      )}      
     </SafeAreaView>
   );
 }
