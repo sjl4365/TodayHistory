@@ -120,6 +120,22 @@ const APP_NAME_BY_LANG = {
   ja: "Histree",
 };
 
+const FIELD_LABELS = {
+  ko: {
+    location: "위치",
+    date: "날짜",
+  },
+  en: {
+    location: "Location",
+    date: "Date",
+  },
+  ja: {
+    location: "場所",
+    date: "日付",
+  },
+};
+
+
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
 
 const UI_STR = {
@@ -1023,7 +1039,7 @@ function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
   );
 
   const agoStr = formatYearsAgo(diff, uiLang);
-  return agoStr ? `${dateStr} · ${agoStr}` : dateStr;
+  return agoStr ? `${dateStr}  ${agoStr}` : dateStr;
 }
 
 // 캐시 
@@ -1212,10 +1228,9 @@ function AnchorList({ anchors, onLinkPress }) {  // ADDED onLinkPress prop
           >
             <Text
               style={{
-                fontSize: 10,
-                color: "#2563EB",
+                fontSize: 15,
+                color: "#000000ff",
                 textDecorationLine: "underline",
-                fontWeight: "600",
               }}
               numberOfLines={1}
             >
@@ -2825,10 +2840,7 @@ export default function Home() {
               contentContainerStyle={{
                 flexGrow: 1,
                 paddingHorizontal: 16,
-                paddingBottom:
-                  24 +
-                  tabBarHeight +
-                  (headerImageUrl ? bannerHeight + 24 : 0),
+                paddingBottom: 24 + tabBarHeight,
               }}
               refreshControl={
                 <RefreshControl
@@ -2879,7 +2891,7 @@ export default function Home() {
                   style={{
                     marginTop: 0,
                     gap: 14,
-                    paddingBottom: 80,
+                    paddingBottom: 10,
                   }}
                 >
                   {list.length === 0 ? (
@@ -2913,6 +2925,9 @@ export default function Home() {
                           uiLang || "en",
                           tz
                         );
+                      const lang = uiLang || "en";
+                      const fieldLabels = FIELD_LABELS[lang] || FIELD_LABELS.en;
+
                       const anchors =
                         getAnchorsForLang(
                           p.row,
@@ -2939,7 +2954,7 @@ export default function Home() {
                                 color: "#6b7280",
                               }}
                             >
-                              Location :{" "}
+                                 {fieldLabels.location}:{" "}
                               <Text
                                 style={{
                                   color: "#111827",
@@ -2956,8 +2971,8 @@ export default function Home() {
                                   color: "#6b7280",
                                 }}
                               >
-                                {dateLabel}
-                              </Text>
+                                  {fieldLabels.date}: {dateLabel}
+                               </Text>
                             )}
                           </View>
 
@@ -3025,11 +3040,7 @@ export default function Home() {
                   )}
                 </View>
 
-                <View
-                  style={{
-                    height: 36,
-                  }}
-                />
+              
               </View>
             </ScrollView>
           </FullBleedCard>
