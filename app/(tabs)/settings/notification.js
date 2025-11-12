@@ -265,84 +265,140 @@ export default function Notification() {
     }
   }
 
-  const handleSaveTime = async () => {
-    if (!isNotificationOn) {
-      console.log('Notification is off, not saving time');
-      return;
-    }
+const handleSaveTime = async () => {
+  if (!isNotificationOn) {
+    console.log('Notification is off, not saving time');
+    return;
+  }
+  
+  console.log('💾 Saving time:', date.toLocaleTimeString());
+  
+  const ok = await scheduleDailyAt(date);
+  console.log('Schedule result:', ok);
+  
+  if (ok) {
+    setSavedTime(date);
+    const timeString = date.toLocaleTimeString([], {
+      hour: '2-digit', minute: '2-digit', hour12: false
+    });
+    console.log('✅ Successfully saved time:', timeString);
     
-    console.log('💾 Saving time:', date.toLocaleTimeString());
+    const all = await Notifications.getAllScheduledNotificationsAsync();
+    console.log('📋 Total scheduled notifications:', all.length);
+    all.forEach((n, i) => {
+      console.log(`  ${i + 1}. ${n.content.title}: ${n.content.body.substring(0, 50)}...`);
+    });
     
-    const ok = await scheduleDailyAt(date);
-    console.log('Schedule result:', ok);
-    
-    if (ok) {
-      setSavedTime(date);
-      const timeString = date.toLocaleTimeString([], {
-        hour: '2-digit', minute: '2-digit', hour12: false
-      });
-      console.log('✅ Successfully saved time:', timeString);
+    // 다국어 처리
+    try {
+      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'ko';
       
-      const all = await Notifications.getAllScheduledNotificationsAsync();
-      console.log('📋 Total scheduled notifications:', all.length);
-      all.forEach((n, i) => {
-        console.log(`  ${i + 1}. ${n.content.title}: ${n.content.body.substring(0, 50)}...`);
-      });
+      const messages = {
+        ko: {
+          title: '알림 설정 완료',
+          message: `매일 ${timeString}에 최신 역사 정보가 알림으로 울립니다.`
+        },
+        en: {
+          title: 'Notifications are on.',
+          message: `You will receive the latest history update daily at ${timeString}.`
+        },
+        ja: {
+          title: '通知の設定が完了しました。',
+          message: `毎日${timeString}に最新の歴史情報が通知されます。`
+        }
+      };
       
+      const message = messages[currentLanguage] || messages.ko;
+      
+      Alert.alert(message.title, message.message);
+    } catch (error) {
+      console.error('Failed to get language setting:', error);
+      // 기본값으로 한국어 사용
       Alert.alert(
-        '알림 설정 완료!', 
-        `매일 ${timeString}에 최신 역사 정보가 알림으로 울립니다.`
+        'Notifications are on.', 
+        `You will receive the latest history update daily at ${timeString}.`
       );
-    } else {
-      console.log('❌ Failed to save time');
+    }
+  } else {
+    console.log('❌ Failed to save time');
+    
+    // 다국어 처리
+    try {
+      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'ko';
+      
+      const messages = {
+        ko: { title: '설정 실패', message: '알림을 예약할 수 없습니다.' },
+        en: { title: 'Schedule Failed', message: 'Could not schedule the reminder.' },
+        ja: { title: '設定失敗', message: 'リマインダーをスケジュールできませんでした。' }
+      };
+      
+      const message = messages[currentLanguage] || messages.ko;
+      Alert.alert(message.title, message.message);
+    } catch (error) {
       Alert.alert('Schedule Failed', 'Could not schedule the reminder.');
     }
-  };
+  }
+};
 
-  const handleToggleNotification = async (value) => {
-    console.log('Toggle notification:', value);
+const handleToggleNotification = async (value) => {
+  console.log('Toggle notification:', value);
+  
+  if (value) {
+    const defaultTime = new Date();
+    defaultTime.setHours(15, 0, 0, 0);
+    setDate(defaultTime);
     
-    if (value) {
-      const defaultTime = new Date();
-      defaultTime.setHours(15, 0, 0, 0);
-      setDate(defaultTime);
+    const { granted } = await Notifications.getPermissionsAsync();
+    console.log('Current permission status:', { granted });
+    
+    if (!granted) {
+      console.log('Permission not granted, requesting...');
+      const req = await Notifications.requestPermissionsAsync({
+        ios: {
+          allowAlert: true,
+          allowBadge: true,
+          allowSound: true,
+        },
+      });
+      console.log('Permission request result:', req);
       
-      const { granted } = await Notifications.getPermissionsAsync();
-      console.log('Current permission status:', { granted });
-      
-      if (!granted) {
-        console.log('Permission not granted, requesting...');
-        const req = await Notifications.requestPermissionsAsync({
-          ios: {
-            allowAlert: true,
-            allowBadge: true,
-            allowSound: true,
-          },
-        });
-        console.log('Permission request result:', req);
-        
-        if (req.granted) {
-          setHasPermission(true);
-          setIsNotificationOn(true);
-          console.log('Permission granted after request');
-        } else {
-          console.log('Permission denied by user');
-          setIsNotificationOn(false);
-          return;
-        }
-      } else {
-        console.log('Permission already granted');
+      if (req.granted) {
         setHasPermission(true);
         setIsNotificationOn(true);
+        console.log('Permission granted after request');
+      } else {
+        console.log('Permission denied by user');
+        setIsNotificationOn(false);
+        return;
       }
     } else {
-      console.log('Turning off notifications');
-      setIsNotificationOn(false);
-      await cancelDaily();
-      setSavedTime(null);
+      console.log('Permission already granted');
+      setHasPermission(true);
+      setIsNotificationOn(true);
+    }
+  } else {
+    console.log('Turning off notifications');
+    setIsNotificationOn(false);
+    await cancelDaily();
+    setSavedTime(null);
+    
+    // 다국어 처리
+    try {
+      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'ko';
+      
+      const messages = {
+        ko: {message: '일일 알림이 꺼졌습니다.' },
+        en: {message: 'Notifications are off' },
+        ja: {message: '通知はオフです。' }
+      };
+      
+      const message = messages[currentLanguage] || messages.ko;
+      Alert.alert(message.title, message.message);
+    } catch (error) {
       Alert.alert('알림 비활성화', '일일 알림이 꺼졌습니다.');
     }
-  };
+  }
+};
 
   const handleChange = (evt, d) => {
     if (Platform.OS === 'android') {

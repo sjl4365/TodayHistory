@@ -2387,66 +2387,63 @@ export default function Home() {
     }, [uiLang]);
 
   const buildNotificationBodyNow =
-    useCallback(() => {
-      const list = Array.isArray(onePick)
-        ? onePick
-        : onePick
-        ? [onePick]
-        : [];
-      const monthDay =
-        getMonthDayOnly(
-          startOfDayInTz(
-            new Date(),
-            tz
-          ),
-          uiLang || "en",
-          tz
-        );
-      const maxBodyLen =
-        uiLang === "ko" ||
-        uiLang === "ja"
-          ? 20
-          : 40;
+  useCallback(() => {
+    const list = Array.isArray(onePick)
+      ? onePick
+      : onePick
+      ? [onePick]
+      : [];
+    
+    // 날짜를 YYYY/MM/DD 형식으로 변환
+    const currentDate = startOfDayInTz(new Date(), tz);
+    const parts = getDayPartsFrom(currentDate, tz);
+    const dateStr = `${parts.y}/${parts.m}/${parts.d}`;
+    
+    const maxBodyLen =
+      uiLang === "ko" ||
+      uiLang === "ja"
+        ? 20
+        : 40;
 
-      const body = list.length
-        ? `${monthDay} — ` +
-          list
-            .map((p) => {
-              const label =
-                COUNTRY_CFG[p.cid]
-                  ?.label?.[
-                  uiLang ||
-                    "en"
-                ] || p.cid;
-              const yr =
-                getYearFromRow(
-                  p.row
-                );
-              const txt =
-                p.body || "";
-              const trunc =
-                txt.length >
-                maxBodyLen
-                  ? `${txt.slice(
-                      0,
-                      maxBodyLen
-                    )}...`
-                  : txt;
-              return `${label}${
-                yr
-                  ? ` ${formatYearOnly(
-                      yr,
-                      uiLang ||
-                        "en"
-                    )}`
-                  : ""
-              }: ${trunc}`;
-            })
-            .join(" • ")
-        : `${monthDay}`;
+    const body = list.length
+      ? `${dateStr} — ` +
+        list
+          .map((p) => {
+            const label =
+              COUNTRY_CFG[p.cid]
+                ?.label?.[
+                uiLang ||
+                  "en"
+              ] || p.cid;
+            const yr =
+              getYearFromRow(
+                p.row
+              );
+            const txt =
+              p.body || "";
+            const trunc =
+              txt.length >
+              maxBodyLen
+                ? `${txt.slice(
+                    0,
+                    maxBodyLen
+                  )}...`
+                : txt;
+            return `${label}${
+              yr
+                ? ` ${formatYearOnly(
+                    yr,
+                    uiLang ||
+                      "en"
+                  )}`
+                : ""
+            }: ${trunc}`;
+          })
+          .join(" • ")
+      : `${dateStr}`;
 
-      return body;
-    }, [onePick, uiLang, tz]);
+    return body;
+  }, [onePick, uiLang, tz]);
 
   // 알림: 언어/콘텐츠 변경 시 항상 최신 텍스트로 재저장 + 재스케줄
   useEffect(() => {
