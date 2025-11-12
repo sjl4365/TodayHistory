@@ -172,6 +172,39 @@ const FLAG_ICON = {
   japan: require("../../assets/flag/japan.png"),
 };
 
+// 나라별 헤더 배경 이미지 (각 7장씩)
+const HERO_BG_IMAGES = {
+  korea: [
+    require("../../assets/bg-images/k-photo1.jpg"),
+    require("../../assets/bg-images/k-photo2.jpg"),
+    require("../../assets/bg-images/k-photo3.jpg"),
+    require("../../assets/bg-images/k-photo4.jpg"),
+    require("../../assets/bg-images/k-photo5.jpg"),
+    require("../../assets/bg-images/k-photo6.jpg"),
+    require("../../assets/bg-images/k-photo7.jpg"),
+  ],
+  japan: [
+    require("../../assets/bg-images/j-photo1.jpg"),
+    require("../../assets/bg-images/j-photo2.jpg"),
+    require("../../assets/bg-images/j-photo3.jpg"),
+    require("../../assets/bg-images/j-photo4.jpg"),
+    require("../../assets/bg-images/j-photo5.jpg"),
+    require("../../assets/bg-images/j-photo6.jpg"),
+    require("../../assets/bg-images/j-photo7.jpg"),
+  ],
+  world: [
+    require("../../assets/bg-images/uk-photo1.jpg"),
+    require("../../assets/bg-images/uk-photo2.jpg"),
+    require("../../assets/bg-images/uk-photo3.jpg"),
+    require("../../assets/bg-images/uk-photo4.jpg"),
+    require("../../assets/bg-images/uk-photo5.jpg"),
+    require("../../assets/bg-images/uk-photo6.jpg"),
+    require("../../assets/bg-images/uk-photo7.jpg"),
+  ],
+};
+
+const DEFAULT_HERO_BG = require("../../assets/bg-images/k-photo1.jpg");
+
 const AD_RATIO = 3.2;
 const AD_TARGET = { w: 320, h: 100 };
 const ENABLE_BOTTOM_BANNER = true;
@@ -386,6 +419,14 @@ function equalSets(a, b) {
   return true;
 }
 
+// 나라+날짜 기준 헤더 배경 선택 (7장 순환)
+function pickDailyHeroBg(cid, date) {
+  const list = HERO_BG_IMAGES[cid];
+  if (!list || !list.length) return DEFAULT_HERO_BG;
+  const dayIndex = date.getDay(); // 0~6
+  return list[dayIndex % list.length];
+}
+
 // 난수
 function hash32(str) {
   let h = 2166136261 >>> 0;
@@ -578,7 +619,7 @@ function isValidColorString(s) {
   return false;
 }
 
-// \나라 선택 UI
+// 나라 선택 UI
 function SegmentedCountrySelector({
   uiLang,
   ordered,
@@ -786,7 +827,7 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
       <RNImage
         source={
           bgSource ||
-          require("../../assets/bg-images/k-photo1.jpg")
+          DEFAULT_HERO_BG
         }
         style={{
           width: "100%",
@@ -932,6 +973,59 @@ function formatYearOnly(year, uiLang) {
   return y;
 }
 
+// "years ago" 같은 문자열 생성
+function formatYearsAgo(diff, uiLang) {
+  if (!diff || diff <= 0) return "";
+  if (uiLang === "ko") return `(${diff}년 전)`;
+  if (uiLang === "ja") return `(${diff}年前)`;
+  if (diff === 1) return "1 year ago";
+  return `(${diff} years ago)`;
+}
+
+// 이벤트용 날짜 + "N years ago" 한 줄로 만들기
+function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
+  const yStr = String(eventYearRaw || "").trim();
+  const yearNum = parseInt(yStr, 10);
+
+  // 년도가 없으면 그냥 오늘 날짜 포맷만
+  const baseDate = new Date(
+    `${todayParts.y}-${todayParts.m}-${todayParts.d}T00:00:00`
+  );
+
+  if (!yearNum || Number.isNaN(yearNum)) {
+    return safeToLocaleDateString(
+      baseDate,
+      LOCALE_BY_LANG[uiLang] || "en-US",
+      {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        timeZone: tz,
+      }
+    );
+  }
+
+  const eventDate = new Date(
+    `${yearNum}-${todayParts.m}-${todayParts.d}T00:00:00`
+  );
+  const baseYear = parseInt(String(todayParts.y), 10);
+  const diff = !Number.isNaN(baseYear) ? baseYear - yearNum : 0;
+
+  const dateStr = safeToLocaleDateString(
+    eventDate,
+    LOCALE_BY_LANG[uiLang] || "en-US",
+    {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: tz,
+    }
+  );
+
+  const agoStr = formatYearsAgo(diff, uiLang);
+  return agoStr ? `${dateStr} · ${agoStr}` : dateStr;
+}
+
 // 캐시 
 function cacheKey(mode, parts) {
   return `@hist_cache:${mode}:${String(parts.m).padStart(
@@ -969,50 +1063,48 @@ async function loadCache(mode, parts) {
 function normalizeItemsToRows(items, iso, parts) {
   const mm = String(parts.m).padStart(2, "0");
   const dd = String(parts.d).padStart(2, "0");
-  return (items || []).map((it) => ([
-    "en",
-    "ko",
-    "ja",
-  ], {
-    isoDate: iso,
-    date: `D${mm}${dd}`,
-    Date: `D${mm}${dd}`,
-    Year: it.year,
-    year: it.year,
-    English: it.en || "",
-    "한국어": it.ko || "",
-    "日本語": it.ja || "",
-    enAnchors: (it.enAnchors || [])
-      .map((a) => ({
-        text: a?.text,
-        url: a?.url,
-      }))
-      .filter(
-        (a) =>
-          (a.text && a.text !== "#VALUE!") ||
-          a.url
-      ),
-    koAnchors: (it.koAnchors || [])
-      .map((a) => ({
-        text: a?.text,
-        url: a?.url,
-      }))
-      .filter(
-        (a) =>
-          (a.text && a.text !== "#VALUE!") ||
-          a.url
-      ),
-    jaAnchors: (it.jaAnchors || [])
-      .map((a) => ({
-        text: a?.text,
-        url: a?.url,
-      }))
-      .filter(
-        (a) =>
-          (a.text && a.text !== "#VALUE!") ||
-          a.url
-      ),
-  }))[1]; // 작은 최적화: 배열 리터럴로 파싱 방지
+  return (items || []).map((it) => {
+    return {
+      isoDate: iso,
+      date: `D${mm}${dd}`,
+      Date: `D${mm}${dd}`,
+      Year: it.year,
+      year: it.year,
+      English: it.en || "",
+      "한국어": it.ko || "",
+      "日本語": it.ja || "",
+      enAnchors: (it.enAnchors || [])
+        .map((a) => ({
+          text: a?.text,
+          url: a?.url,
+        }))
+        .filter(
+          (a) =>
+            (a.text && a.text !== "#VALUE!") ||
+            a.url
+        ),
+      koAnchors: (it.koAnchors || [])
+        .map((a) => ({
+          text: a?.text,
+          url: a?.url,
+        }))
+        .filter(
+          (a) =>
+            (a.text && a.text !== "#VALUE!") ||
+            a.url
+        ),
+      jaAnchors: (it.jaAnchors || [])
+        .map((a) => ({
+          text: a?.text,
+          url: a?.url,
+        }))
+        .filter(
+          (a) =>
+            (a.text && a.text !== "#VALUE!") ||
+            a.url
+        ),
+    };
+  });
 }
 
 // 로컬 우선 → API 폴백
@@ -1269,6 +1361,7 @@ async function warmCacheAndBanner({
               r?.date ||
               ""
           )}|${tag}`,
+
           body,
         });
       }
@@ -2629,6 +2722,27 @@ export default function Home() {
 
   const ordered = FIXED_ORDER;
 
+  // 헤더 배경 소스: 복수 선택 시 항상 world, 단일 선택 시 해당 국가
+  const heroBgSource = useMemo(() => {
+    const count = selectedCountries.size;
+
+    let cid = "world";
+
+    if (count === 1) {
+      cid = [...selectedCountries][0];
+    } else if (count === 0 && list[0]?.cid) {
+      cid = list[0].cid;
+    } else if (count > 1) {
+      cid = "world";
+    }
+
+    if (!HERO_BG_IMAGES[cid]) {
+      cid = "world";
+    }
+
+    return pickDailyHeroBg(cid, today0);
+  }, [selectedCountries, list, today0]);
+
   const SEGMENT_H = 38;
   const TOP_PX = 58;
   const BOTTOM_PX = 93;
@@ -2674,7 +2788,7 @@ export default function Home() {
           {/* 헤더 */}
           <HeaderHero
             height={HEADER_H + 15}
-            bgSource={require("../../assets/bg-images/k-photo1.jpg")}
+            bgSource={heroBgSource}
             imageUrl={null}
             uiLang={uiLang || "en"}
           />
@@ -2684,7 +2798,7 @@ export default function Home() {
             pointerEvents="box-none"
             style={{
               position: "absolute",
-              top: insets.top + TOP_PX,
+              top: insets.top + 30,
               left: 0,
               right: 0,
               alignItems: "center",
@@ -2702,7 +2816,7 @@ export default function Home() {
 
           {/* 본문 카드 */}
           <FullBleedCard
-            topInset={HEADER_H - 15}
+            topInset={HEADER_H - 60}
             cardBg={cardBg}
             customBgColor={customBgColor}
           >
@@ -2713,11 +2827,8 @@ export default function Home() {
                 paddingHorizontal: 16,
                 paddingBottom:
                   24 +
-                  (ENABLE_BOTTOM_BANNER
-                    ? bannerHeight +
-                      12 +
-                      tabBarHeight
-                    : 0),
+                  tabBarHeight +
+                  (headerImageUrl ? bannerHeight + 24 : 0),
               }}
               refreshControl={
                 <RefreshControl
@@ -2733,16 +2844,18 @@ export default function Home() {
                   alignSelf: "center",
                 }}
               >
-                {/* 제목/날짜 */}
+                {/* 제목/타이틀 (센터 정렬) */}
                 <View
                   style={{
                     paddingVertical: 20,
+                    alignItems: "center",
                   }}
                 >
                   <Text
                     style={{
                       fontSize: 20,
                       fontWeight: "800",
+                      textAlign: "center",
                     }}
                   >
                     {getHistoryTitle(
@@ -2752,23 +2865,12 @@ export default function Home() {
                   </Text>
                   <Text
                     style={{
-                      marginTop: 6,
-                      fontSize: 14,
-                      color: "#374151",
+                      marginTop: 4,
+                      fontSize: 13,
+                      color: "#6b7280",
+                      textAlign: "center",
                     }}
                   >
-                    {safeToLocaleDateString(
-                      today0,
-                      LOCALE_BY_LANG[
-                        uiLang || "en"
-                      ] || "en-US",
-                      {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        timeZone: tz,
-                      }
-                    )}
                   </Text>
                 </View>
 
@@ -2804,10 +2906,12 @@ export default function Home() {
                         getYearFromRow(
                           p.row
                         );
-                      const yearLabel =
-                        formatYearOnly(
+                      const dateLabel =
+                        formatEventDateLabel(
                           eventYear,
-                          uiLang || "en"
+                          todayParts,
+                          uiLang || "en",
+                          tz
                         );
                       const anchors =
                         getAnchorsForLang(
@@ -2822,28 +2926,45 @@ export default function Home() {
                             gap: 6,
                           }}
                         >
-                          <Text
+                          {/* Location + Date */}
+                          <View
                             style={{
-                              fontWeight: "700",
+                              marginBottom: 8,
                             }}
                           >
-                            {label}
-                            {!!yearLabel && (
+                            <Text
+                              style={{
+                                fontSize: 14,
+                                fontWeight: "600",
+                                color: "#6b7280",
+                              }}
+                            >
+                              Location :{" "}
                               <Text
                                 style={{
-                                  fontSize: 12,
-                                  color:
-                                    "#64748b",
+                                  color: "#111827",
                                 }}
                               >
-                                {` (${yearLabel})`}
+                                {label}
+                              </Text>
+                            </Text>
+                            {!!dateLabel && (
+                              <Text
+                                style={{
+                                  marginTop: 4,
+                                  fontSize: 13,
+                                  color: "#6b7280",
+                                }}
+                              >
+                                {dateLabel}
                               </Text>
                             )}
-                          </Text>
+                          </View>
 
+                          {/* 이벤트 내용 */}
                           <Text
                             style={{
-                              marginTop: 14,
+                              marginTop: 4,
                               marginBottom: 14,
                               fontSize:
                                 customFontSize,
@@ -2860,15 +2981,44 @@ export default function Home() {
                             {p.body}
                           </Text>
 
-                          {/* <AnchorList
-                            anchors={
-                              anchors
-                            }
-                          /> */}
+
+                          {/* Anchor 텍스트 */}
+                          
                           <AnchorList 
                             anchors={anchors}
                             onLinkPress={handleLinkPress}
                           />
+
+                          {/* 사진: 이벤트 밑, 네비게이션 위 여유 있게 */}
+                          {headerImageUrl && (
+                            <View
+                              style={{
+                                marginTop: 18,
+                                marginBottom: 8,
+                                alignItems:
+                                  "center",
+                              }}
+                            >
+                              <WikipediaBanner
+                                imageUrl={
+                                  headerImageUrl
+                                }
+                                maxWidth={Math.min(
+                                  820,
+                                  Math.floor(
+                                    width *
+                                      0.84
+                                  )
+                                )}
+                                cardBg={
+                                  cardBg
+                                }
+                                customBgColor={
+                                  customBgColor
+                                }
+                              />
+                            </View>
+                          )}
                         </View>
                       );
                     })
@@ -2888,50 +3038,6 @@ export default function Home() {
             url={webViewUrl}
             onClose={handleCloseWebView}
           />
-
-          {/* 하단 배너 */}
-          {ENABLE_BOTTOM_BANNER &&
-            headerImageUrl && (
-              <View
-                pointerEvents="box-none"
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  right: 0,
-                  bottom:
-                    tabBarHeight -
-                    40,
-                  alignItems:
-                    "center",
-                  zIndex: 10000,
-                  elevation: 10000,
-                }}
-              >
-                <View
-                  style={{
-                    height:
-                      bannerHeight,
-                  }}
-                >
-                  <WikipediaBanner
-                    imageUrl={
-                      headerImageUrl
-                    }
-                    maxWidth={Math.min(
-                      820,
-                      Math.floor(
-                        width *
-                          0.84
-                      )
-                    )}
-                    cardBg={cardBg}
-                    customBgColor={
-                      customBgColor
-                    }
-                  />
-                </View>
-              </View>
-            )}
 
           {/* 상단 로딩 인디케이터 */}
           {loading &&
