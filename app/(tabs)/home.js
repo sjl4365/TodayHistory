@@ -135,7 +135,6 @@ const FIELD_LABELS = {
   },
 };
 
-
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
 
 const UI_STR = {
@@ -1177,48 +1176,29 @@ async function apiFetchForMode(mode, todayParts) {
   return normalizeItemsToRows(items, iso, todayParts);
 }
 
-// 본문 아래 앵커
-// function AnchorList({ anchors }) {
-//   if (!anchors || !anchors.length) return null;
-  // return (
-  //   <View
-  //     style={{
-  //       marginTop: 6,
-  //       flexDirection: "row",
-  //       flexWrap: "wrap",
-  //     }}
-  //   >
-  //     {anchors.map((a, idx) => {
-  //       const text = String(a?.text || "").trim();
-  //       const url = String(a?.url || "").trim();
-  //       if (!text || !url) return null;
-  //       const onPress = () => Linking.openURL(url).catch(() => {});
-  //       return (
-  //         <Pressable
-  //           key={`${text}-${url}-${idx}`}
-  //           onPress={onPress}
-function AnchorList({ anchors, onLinkPress }) {  // ADDED onLinkPress prop
+// 앵커 리스트 (폰트 사이즈 설정 연동)
+function AnchorList({ anchors, onLinkPress, fontSize }) {
   if (!anchors || !anchors.length) return null;
-    return (
-      <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap" }}>
-        {anchors.map((a, idx) => {
-          const text = String(a?.text || "").trim();
-          const url = String(a?.url || "").trim();
-          if (!text || !url) return null;
-          
-          // NEW LOGIC
-          const onPress = () => {
-            if (onLinkPress) {
-              onLinkPress(url);  // Use modal
-            } else {
-              Linking.openURL(url).catch(() => {});  // Fallback
-            }
-          };
-          
-          return (
-            <Pressable
-              key={`${text}-${url}-${idx}`}
-              onPress={onPress}
+
+  return (
+    <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap" }}>
+      {anchors.map((a, idx) => {
+        const text = String(a?.text || "").trim();
+        const url = String(a?.url || "").trim();
+        if (!text || !url) return null;
+
+        const onPress = () => {
+          if (onLinkPress) {
+            onLinkPress(url);  // WebView 모달 사용
+          } else {
+            Linking.openURL(url).catch(() => {});  // Fallback
+          }
+        };
+
+        return (
+          <Pressable
+            key={`${text}-${url}-${idx}`}
+            onPress={onPress}
             accessibilityRole="link"
             hitSlop={6}
             style={{
@@ -1228,7 +1208,7 @@ function AnchorList({ anchors, onLinkPress }) {  // ADDED onLinkPress prop
           >
             <Text
               style={{
-                fontSize: 15,
+                fontSize: fontSize || 15,
                 color: "#000000ff",
                 textDecorationLine: "underline",
               }}
@@ -1455,7 +1435,7 @@ function scheduleMidnightWarmup({
 // 홈 화면
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { scale } = useUIScale();
+  const { scale, screenW } = useUIScale();
   const [tz] = useState(() => {
     const z =
       Intl?.DateTimeFormat?.().resolvedOptions().timeZone ||
@@ -1552,6 +1532,12 @@ export default function Home() {
   const bodyLineHeight = Math.round(
     (customFontSize || 18) * 1.45
   );
+
+  // 폰트 사이즈들을 Settings 기반으로 한 번에 계산
+  const baseFontSize = customFontSize || 18;
+  const locationFontSize = Math.max(10, baseFontSize - 2); // 위치 라벨
+  const dateFontSize = Math.max(10, baseFontSize - 3);     // 날짜 라벨
+  const anchorFontSize = Math.max(10, baseFontSize - 2);   // 앵커 텍스트
 
   const amplitudeReadyRef = useRef(false);
 
@@ -2949,15 +2935,15 @@ export default function Home() {
                           >
                             <Text
                               style={{
-                                fontSize: 14,
+                                fontSize: locationFontSize,
                                 fontWeight: "600",
                                 color: "#6b7280",
                               }}
                             >
-                                 {fieldLabels.location}:{" "}
+                              {fieldLabels.location}:{" "}
                               <Text
                                 style={{
-                                  color: "#111827",
+                                  color: "#6b7280",
                                 }}
                               >
                                 {label}
@@ -2967,12 +2953,12 @@ export default function Home() {
                               <Text
                                 style={{
                                   marginTop: 4,
-                                  fontSize: 13,
+                                  fontSize: dateFontSize,
                                   color: "#6b7280",
                                 }}
                               >
-                                  {fieldLabels.date}: {dateLabel}
-                               </Text>
+                                {fieldLabels.date}: {dateLabel}
+                              </Text>
                             )}
                           </View>
 
@@ -2996,12 +2982,11 @@ export default function Home() {
                             {p.body}
                           </Text>
 
-
                           {/* Anchor 텍스트 */}
-                          
                           <AnchorList 
                             anchors={anchors}
                             onLinkPress={handleLinkPress}
+                            fontSize={anchorFontSize}
                           />
 
                           {/* 사진: 이벤트 밑, 네비게이션 위 여유 있게 */}
