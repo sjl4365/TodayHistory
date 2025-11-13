@@ -306,6 +306,16 @@ function resolveUiLangFromDevice() {
   return "en";
 }
 
+function normalizeUiLang(value, fallback = "en") {
+  const v = String(value || "").toLowerCase();
+
+  if (v.startsWith("ko")) return "ko";
+  if (v.startsWith("ja")) return "ja";
+  if (v.startsWith("en")) return "en";
+
+  return fallback;
+}
+
 function startOfDayInTz(base = new Date(), tz = "UTC") {
   const parts = safeFormatParts(base, tz);
   return new Date(`${parts.year}-${parts.month}-${parts.day}T00:00:00`);
@@ -759,7 +769,6 @@ function WebViewModal({ visible, url, onClose }) {
       onRequestClose={onClose}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["top"]}>
-        {/* Header with close button */}
         <View
           style={{
             flexDirection: "row",
@@ -799,7 +808,6 @@ function WebViewModal({ visible, url, onClose }) {
           </Pressable>
         </View>
 
-        {/* WebView */}
         <WebView
           source={{ uri: url }}
           style={{ flex: 1 }}
@@ -824,7 +832,7 @@ function WebViewModal({ visible, url, onClose }) {
       </SafeAreaView>
     </Modal>
   );
-};
+}
 
 // 헤더 (assets만)
 function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
@@ -1002,7 +1010,6 @@ function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
   const yStr = String(eventYearRaw || "").trim();
   const yearNum = parseInt(yStr, 10);
 
-  // 년도가 없으면 그냥 오늘 날짜 포맷만
   const baseDate = new Date(
     `${todayParts.y}-${todayParts.m}-${todayParts.d}T00:00:00`
   );
@@ -1189,9 +1196,9 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
 
         const onPress = () => {
           if (onLinkPress) {
-            onLinkPress(url);  // WebView 모달 사용
+            onLinkPress(url);
           } else {
-            Linking.openURL(url).catch(() => {});  // Fallback
+            Linking.openURL(url).catch(() => {});
           }
         };
 
@@ -1460,10 +1467,12 @@ export default function Home() {
   const [baseDate, setBaseDate] = useState(() =>
     startOfDayInTz(new Date(), tz)
   );
+
   const deviceLang = useMemo(
-    () => resolveUiLangFromDevice(),
+    () => normalizeUiLang(resolveUiLangFromDevice(), "en"),
     []
   );
+
   const [uiLang, setUiLang] = useState(null);
   const [selectedCountries, setSelectedCountries] =
     useState(new Set());
@@ -1533,15 +1542,13 @@ export default function Home() {
     (customFontSize || 18) * 1.45
   );
 
-  // 폰트 사이즈들을 Settings 기반으로 한 번에 계산
   const baseFontSize = customFontSize || 18;
-  const locationFontSize = Math.max(10, baseFontSize - 2); // 위치 라벨
-  const dateFontSize = Math.max(10, baseFontSize - 3);     // 날짜 라벨
-  const anchorFontSize = Math.max(10, baseFontSize - 2);   // 앵커 텍스트
+  const locationFontSize = Math.max(10, baseFontSize - 2);
+  const dateFontSize = Math.max(10, baseFontSize - 3);
+  const anchorFontSize = Math.max(10, baseFontSize - 2);
 
   const amplitudeReadyRef = useRef(false);
 
-  //linking Wikipedia
   const handleLinkPress = useCallback((url)=>{
     setWebViewUrl(url);
     setWebViewVisible(true);
@@ -1551,7 +1558,6 @@ export default function Home() {
     setWebViewVisible(false);
     setWebViewUrl("");
   },[]);
-
 
   useEffect(() => {
     let cancelled = false;
@@ -1820,7 +1826,6 @@ export default function Home() {
       setRefreshTick((t) => t + 1);
     }, []);
 
-  // 초기 AsyncStorage 복원
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -1843,15 +1848,14 @@ export default function Home() {
           );
         if (!alive) return;
 
-        const storedLang =
+        const storedLangRaw =
           dict[STORAGE_KEY_UI_LANG] ||
           null;
         const lang =
-          storedLang === "ko" ||
-          storedLang === "en" ||
-          storedLang === "ja"
-            ? storedLang
-            : deviceLang;
+          normalizeUiLang(
+            storedLangRaw,
+            deviceLang
+          );
 
         setUiLang(lang);
         if (amplitudeReadyRef.current) {
@@ -1950,7 +1954,6 @@ export default function Home() {
     };
   }, [deviceLang]);
 
-  // 포커스 시 설정/언어 동기화 (언어 되돌림 방지)
   useFocusEffect(
     useCallback(() => {
       if (!hydrated) return () => {};
@@ -1972,13 +1975,13 @@ export default function Home() {
           const dict = Object.fromEntries(pairs || []);
           if (!alive) return;
 
-          const storedLang = dict[STORAGE_KEY_UI_LANG] || null;
+          const storedLangRaw = dict[STORAGE_KEY_UI_LANG] || null;
+          const storedLang = storedLangRaw
+            ? normalizeUiLang(storedLangRaw, null)
+            : null;
 
-          // 핵심: 메모리에 있는 uiLang을 우선 신뢰하고,
-          // 저장소에 유효 값(ko/en/ja)이 있을 때만 그걸로 덮어씀.
-          // 비어있다고 deviceLang으로 되돌리지 않는다.
           let nextLang = uiLang || deviceLang;
-          if (storedLang === "ko" || storedLang === "en" || storedLang === "ja") {
+          if (storedLang) {
             nextLang = storedLang;
           }
           if (!nextLang) {
@@ -2122,7 +2125,6 @@ export default function Home() {
     [today0, tz]
   );
 
-  // 언어와 독립적으로 날짜+선택국가 기준 시드
   const stableKey = useMemo(
     () =>
       `${today0.toISOString()}__${[
@@ -2139,7 +2141,6 @@ export default function Home() {
     [stableKey, refreshTick]
   );
 
-  // 언어 변경 시 기존 pick의 body만 새 언어로 재매핑
   useEffect(() => {
     setOnePick((prev) => {
       if (!Array.isArray(prev) || !prev.length)
@@ -2162,7 +2163,6 @@ export default function Home() {
     setIsRefreshing(false);
   }, []);
 
-  // 데이터 로드: 캐시 → 네트워크
   useEffect(() => {
     if (!hydrated || !uiLang) return;
     let canceled = false;
@@ -2207,7 +2207,6 @@ export default function Home() {
           return;
         }
 
-        // 1) 캐시
         const cachedPoolsByCid = {};
         for (const cid of chosen) {
           const c =
@@ -2260,7 +2259,7 @@ export default function Home() {
 
         const hadCache = Object.values(
           cachedPoolsByCid
-        ).some(
+       ).some(
           (arr) =>
             arr &&
             arr.length
@@ -2283,7 +2282,6 @@ export default function Home() {
           setLoading(true);
         }
 
-        // 2) 네트워크
         const poolsByCid = {};
         for (const cid of chosen) {
           const rows =
@@ -2388,7 +2386,6 @@ export default function Home() {
     endLoading,
   ]);
 
-  // 배너 이미지
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -2473,7 +2470,6 @@ export default function Home() {
     tz,
   ]);
 
-  // 자정 캐시 워밍
   useEffect(() => {
     if (!hydrated || !uiLang)
       return;
@@ -2491,7 +2487,6 @@ export default function Home() {
     selectedCountries,
   ]);
 
-  // 앱 복귀 시 프리워밍
   useEffect(() => {
     const sub =
       AppState.addEventListener(
@@ -2585,7 +2580,6 @@ export default function Home() {
       [selectedCountries, uiLang]
     );
 
-  // 알림 제목/본문 (현재 언어 기준)
   const buildNotificationTitleNow =
     useCallback(() => {
       const appName =
@@ -2607,7 +2601,6 @@ export default function Home() {
       ? [onePick]
       : [];
     
-    // 날짜를 YYYY/MM/DD 형식으로 변환
     const currentDate = startOfDayInTz(new Date(), tz);
     const parts = getDayPartsFrom(currentDate, tz);
     const dateStr = `${parts.y}/${parts.m}/${parts.d}`;
@@ -2648,8 +2641,8 @@ export default function Home() {
                     yr,
                     uiLang ||
                       "en"
-                  )}`
-                : ""
+                  )}`:
+                  ""
             }: ${trunc}`;
           })
           .join(" • ")
@@ -2658,7 +2651,6 @@ export default function Home() {
     return body;
   }, [onePick, uiLang, tz]);
 
-  // 알림: 언어/콘텐츠 변경 시 항상 최신 텍스트로 재저장 + 재스케줄
   useEffect(() => {
     (async () => {
       try {
@@ -2683,7 +2675,6 @@ export default function Home() {
             await cancelAllScheduled?.();
           } catch {}
 
-          // scheduleDailyAt 구현체가 title/body 인자를 안 쓰더라도 문제 없음.
           try {
             await scheduleDailyAt?.(
               H,
@@ -2723,7 +2714,6 @@ export default function Home() {
 
   const ordered = FIXED_ORDER;
 
-  // 헤더 배경 소스: 복수 선택 시 항상 world, 단일 선택 시 해당 국가
   const heroBgSource = useMemo(() => {
     const count = selectedCountries.size;
 
@@ -2786,7 +2776,6 @@ export default function Home() {
             }}
           />
 
-          {/* 헤더 */}
           <HeaderHero
             height={HEADER_H + 15}
             bgSource={heroBgSource}
@@ -2794,7 +2783,6 @@ export default function Home() {
             uiLang={uiLang || "en"}
           />
 
-          {/* 나라 선택 */}
           <View
             pointerEvents="box-none"
             style={{
@@ -2815,7 +2803,6 @@ export default function Home() {
             />
           </View>
 
-          {/* 본문 카드 */}
           <FullBleedCard
             topInset={HEADER_H - 60}
             cardBg={cardBg}
@@ -2842,7 +2829,6 @@ export default function Home() {
                   alignSelf: "center",
                 }}
               >
-                {/* 제목/타이틀 (센터 정렬) */}
                 <View
                   style={{
                     paddingVertical: 20,
@@ -2872,7 +2858,6 @@ export default function Home() {
                   </Text>
                 </View>
 
-                {/* 이벤트 (최대 1개) */}
                 <View
                   style={{
                     marginTop: 0,
@@ -2897,9 +2882,8 @@ export default function Home() {
                     list.map((p) => {
                       const label =
                         COUNTRY_CFG[p.cid]
-                          ?.label?.[
-                          uiLang || "en"
-                        ] || p.cid;
+                          ?.label?.[uiLang || "en"]
+                          || p.cid;
                       const eventYear =
                         getYearFromRow(
                           p.row
@@ -2927,7 +2911,6 @@ export default function Home() {
                             gap: 6,
                           }}
                         >
-                          {/* Location + Date */}
                           <View
                             style={{
                               marginBottom: 8,
@@ -2962,7 +2945,6 @@ export default function Home() {
                             )}
                           </View>
 
-                          {/* 이벤트 내용 */}
                           <Text
                             style={{
                               marginTop: 4,
@@ -2982,14 +2964,12 @@ export default function Home() {
                             {p.body}
                           </Text>
 
-                          {/* Anchor 텍스트 */}
                           <AnchorList 
                             anchors={anchors}
                             onLinkPress={handleLinkPress}
                             fontSize={anchorFontSize}
                           />
 
-                          {/* 사진: 이벤트 밑, 네비게이션 위 여유 있게 */}
                           {headerImageUrl && (
                             <View
                               style={{
@@ -3024,18 +3004,16 @@ export default function Home() {
                     })
                   )}
                 </View>
-
-              
               </View>
             </ScrollView>
           </FullBleedCard>
+
           <WebViewModal
             visible={webViewVisible}
             url={webViewUrl}
             onClose={handleCloseWebView}
           />
 
-          {/* 상단 로딩 인디케이터 */}
           {loading &&
             !isRefreshing && (
               <View
@@ -3050,7 +3028,6 @@ export default function Home() {
               </View>
             )}
 
-          {/* 에러 표시 */}
           {!!err && (
             <View
               style={{
