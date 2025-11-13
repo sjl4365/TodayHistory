@@ -120,6 +120,21 @@ const APP_NAME_BY_LANG = {
   ja: "Histree",
 };
 
+const FIELD_LABELS = {
+  ko: {
+    location: "위치",
+    date: "날짜",
+  },
+  en: {
+    location: "Location",
+    date: "Date",
+  },
+  ja: {
+    location: "場所",
+    date: "日付",
+  },
+};
+
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
 
 const UI_STR = {
@@ -1023,7 +1038,7 @@ function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
   );
 
   const agoStr = formatYearsAgo(diff, uiLang);
-  return agoStr ? `${dateStr} · ${agoStr}` : dateStr;
+  return agoStr ? `${dateStr}  ${agoStr}` : dateStr;
 }
 
 // 캐시 
@@ -1161,48 +1176,29 @@ async function apiFetchForMode(mode, todayParts) {
   return normalizeItemsToRows(items, iso, todayParts);
 }
 
-// 본문 아래 앵커
-// function AnchorList({ anchors }) {
-//   if (!anchors || !anchors.length) return null;
-  // return (
-  //   <View
-  //     style={{
-  //       marginTop: 6,
-  //       flexDirection: "row",
-  //       flexWrap: "wrap",
-  //     }}
-  //   >
-  //     {anchors.map((a, idx) => {
-  //       const text = String(a?.text || "").trim();
-  //       const url = String(a?.url || "").trim();
-  //       if (!text || !url) return null;
-  //       const onPress = () => Linking.openURL(url).catch(() => {});
-  //       return (
-  //         <Pressable
-  //           key={`${text}-${url}-${idx}`}
-  //           onPress={onPress}
-function AnchorList({ anchors, onLinkPress }) {  // ADDED onLinkPress prop
+// 앵커 리스트 (폰트 사이즈 설정 연동)
+function AnchorList({ anchors, onLinkPress, fontSize }) {
   if (!anchors || !anchors.length) return null;
-    return (
-      <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap" }}>
-        {anchors.map((a, idx) => {
-          const text = String(a?.text || "").trim();
-          const url = String(a?.url || "").trim();
-          if (!text || !url) return null;
-          
-          // NEW LOGIC
-          const onPress = () => {
-            if (onLinkPress) {
-              onLinkPress(url);  // Use modal
-            } else {
-              Linking.openURL(url).catch(() => {});  // Fallback
-            }
-          };
-          
-          return (
-            <Pressable
-              key={`${text}-${url}-${idx}`}
-              onPress={onPress}
+
+  return (
+    <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap" }}>
+      {anchors.map((a, idx) => {
+        const text = String(a?.text || "").trim();
+        const url = String(a?.url || "").trim();
+        if (!text || !url) return null;
+
+        const onPress = () => {
+          if (onLinkPress) {
+            onLinkPress(url);  // WebView 모달 사용
+          } else {
+            Linking.openURL(url).catch(() => {});  // Fallback
+          }
+        };
+
+        return (
+          <Pressable
+            key={`${text}-${url}-${idx}`}
+            onPress={onPress}
             accessibilityRole="link"
             hitSlop={6}
             style={{
@@ -1212,10 +1208,9 @@ function AnchorList({ anchors, onLinkPress }) {  // ADDED onLinkPress prop
           >
             <Text
               style={{
-                fontSize: 10,
-                color: "#2563EB",
+                fontSize: fontSize || 15,
+                color: "#000000ff",
                 textDecorationLine: "underline",
-                fontWeight: "600",
               }}
               numberOfLines={1}
             >
@@ -1440,7 +1435,7 @@ function scheduleMidnightWarmup({
 // 홈 화면
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const { scale } = useUIScale();
+  const { scale, screenW } = useUIScale();
   const [tz] = useState(() => {
     const z =
       Intl?.DateTimeFormat?.().resolvedOptions().timeZone ||
@@ -1537,6 +1532,12 @@ export default function Home() {
   const bodyLineHeight = Math.round(
     (customFontSize || 18) * 1.45
   );
+
+  // 폰트 사이즈들을 Settings 기반으로 한 번에 계산
+  const baseFontSize = customFontSize || 18;
+  const locationFontSize = Math.max(10, baseFontSize - 2); // 위치 라벨
+  const dateFontSize = Math.max(10, baseFontSize - 3);     // 날짜 라벨
+  const anchorFontSize = Math.max(10, baseFontSize - 2);   // 앵커 텍스트
 
   const amplitudeReadyRef = useRef(false);
 
@@ -2825,10 +2826,7 @@ export default function Home() {
               contentContainerStyle={{
                 flexGrow: 1,
                 paddingHorizontal: 16,
-                paddingBottom:
-                  24 +
-                  tabBarHeight +
-                  (headerImageUrl ? bannerHeight + 24 : 0),
+                paddingBottom: 24 + tabBarHeight,
               }}
               refreshControl={
                 <RefreshControl
@@ -2879,7 +2877,7 @@ export default function Home() {
                   style={{
                     marginTop: 0,
                     gap: 14,
-                    paddingBottom: 80,
+                    paddingBottom: 10,
                   }}
                 >
                   {list.length === 0 ? (
@@ -2913,6 +2911,9 @@ export default function Home() {
                           uiLang || "en",
                           tz
                         );
+                      const lang = uiLang || "en";
+                      const fieldLabels = FIELD_LABELS[lang] || FIELD_LABELS.en;
+
                       const anchors =
                         getAnchorsForLang(
                           p.row,
@@ -2934,15 +2935,15 @@ export default function Home() {
                           >
                             <Text
                               style={{
-                                fontSize: 14,
+                                fontSize: locationFontSize,
                                 fontWeight: "600",
                                 color: "#6b7280",
                               }}
                             >
-                              Location :{" "}
+                              {fieldLabels.location}:{" "}
                               <Text
                                 style={{
-                                  color: "#111827",
+                                  color: "#6b7280",
                                 }}
                               >
                                 {label}
@@ -2952,11 +2953,11 @@ export default function Home() {
                               <Text
                                 style={{
                                   marginTop: 4,
-                                  fontSize: 13,
+                                  fontSize: dateFontSize,
                                   color: "#6b7280",
                                 }}
                               >
-                                {dateLabel}
+                                {fieldLabels.date}: {dateLabel}
                               </Text>
                             )}
                           </View>
@@ -2981,12 +2982,11 @@ export default function Home() {
                             {p.body}
                           </Text>
 
-
                           {/* Anchor 텍스트 */}
-                          
                           <AnchorList 
                             anchors={anchors}
                             onLinkPress={handleLinkPress}
+                            fontSize={anchorFontSize}
                           />
 
                           {/* 사진: 이벤트 밑, 네비게이션 위 여유 있게 */}
@@ -3025,11 +3025,7 @@ export default function Home() {
                   )}
                 </View>
 
-                <View
-                  style={{
-                    height: 36,
-                  }}
-                />
+              
               </View>
             </ScrollView>
           </FullBleedCard>
