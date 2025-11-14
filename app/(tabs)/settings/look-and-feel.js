@@ -23,9 +23,10 @@ const STORAGE_KEY_BG_IMAGE = '@app_bg_image';
 export default function LookAndFeel() {
   const [selectedFont, setSelectedFont] = useState('Verdana');
   const [fontSize, setFontSize] = useState(18);
-  const [fontColor, setFontColor] = useState('black');
-  const [backgroundColor, setBackgroundColor] = useState('white');
+  const [fontColor, setFontColor] = useState('#000000');
+  const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [backgroundImage, setBackgroundImage] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const [showFontModal, setShowFontModal] = useState(false);
 
@@ -191,6 +192,7 @@ export default function LookAndFeel() {
             onPress={() => {
               onColorChange(color.value);
               setBackgroundImage(null);
+              AsyncStorage.removeItem(STORAGE_KEY_BG_IMAGE);
             }}
           >
           </TouchableOpacity>
@@ -242,6 +244,7 @@ export default function LookAndFeel() {
         await AsyncStorage.setItem(STORAGE_KEY_BG_IMAGE, imageUri);
         // Clear color when image is set
         setBackgroundColor(null);
+        await AsyncStorage.removeItem(STORAGE_KEY_BG_COLOR);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -251,7 +254,8 @@ export default function LookAndFeel() {
   const removeBackgroundImage = async () => {
     setBackgroundImage(null);
     await AsyncStorage.removeItem(STORAGE_KEY_BG_IMAGE);
-    setBackgroundColor('white');
+    setBackgroundColor('#FFFFFF');
+    await AsyncStorage.setItem(STORAGE_KEY_BG_COLOR,'#FFFFFF');
   };
   
   useEffect(() => {
@@ -271,29 +275,37 @@ export default function LookAndFeel() {
       if (savedFontColor) setFontColor(savedFontColor);
       if (savedBgColor) setBackgroundColor(savedBgColor);
       if (savedBgImage) setBackgroundImage(savedBgImage);
+      setIsLoaded(true);
     } catch (error) {
       console.error('Error loading settings:', error);
+      setIsLoaded(true);
     }
   };
 
   // Save whenever settings change
   useEffect(() => {
-    AsyncStorage.setItem(STORAGE_KEY_FONT, selectedFont).catch(() => {});
-  }, [selectedFont]);
+    if (isLoaded) {
+      AsyncStorage.setItem(STORAGE_KEY_FONT, selectedFont).catch(() => {});
+    }
+  }, [selectedFont, isLoaded]);
 
   useEffect(() => {
-    AsyncStorage.setItem(STORAGE_KEY_FONT_SIZE, fontSize.toString()).catch(() => {});
-  }, [fontSize]);
+    if (isLoaded) {
+      AsyncStorage.setItem(STORAGE_KEY_FONT_SIZE, fontSize.toString()).catch(() => {});
+    }
+  }, [fontSize, isLoaded]);
 
   useEffect(() => {
-    AsyncStorage.setItem(STORAGE_KEY_FONT_COLOR, fontColor).catch(() => {});
-  }, [fontColor]);
+    if (isLoaded) {
+      AsyncStorage.setItem(STORAGE_KEY_FONT_COLOR, fontColor).catch(() => {});
+    }
+  }, [fontColor, isLoaded]);
 
   useEffect(() => {
-    if (backgroundColor) {
+    if (isLoaded && backgroundColor) {
       AsyncStorage.setItem(STORAGE_KEY_BG_COLOR, backgroundColor).catch(() => {});
     }
-  }, [backgroundColor]);
+  }, [backgroundColor, isLoaded]);
 
   return (
     <View style={styles.container}>
