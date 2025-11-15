@@ -61,6 +61,8 @@ import {
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { WebView } from "react-native-webview";
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import mobileAds from 'react-native-google-mobile-ads';
 
 // 콘솔
 if (__DEV__) {
@@ -945,6 +947,73 @@ function WikipediaBanner({
         onError={(e) => {
           console.warn("expo-image load error:", e?.nativeEvent);
           setImageFailed(true);
+        }}
+      />
+    </View>
+  );
+}
+
+// Wikipedia Banner 컴포넌트 다음에 추가
+function AdBanner({ maxWidth = 340, cardBg = "none", customBgColor = null }) {
+  const [adLoaded, setAdLoaded] = useState(false);
+  const [adFailed, setAdFailed] = useState(false);
+
+  const adUnitId = __DEV__ 
+    ? TestIds.BANNER 
+    : Platform.select({
+        ios: 'ca-app-pub-xxxxx/xxxxx',  // 실제 iOS 광고 단위 ID
+        android: 'ca-app-pub-xxxxx/xxxxx',  // 실제 Android 광고 단위 ID
+      });
+
+  const w = maxWidth;
+  const h = Math.round(w * 0.625); // Wikipedia 배너와 동일한 비율
+
+  const BG_MAP = {
+    none: "#FFFFFF",
+    bg1: "#F9FAFB",
+    bg2: "#FFF7ED",
+    bg3: "#ECFEFF",
+  };
+
+  const bgColor = isValidColorString(customBgColor)
+    ? customBgColor.trim()
+    : BG_MAP[cardBg] ?? "#FFFFFF";
+
+  if (adFailed) return null;
+
+  return (
+    <View
+      style={{
+        width: w,
+        minHeight: adLoaded ? undefined : h,
+        borderRadius: 12,
+        alignSelf: "center",
+        backgroundColor: bgColor,
+        overflow: "hidden",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      {!adLoaded && (
+        <ActivityIndicator 
+          size="small" 
+          color="#999" 
+          style={{ position: 'absolute' }}
+        />
+      )}
+      <BannerAd
+        unitId={adUnitId}
+        size={BannerAdSize.MEDIUM_RECTANGLE}  // 300x250
+        requestOptions={{
+          requestNonPersonalizedAdsOnly: true,
+        }}
+        onAdLoaded={() => {
+          console.log('Ad loaded successfully');
+          setAdLoaded(true);
+        }}
+        onAdFailedToLoad={(error) => {
+          console.error('Ad failed to load:', error);
+          setAdFailed(true);
         }}
       />
     </View>
@@ -2720,6 +2789,17 @@ export default function Home() {
     buildNotificationBodyNow,
   ]);
 
+  useEffect(() => {
+  mobileAds()
+    .initialize()
+    .then(adapterStatuses => {
+      console.log('AdMob initialized:', adapterStatuses);
+    })
+    .catch(error => {
+      console.warn('AdMob initialization failed:', error);
+    });
+}, []);
+
   const list = Array.isArray(onePick)
     ? onePick
     : onePick
@@ -2993,7 +3073,7 @@ export default function Home() {
                                   "center",
                               }}
                             >
-                              <WikipediaBanner
+                              {/* <WikipediaBanner
                                 imageUrl={
                                   headerImageUrl
                                 }
@@ -3010,6 +3090,11 @@ export default function Home() {
                                 customBgColor={
                                   customBgColor
                                 }
+                              /> */}
+                              <AdBanner
+                                maxWidth={Math.min(340, Math.floor(width * 0.84))}
+                                cardBg={cardBg}
+                                customBgColor={customBgColor}
                               />
                             </View>
                           )}
