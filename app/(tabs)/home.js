@@ -2603,7 +2603,6 @@ export default function Home() {
     
     const currentDate = startOfDayInTz(new Date(), tz);
     const parts = getDayPartsFrom(currentDate, tz);
-    const dateStr = `${parts.y}/${parts.m}/${parts.d}`;
     
     const maxBodyLen =
       uiLang === "ko" ||
@@ -2612,8 +2611,7 @@ export default function Home() {
         : 40;
 
     const body = list.length
-      ? `${dateStr} — ` +
-        list
+      ? list
           .map((p) => {
             const label =
               COUNTRY_CFG[p.cid]
@@ -2635,18 +2633,34 @@ export default function Home() {
                     maxBodyLen
                   )}...`
                 : txt;
-            return `${label}${
-              yr
-                ? ` ${formatYearOnly(
-                    yr,
-                    uiLang ||
-                      "en"
-                  )}`:
-                  ""
-            }: ${trunc}`;
+            
+            // 언어별 날짜 포맷
+            let eventDateStr = '';
+            if (uiLang === 'ko') {
+              eventDateStr = `${yr}년 ${parseInt(parts.m, 10)}월 ${parseInt(parts.d, 10)}일`;
+            } else if (uiLang === 'ja') {
+              eventDateStr = `${yr}年${parseInt(parts.m, 10)}月${parseInt(parts.d, 10)}日`;
+            } else {
+            
+              const monthNames = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+              ];
+              const monthName = monthNames[parseInt(parts.m, 10) - 1];
+              eventDateStr = `${monthName} ${parseInt(parts.d, 10)}, ${yr}`;
+            }
+            
+            // 언어별 포맷
+            if (uiLang === 'ko') {
+              return `${eventDateStr}, ${label}: ${trunc}`;
+            } else if (uiLang === 'ja') {
+              return `${eventDateStr}、${label}: ${trunc}`;
+            } else {
+              return `${eventDateStr}, ${label}: ${trunc}`;
+            }
           })
           .join(" • ")
-      : `${dateStr}`;
+      : '';
 
     return body;
   }, [onePick, uiLang, tz]);
