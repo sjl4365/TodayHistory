@@ -131,9 +131,9 @@ export default function Notification() {
     
     // 모든 기존 알림을 완전히 삭제
     try {
-      console.log('🗑️ Cancelling ALL existing notifications...');
+      console.log('Cancelling ALL existing notifications...');
       await Notifications.cancelAllScheduledNotificationsAsync();
-      console.log('✅ All notifications cancelled');
+      console.log('All notifications cancelled');
       scheduledIdRef.current = null;
     } catch (error) {
       console.error('Failed to cancel all notifications:', error);
@@ -176,16 +176,16 @@ export default function Notification() {
 
     const hours = time.getHours();
     const minutes = time.getMinutes();
-    console.log(`⏰ Scheduling notification for ${hours}:${minutes}`);
+    console.log(`scheduling notification for ${hours}:${minutes}`);
 
     // ⭐ AsyncStorage에서 알림 본문 읽기
     try {
       console.log('🔍 Reading from AsyncStorage...');
       const cachedBody = await AsyncStorage.getItem("@notification_body");
-      console.log('📱 Cached body from AsyncStorage:', cachedBody);
+      console.log('Cached body from AsyncStorage:', cachedBody);
       
       if (!cachedBody) {
-        console.error('❌ No notification body found in AsyncStorage!');
+        console.error('No notification body found in AsyncStorage!');
         Alert.alert('알림 설정 실패', 'Home 화면을 먼저 방문해주세요.');
         return false;
       }
@@ -212,7 +212,7 @@ export default function Notification() {
       const id = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Today In History',
-          body: cachedBody, // ⭐ AsyncStorage에서 읽은 최신 데이터
+          body: cachedBody, 
           sound: 'default',
           channelId: CHANNEL_ID,
           data: { __tag: TAG },
@@ -291,7 +291,7 @@ const handleSaveTime = async () => {
     
     // 다국어 처리
     try {
-      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'ko';
+      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
       
       const messages = {
         ko: {
@@ -313,18 +313,18 @@ const handleSaveTime = async () => {
       Alert.alert(message.title, message.message);
     } catch (error) {
       console.error('Failed to get language setting:', error);
-      // 기본값으로 한국어 사용
+      // 기본값으로 영어사용
       Alert.alert(
         'Notifications are on.', 
         `You will receive the latest history update daily at ${timeString}.`
       );
     }
   } else {
-    console.log('❌ Failed to save time');
+    console.log('Failed to save time');
     
     // 다국어 처리
     try {
-      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'ko';
+      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
       
       const messages = {
         ko: { title: '설정 실패', message: '알림을 예약할 수 없습니다.' },
@@ -384,7 +384,7 @@ const handleToggleNotification = async (value) => {
     
     // 다국어 처리
     try {
-      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'ko';
+      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
       
       const messages = {
         ko: {message: '일일 알림이 꺼졌습니다.' },
@@ -395,7 +395,7 @@ const handleToggleNotification = async (value) => {
       const message = messages[currentLanguage] || messages.ko;
       Alert.alert(message.title, message.message);
     } catch (error) {
-      Alert.alert('알림 비활성화', '일일 알림이 꺼졌습니다.');
+      Alert.alert('Notifications are off');
     }
   }
 };

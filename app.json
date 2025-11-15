@@ -18,7 +18,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.todayhistory.todayhistory"
     },
     "android": {
       "package": "com.todayhistory.todayhistory",
@@ -33,9 +34,13 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router",
-      "expo-localization",
-      "expo-web-browser"
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3506417530430977~9615307190",
+          "iosAppId": "ca-app-pub-3506417530430977~8302225521"
+        }
+      ]
     ],
     "extra": {
       "router": {},
