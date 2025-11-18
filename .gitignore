@@ -37,4 +37,22 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+#for the files that are generated from the dev build 
+#android
+android/.gradle
+android/app/build/
+android/app/cxx/
+android/.cxx/
+
+#ios
+ios/build/
+ios/DerivedData/
+ios/Pods/
+ios/Podfile.lock
+
+*.iml
+.gradle
+/local.properties
+*.log
+
 .idea
