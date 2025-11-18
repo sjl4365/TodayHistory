@@ -904,14 +904,51 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
 function WikipediaBanner({
   imageUrl,
   maxWidth = 340,
+  screenWidth,
   cardBg = "none",
   customBgColor = null,
 }) {
   const [imageFailed, setImageFailed] = useState(false);
-  if (!imageUrl || imageFailed) return null;
+  const [imageSize, setImageSize] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const w = maxWidth;
-  const h = Math.round(w * 0.625);
+  useEffect(() => {
+    if (!imageUrl || imageFailed) return;
+    
+    // 이미지 크기 가져오기
+    RNImage.getSize(
+      imageUrl,
+      (width, height) => {
+        setImageSize({ width, height });
+        setLoading(false);
+      },
+      (error) => {
+        console.warn("Failed to get image size:", error);
+        setImageFailed(true);
+        setLoading(false);
+      }
+    );
+  }, [imageUrl, imageFailed]);
+
+  if (!imageUrl || imageFailed) return null;
+  if (loading || !imageSize) {
+    return (
+      <View
+        style={{
+          width: maxWidth,
+          height: 200,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator size="small" color="#999" />
+      </View>
+    );
+  }
+
+  const { width: imgWidth, height: imgHeight } = imageSize;
+  const aspectRatio = imgWidth / imgHeight;
+  const isLandscape = aspectRatio > 1;
 
   const BG_MAP = {
     none: "#FFFFFF",
@@ -924,33 +961,92 @@ function WikipediaBanner({
     ? customBgColor.trim()
     : BG_MAP[cardBg] ?? "#FFFFFF";
 
-  return (
-    <View
-      style={{
-        width: w,
-        height: h,
-        borderRadius: 12,
-        alignSelf: "center",
-        backgroundColor: bgColor,
-        overflow: "hidden",
-      }}
-    >
-      <ExpoImage
-        source={imageUrl}
+  if (isLandscape) {
+    // 가로 사진: 앱 가로 길이에 맞춤
+    const displayWidth = screenWidth;
+    const displayHeight = displayWidth / aspectRatio;
+
+    return (
+      <ScrollView
+        horizontal={false}
+        showsVerticalScrollIndicator={true}
         style={{
-          width: "100%",
-          height: "100%",
+          width: displayWidth,
+          maxHeight: screenWidth * 1.2, // 최대 높이 제한
         }}
-        contentFit="cover"
-        cachePolicy="disk"
-        transition={150}
-        onError={(e) => {
-          console.warn("expo-image load error:", e?.nativeEvent);
-          setImageFailed(true);
+        contentContainerStyle={{
+          alignItems: "center",
         }}
-      />
-    </View>
-  );
+      >
+        <View
+          style={{
+            width: displayWidth,
+            height: displayHeight,
+            backgroundColor: bgColor,
+          }}
+        >
+          <ExpoImage
+            source={imageUrl}
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
+            contentFit="contain"
+            cachePolicy="disk"
+            transition={150}
+            onError={(e) => {
+              console.warn("expo-image load error:", e?.nativeEvent);
+              setImageFailed(true);
+            }}
+          />
+        </View>
+      </ScrollView>
+    );
+  } else {
+    // 세로 사진: 텍스트 좌우 크기(maxWidth)에 맞춤
+    const displayWidth = Math.min(maxWidth, imgWidth);
+    const displayHeight = displayWidth / aspectRatio;
+
+    return (
+      <ScrollView
+        horizontal={false}
+        showsVerticalScrollIndicator={true}
+        style={{
+          width: displayWidth,
+          maxHeight: maxWidth * 1.5, // 최대 높이 제한
+          alignSelf: "center",
+        }}
+        contentContainerStyle={{
+          alignItems: "center",
+        }}
+      >
+        <View
+          style={{
+            width: displayWidth,
+            height: displayHeight,
+            borderRadius: 12,
+            backgroundColor: bgColor,
+            overflow: "hidden",
+          }}
+        >
+          <ExpoImage
+            source={imageUrl}
+            style={{
+              width: "100%",
+              height: "100%",
+            }}
+            contentFit="contain"
+            cachePolicy="disk"
+            transition={150}
+            onError={(e) => {
+              console.warn("expo-image load error:", e?.nativeEvent);
+              setImageFailed(true);
+            }}
+          />
+        </View>
+      </ScrollView>
+    );
+  }
 }
 
 // // Wikipedia Banner 컴포넌트 다음에 추가
@@ -3069,27 +3165,15 @@ export default function Home() {
                               style={{
                                 marginTop: 18,
                                 marginBottom: 8,
-                                alignItems:
-                                  "center",
+                                alignItems: "center",
                               }}
                             >
                               <WikipediaBanner
-                                imageUrl={
-                                  headerImageUrl
-                                }
-                                maxWidth={Math.min(
-                                  820,
-                                  Math.floor(
-                                    width *
-                                      0.84
-                                  )
-                                )}
-                                cardBg={
-                                  cardBg
-                                }
-                                customBgColor={
-                                  customBgColor
-                                }
+                                imageUrl={headerImageUrl}
+                                maxWidth={CONTENT_W} // 340px - 텍스트 영역과 동일
+                                screenWidth={screenW} // useUIScale에서 가져온 화면 너비
+                                cardBg={cardBg}
+                                customBgColor={customBgColor}
                               />
                               {/* <AdBanner
                                 maxWidth={Math.min(340, Math.floor(width * 0.84))}
