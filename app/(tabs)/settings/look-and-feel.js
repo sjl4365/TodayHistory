@@ -19,6 +19,7 @@ const STORAGE_KEY_FONT_SIZE = '@app_font_size';
 const STORAGE_KEY_FONT_COLOR = '@app_font_color';
 const STORAGE_KEY_BG_COLOR = '@app_bg_color';
 const STORAGE_KEY_BG_IMAGE = '@app_bg_image';
+const LANGUAGE_STORAGE_KEY = '@app_language';
 
 export default function LookAndFeel() {
   const [selectedFont, setSelectedFont] = useState('Verdana');
@@ -27,6 +28,7 @@ export default function LookAndFeel() {
   const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState('en');
   
   const [showFontModal, setShowFontModal] = useState(false);
 
@@ -38,6 +40,13 @@ export default function LookAndFeel() {
     'Courier New',
     'Georgia',
   ];
+
+  // Language-specific messages
+  const fontAppliedMessages = {
+    en: '*Only the English font is applied.',
+    ko: '*영어 폰트만 적용 됩니다.',
+    ja: '*英語のフォントだけが適用されます。',
+  };
 
   // Font Color options (includes Brown)
   const fontcolorOptions = [
@@ -269,18 +278,35 @@ export default function LookAndFeel() {
       const savedFontColor = await AsyncStorage.getItem(STORAGE_KEY_FONT_COLOR);
       const savedBgColor = await AsyncStorage.getItem(STORAGE_KEY_BG_COLOR);
       const savedBgImage = await AsyncStorage.getItem(STORAGE_KEY_BG_IMAGE);
+      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
       
       if (savedFont) setSelectedFont(savedFont);
       if (savedSize) setFontSize(parseInt(savedSize));
       if (savedFontColor) setFontColor(savedFontColor);
       if (savedBgColor) setBackgroundColor(savedBgColor);
       if (savedBgImage) setBackgroundImage(savedBgImage);
+      if (savedLanguage) setCurrentLanguage(savedLanguage);
+      
       setIsLoaded(true);
     } catch (error) {
       console.error('Error loading settings:', error);
       setIsLoaded(true);
     }
   };
+
+  // Listen for language changes
+  useEffect(() => {
+    const checkLanguage = async () => {
+      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (savedLanguage && savedLanguage !== currentLanguage) {
+        setCurrentLanguage(savedLanguage);
+      }
+    };
+
+    // Check language when screen focuses
+    const interval = setInterval(checkLanguage, 500);
+    return () => clearInterval(interval);
+  }, [currentLanguage]);
 
   // Save whenever settings change
   useEffect(() => {
@@ -377,6 +403,11 @@ export default function LookAndFeel() {
             <Text style={styles.sizeLabel}>48</Text>
           </View>
           <Text style={styles.currentSize}>{Math.round(fontSize)}pt</Text>
+          
+          {/* Language specific font message */}
+          <Text style={styles.fontNote}>
+            {fontAppliedMessages[currentLanguage] || fontAppliedMessages.en}
+          </Text>
         </View>
 
         {/* Font Color Palette */}
@@ -478,7 +509,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
   },
-
+  fontNote: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
+  },
   inlineColorContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
