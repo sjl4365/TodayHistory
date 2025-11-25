@@ -19,7 +19,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.todayhistory.todayhistory"
+      "bundleIdentifier": "com.sunnyinnolab.Histree"
     },
     "android": {
       "package": "com.todayhistory.todayhistory",
