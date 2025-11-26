@@ -54,13 +54,13 @@ export default function SettingsLayout(){
         }} 
       />
 
-      <Stack.Screen
+      {/* <Stack.Screen
         name="instagram"
         options={{
           title: 'Instagram',
           presentation: 'card',
         }}
-      />
+      /> */}
       
       <Stack.Screen 
         name="credit" 

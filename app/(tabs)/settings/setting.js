@@ -59,8 +59,8 @@ export default function SettingsIndex() {
   };
 
   const openInstagram = async () => {
+    const instagramUrl = 'instagram://user?username=sunnyinnolab';
     const webUrl = 'https://www.instagram.com/sunnyinnolab/';
-
     try {
       const canOpen = await Linking.canOpenURL(instagramUrl);
       if (canOpen) {
@@ -195,9 +195,17 @@ export default function SettingsIndex() {
         />
       </View>
 
-      <View style={styles.versionContainer}>
-        <Text style={styles.versionText}>Test Build 2025.11.08 (Version 0.0.5)</Text>
+      <View style={styles.section}>
+        <SettingItem
+          title="App Version"
+          rightComponent={<Text style={styles.selectedLanguageText}>v 1.3.3</Text>}
+          showArrow={false}
+        />
       </View>
+
+      {/* <View style={styles.versionContainer}>
+        <Text style={styles.versionText}>Test Build 2025.11.08 (Version 0.0.5)</Text>
+      </View> */}
     <View style={styles.bottomSpacing} />
 
     </ScrollView>
