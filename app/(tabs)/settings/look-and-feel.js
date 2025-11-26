@@ -385,6 +385,11 @@ export default function LookAndFeel() {
           </TouchableOpacity>
         </View>
 
+          {/* Language specific font message */}
+          <Text style={styles.fontNote}>
+            {fontAppliedMessages[currentLanguage] || fontAppliedMessages.en}
+          </Text>
+
         {/* Size Slider */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Size</Text>
@@ -404,10 +409,6 @@ export default function LookAndFeel() {
           </View>
           <Text style={styles.currentSize}>{Math.round(fontSize)}pt</Text>
           
-          {/* Language specific font message */}
-          <Text style={styles.fontNote}>
-            {fontAppliedMessages[currentLanguage] || fontAppliedMessages.en}
-          </Text>
         </View>
 
         {/* Font Color Palette */}
