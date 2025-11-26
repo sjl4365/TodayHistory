@@ -190,7 +190,7 @@ export default function SettingsIndex() {
 
       <View style={styles.section}>
         <SettingItem
-          title="Open Source info"
+          title="Open Source Info"
           onPress={() => router.push('/settings/opensource')}
         />
       </View>
