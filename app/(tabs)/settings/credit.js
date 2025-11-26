@@ -31,12 +31,12 @@ export default function CreditScreen() {
 
           <View style={styles.creditRow}>
             <Text style={styles.roleLabel}>Programmer</Text>
-            <Text style={styles.nameValue}>Kwanyeob, Sam, TK</Text>
+            <Text style={styles.nameValue}>Kwanyeob Jung, Sam Lee, TK</Text>
           </View>
 
           <View style={styles.creditRow}>
-            <Text style={styles.roleLabel}>Artist</Text>
-            <Text style={styles.nameValue}>Chloe</Text>
+            <Text style={styles.roleLabel}>UIUX</Text>
+            <Text style={styles.nameValue}>Chloe Kim</Text>
           </View>
 
           <View style={styles.creditRow}>
