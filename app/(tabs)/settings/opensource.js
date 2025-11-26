@@ -1,0 +1,1 @@
+// app/(tabs)/settings/opensource.js

@@ -187,6 +187,14 @@ export default function SettingsIndex() {
           onPress={() => router.push('/settings/credit')}
         />
       </View>
+
+      <View style={styles.section}>
+        <SettingItem
+          title="Open Source info"
+          onPress={() => router.push('/settings/opensource')}
+        />
+      </View>
+
       <View style={styles.versionContainer}>
         <Text style={styles.versionText}>Test Build 2025.11.08 (Version 0.0.5)</Text>
       </View>
