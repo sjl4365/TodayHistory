@@ -77,6 +77,14 @@ export default function SettingsLayout(){
           presentation: 'card',
         }}
       />
+
+      <Stack.Screen
+        name="opensource"
+        options={{
+          title: 'Open Source Info',
+          presentation: 'card',
+        }}
+      />
     </Stack>
 
     
