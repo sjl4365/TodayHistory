@@ -29,7 +29,7 @@ export default function SettingsLayout(){
               style={{ marginRight: 15 }}
             >
               <Image 
-                source={require('../../../assets/images/prev.png')} // Correct path from settings folder
+                source={require('../../../assets/images/prevv.png')} // Correct path from settings folder
                 style={{ width: 24, height: 24, tintColor: 'white' }}
                 resizeMode="contain"
               />
