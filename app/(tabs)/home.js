@@ -60,7 +60,11 @@ import { getLocalHistory } from "../../lib/localHistory";
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { WebView } from "react-native-webview";
+<<<<<<< HEAD
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+=======
 import { BlurView } from "expo-blur";
+>>>>>>> origin/settings
 
 // 콘솔
 if (__DEV__) {
@@ -1019,6 +1023,7 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
   );
 }
 
+
 function WikipediaBanner({
   imageUrl,
   maxWidth = 340,
@@ -1030,61 +1035,72 @@ function WikipediaBanner({
   const [imageSize, setImageSize] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // ✅ 이미지 크기 가져오기 useEffect
   useEffect(() => {
-    if (!imageUrl || imageFailed) return;
+    if (!imageUrl) {
+      setLoading(false);
+      setImageFailed(true);
+      return;
+    }
     
-    const getImageSize = async () => {
-      try {
-        const response = await fetch(imageUrl, {
-          method: 'GET',
-          headers: {
-            'User-Agent': 'Histree/1.0 (Educational History App)',
-            'Referer': 'https://en.wikipedia.org/',
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        
-        // Blob을 Data URI로 변환
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const dataUrl = reader.result;
-          
-          // Data URI로 이미지 크기 가져오기
-          RNImage.getSize(
-            dataUrl,
-            (width, height) => {
-              setImageSize({ width, height });
-              setLoading(false);
-            },
-            (error) => {
-              console.warn("Failed to get image size from blob:", error);
-              setImageFailed(true);
-              setLoading(false);
-            }
-          );
-        };
-        reader.onerror = () => {
+    // iOS는 RNImage.getSize 사용
+    if (Platform.OS === 'ios') {
+      RNImage.getSize(
+        imageUrl,
+        (width, height) => {
+          setImageSize({ width, height });
+          setLoading(false);
+        },
+        (error) => {
+          console.warn("Failed to get image size:", error);
           setImageFailed(true);
           setLoading(false);
-        };
-        reader.readAsDataURL(blob);
+        }
+      );
+    } else {
+      // Android: ExpoImage의 onLoad에서 처리
+      setLoading(false);
+      setImageSize({ width: maxWidth, height: maxWidth * 0.6 });
+    }
+  }, [imageUrl, maxWidth]);
 
-      } catch (error) {
-        console.warn("Failed to fetch image:", error);
-        setImageFailed(true);
-        setLoading(false);
-      }
-    };
+  const BG_MAP = {
+    none: "#FFFFFF",
+    bg1: "#F9FAFB",
+    bg2: "#FFF7ED",
+    bg3: "#ECFEFF",
+  };
 
-    getImageSize();
-  }, [imageUrl, imageFailed]);
+  const bgColor = isValidColorString(customBgColor)
+    ? customBgColor.trim()
+    : BG_MAP[cardBg] ?? "#FFFFFF";
 
-  if (!imageUrl || imageFailed) return null;
+  // 🎯 이미지가 없거나 실패했을 때 AdMob 광고 표시
+  if (!imageUrl || imageFailed) {
+    return (
+      <View
+        style={{
+          width: maxWidth,
+          alignSelf: "center",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: bgColor,
+          borderRadius: 12,
+          padding: 12,
+          marginVertical: 8,
+        }}
+      >
+        <BannerAd
+          unitId={TestIds.BANNER}
+          size={BannerAdSize.MEDIUM_RECTANGLE}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+        />
+      </View>
+    );
+  }
+
   if (loading || !imageSize) {
     return (
       <View
@@ -1103,17 +1119,6 @@ function WikipediaBanner({
   const { width: imgWidth, height: imgHeight } = imageSize;
   const aspectRatio = imgWidth / imgHeight;
   const isLandscape = aspectRatio > 1;
-
-  const BG_MAP = {
-    none: "#FFFFFF",
-    bg1: "#F9FAFB",
-    bg2: "#FFF7ED",
-    bg3: "#ECFEFF",
-  };
-
-  const bgColor = isValidColorString(customBgColor)
-    ? customBgColor.trim()
-    : BG_MAP[cardBg] ?? "#FFFFFF";
 
   if (isLandscape) {
     const displayWidth = screenWidth;
@@ -1153,6 +1158,14 @@ function WikipediaBanner({
             contentFit="contain"
             cachePolicy="disk"
             transition={150}
+            onLoad={(e) => {
+              if (Platform.OS === 'android' && e?.source) {
+                const { width, height } = e.source;
+                if (width && height) {
+                  setImageSize({ width, height });
+                }
+              }
+            }}
             onError={(e) => {
               console.warn("expo-image load error:", e?.nativeEvent);
               setImageFailed(true);
@@ -1202,6 +1215,14 @@ function WikipediaBanner({
             contentFit="contain"
             cachePolicy="disk"
             transition={150}
+            onLoad={(e) => {
+              if (Platform.OS === 'android' && e?.source) {
+                const { width, height } = e.source;
+                if (width && height) {
+                  setImageSize({ width, height });
+                }
+              }
+            }}
             onError={(e) => {
               console.warn("expo-image load error:", e?.nativeEvent);
               setImageFailed(true);
@@ -3104,24 +3125,22 @@ export default function Home() {
                             onLinkPress={handleLinkPress}
                             fontSize={anchorFontSize}
                           />
-
-                          {headerImageUrl && (
-                            <View
-                              style={{
-                                marginTop: 18,
-                                marginBottom: 8,
-                                alignItems: "center",
-                              }}
-                            >
-                              <WikipediaBanner
-                                imageUrl={headerImageUrl}
-                                maxWidth={CONTENT_W}
-                                screenWidth={screenW}
-                                cardBg={cardBg}
-                                customBgColor={customBgColor}
-                              />
-                            </View>
-                          )}
+                          <View
+                            style={{
+                              marginTop: 18,
+                              marginBottom: 8,
+                              alignItems: "center",
+                            }}
+                          >
+                            <WikipediaBanner
+                              imageUrl={headerImageUrl} 
+                              maxWidth={CONTENT_W}
+                              screenWidth={screenW}
+                              cardBg={cardBg}
+                              customBgColor={customBgColor}
+                            />
+                          </View>
+                          
                         </View>
                       );
                     })
