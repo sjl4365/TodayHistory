@@ -1863,7 +1863,7 @@ export default function Home() {
 
   const appName =
     APP_NAME_BY_LANG[lang] || APP_NAME_BY_LANG.en;
-  const historyTitle = getHistoryTitle(lang, deltaDay); // 오늘/어제/내일 제목 사용
+  const historyTitle = getHistoryTitle(lang, dayOffset); // 오늘/어제/내일 제목 사용
 
   // 최상단 헤더: 예) "Histree: 오늘의 역사"
   const header = `${appName}: ${historyTitle}`;
@@ -1934,7 +1934,7 @@ export default function Home() {
   const payload = lines.join("\n");
 
   return { header, payload };
-}, [onePick, uiLang, deltaDay, todayParts, tz]);
+}, [onePick, uiLang, dayOffset, todayParts, tz]);
 
 
   const onSystemSharePress = useCallback(async () => {
@@ -2920,7 +2920,7 @@ export default function Home() {
                   >
                     {getHistoryTitle(
                       uiLang || "en",
-                      deltaDay
+                      dayOffset   
                     )}
                   </Text>
                   <Text
