@@ -60,11 +60,8 @@ import { getLocalHistory } from "../../lib/localHistory";
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { WebView } from "react-native-webview";
-<<<<<<< HEAD
 import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
-=======
 import { BlurView } from "expo-blur";
->>>>>>> origin/settings
 
 // 콘솔
 if (__DEV__) {
