@@ -13,6 +13,9 @@ import {
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// BackHandler
+import { BackHandler } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -21,6 +24,30 @@ export default function SettingsIndex() {
   const [selectedTheme, setSelectedTheme] = useState('Dark');
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
+
+    // back button handler
+  useFocusEffect(
+    React.useCallback(() => {
+      const onBackPress = () => {
+        // 1) 알림 화면 같은 서브 화면에서는 기본 동작 (router.back) 쓰게 두고
+        if (router.canGoBack()) {
+          router.back();
+        } else {
+          // 2) 세팅이 "루트"일 때는 홈 탭으로 보내기
+          router.replace('/home'); // app/(tabs)/home.js
+        }
+        return true; // 우리가 처리했다는 뜻
+      };
+
+      const sub = BackHandler.addEventListener(
+        'hardwareBackPress',
+        onBackPress,
+      );
+
+      return () => sub.remove();
+    }, [router]),
+  );
+
 
   const languages = [
     { name: 'English', code: 'en' },
@@ -101,6 +128,7 @@ export default function SettingsIndex() {
       </View>
     </TouchableOpacity>
   );
+
 
   return (
     <ScrollView style={styles.container}>
