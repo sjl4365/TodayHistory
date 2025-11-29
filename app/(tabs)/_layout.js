@@ -135,46 +135,6 @@ export default function TabLayout() {
   const ANDROID_EXTRA_BOTTOM =
     Platform.OS === "android" ? insets.bottom || 20 : 0;
 
-  // 안드로이드 하드웨어 뒤로가기 커스텀
-  const lastBackPressRef = useRef(0);
-
-  useEffect(() => {
-    if (Platform.OS !== "android") return;
-
-    const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-      // 지금 경로가 탭 루트인지 체크
-      // (tabs) / home 이거나 그냥 (tabs) 일 때
-      const isTabsRoot =
-        segments?.[0] === "(tabs)" &&
-        (segments[1] === "home" || segments.length === 1);
-
-      // 루트가 아니면 → 그냥 뒤로가기
-      if (!isTabsRoot) {
-        if (router.canGoBack?.()) {
-          router.back();
-          return true; // 우리가 처리
-        }
-        return false; // 못가면 OS한테
-      }
-
-      // 루트일 때: 두 번 눌러서 종료, 그리고 navigator에 절대 안넘김
-      const now = Date.now();
-      const diff = now - lastBackPressRef.current;
-
-      if (diff < 1600) {
-        // 두 번째 → 우리가 직접 종료
-        BackHandler.exitApp();
-        return true;
-      } else {
-        // 첫 번째 → 먹기만 하고 아무 변화 없음
-        lastBackPressRef.current = now;
-        return true; // 이게 중요. false면 blank 생김
-      }
-    });
-
-    return () => sub.remove();
-  }, [segments, router]);
-
   // 디자인 상수
   const MAX_CLUSTER_W = 340;
   const BASE_ITEM_W = 57;

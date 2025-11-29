@@ -1540,7 +1540,6 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
               style={{
                 fontSize: fontSize || 15,
                 color: "#000000ff",
-                textDecorationLine: "underline",
               }}
               numberOfLines={1}
             >

@@ -28,25 +28,18 @@ export default function SettingsIndex() {
     // back button handler
   useFocusEffect(
     React.useCallback(() => {
-      const onBackPress = () => {
-        // 1) 알림 화면 같은 서브 화면에서는 기본 동작 (router.back) 쓰게 두고
-        if (router.canGoBack()) {
-          router.back();
-        } else {
-          // 2) 세팅이 "루트"일 때는 홈 탭으로 보내기
-          router.replace('/home'); // app/(tabs)/home.js
-        }
-        return true; // 우리가 처리했다는 뜻
-      };
-
       const sub = BackHandler.addEventListener(
         'hardwareBackPress',
-        onBackPress,
+        () => {
+          // 세팅 루트에서 기기 뒤로가기 누르면 무조건 홈으로
+          router.replace('/home');
+          return true;
+        },
       );
 
       return () => sub.remove();
     }, [router]),
-  );
+   );
 
 
   const languages = [
