@@ -1406,7 +1406,7 @@ async function apiFetchForMode(mode, todayParts, isoDate) {
 
       console.log("[apiFetchForMode] mode=", mode, "iso=", iso, "parts=", todayParts);
 
-  // 1️⃣ 로컬 JSON 먼저
+  //로컬 JSON 먼저
   try {
     const localItems = getLocalHistory(mode, todayParts);
     if (Array.isArray(localItems) && localItems.length > 0) {
@@ -1416,15 +1416,15 @@ async function apiFetchForMode(mode, todayParts, isoDate) {
     console.warn("getLocalHistory failed:", e);
   }
 
-  // 2️⃣ 없으면 원격(App Script) 호출
+  //없으면 원격(App Script) 호출
   try {
     const month = Number(todayParts.m); // 1~12
 
     const items = await withTimeout(
       fetchHistory({
         mode,      // "world" | "korea" | "japan"
-        date: iso, // ✅ 오늘/어제/내일 중 화면 날짜
-        month,     // ✅ 시트 선택용
+        date: iso, //  오늘/어제/내일 중 화면 날짜
+        month,     //  시트 선택용
         n: 20,
         shuffle: false,
       }),
