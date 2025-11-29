@@ -60,6 +60,7 @@ import { getLocalHistory } from "../../lib/localHistory";
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { WebView } from "react-native-webview";
+import { BlurView } from "expo-blur";
 
 // 콘솔
 if (__DEV__) {
@@ -759,12 +760,13 @@ function SegmentedCountrySelector({
   fixedHeight = 39,
 }) {
   const { scale } = useUIScale();
-  const W = scale(340);
-  const H = fixedHeight;
-  const R = scale(100);
-  const BTN_W = scale(90);
+
+  // Figma 값 기준
+  const W = scale(323);         // width: 323
+  const H = fixedHeight || 38;  // height: 38
+  const R = scale(80);          // border-radius: 80px
+  const BTN_W = (W - 32 * 2 - 8 * 2) / 3; // padding 32 + gap 8 기준으로 계산
   const BTN_H = H;
-  const GAP = Math.max(0, (W - BTN_W * 3) / 2);
   const ICON = Math.max(14, Math.min(22, scale(16)));
 
   const toggle = (id) => {
@@ -783,83 +785,96 @@ function SegmentedCountrySelector({
       style={{
         width: W,
         height: H,
-        backgroundColor: "rgba(167,167,167,0.27)",
         borderRadius: R,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        shadowColor: "#000",
-        shadowOpacity: 0.15,
-        shadowRadius: scale(8),
-        shadowOffset: { width: 0, height: scale(4) },
-        elevation: 4,
-        paddingHorizontal: 6,
+        overflow: "hidden",            // blur 잘리게
+        shadowColor: "#000000",
+        shadowOpacity: 0.15,          // box-shadow alpha 대략 맞춰줌
+        shadowRadius: 12,             // 0 4 12 0 #00000026
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 6,
       }}
     >
-      {ordered.map((id, idx) => {
-        const active = value.has(id);
-        const iconId = id; // world 포함해서 모두 아이콘 사용
-        const label =
-          LABEL_BY_ID[id]?.[uiLang] ||
-          LABEL_BY_ID[id]?.en ||
-          id;
-        return (
-          <Pressable
-            key={id}
-            onPress={() => toggle(id)}
-            style={{
-              width: BTN_W,
-              height: BTN_H,
-              borderRadius: R,
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: active ? "#FFFFFF" : "transparent",
-              marginLeft: idx === 0 ? 0 : GAP,
-              paddingHorizontal: 4,
-            }}
-            hitSlop={6}
-          >
-            <View
+      {/* 블러 + 반투명 배경 */}
+      <BlurView
+        intensity={35}
+        tint="light"
+        style={StyleSheet.absoluteFillObject}
+      />
+
+      <View
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          paddingHorizontal: 32,       // padding-left/right: 32
+          paddingVertical: 8,          // padding-top/bottom: 8
+          borderRadius: R,
+          borderWidth: 1,
+          borderColor: "#FFFFFF80",    // border: 1px solid #FFFFFF80
+          backgroundColor: "rgba(255,255,255,0.25)", // 살짝 더 밝게
+        }}
+      >
+        {ordered.map((id) => {
+          const active = value.has(id);
+          const iconId = id;
+          const label =
+            LABEL_BY_ID[id]?.[uiLang] ||
+            LABEL_BY_ID[id]?.en ||
+            id;
+
+          return (
+            <Pressable
+              key={id}
+              onPress={() => toggle(id)}
               style={{
-                flexDirection: "row",
+                width: BTN_W,
+                height: BTN_H - 8,  // 안쪽 pill 조금 작게
+                borderRadius: R,
                 alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: active
+                  ? "rgba(255,255,255,0.95)"
+                  : "transparent",
               }}
+              hitSlop={6}
             >
-              {!!iconId && !!FLAG_ICON[iconId] && (
-                <RNImage
-                  source={FLAG_ICON[iconId]}
-                  style={{
-                    width: ICON,
-                    height: ICON,
-                    marginRight: 6,
-                    opacity: active ? 1 : 0.9,
-                  }}
-                  resizeMode="contain"
-                />
-              )}
-              <Text
+              <View
                 style={{
-                  fontWeight: "700",
-                  fontSize: scale(13),
-                  color: "#000",
-                  textShadowColor: active
-                    ? "transparent"
-                    : "rgba(0,0,0,0.25)",
-                  textShadowOffset: active
-                    ? undefined
-                    : { width: 0, height: 1 },
-                  textShadowRadius: active ? 0 : 2,
+                  flexDirection: "row",
+                  alignItems: "center",
                 }}
               >
-                {label}
-              </Text>
-            </View>
-          </Pressable>
-        );
-      })}
+                {!!iconId && !!FLAG_ICON[iconId] && (
+                  <RNImage
+                    source={FLAG_ICON[iconId]}
+                    style={{
+                      width: ICON,
+                      height: ICON,
+                      marginRight: 6,
+                      opacity: active ? 1 : 0.9,
+                    }}
+                    resizeMode="contain"
+                  />
+                )}
+                <Text
+                  style={{
+                    fontWeight: "700",
+                    fontSize: scale(13),
+                    color: "#000",
+                  }}
+                >
+                  {label}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
+
 
 // WebView Modal Component
 function WebViewModal({ visible, url, onClose }) {
