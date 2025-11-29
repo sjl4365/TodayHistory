@@ -1018,7 +1018,6 @@ function WikipediaBanner({
   useEffect(() => {
     if (!imageUrl || imageFailed) return;
     
-    // ✅ fetch로 이미지를 먼저 다운로드해서 크기 확인
     const getImageSize = async () => {
       try {
         const response = await fetch(imageUrl, {
