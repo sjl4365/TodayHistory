@@ -87,6 +87,7 @@ const STORAGE_KEY_NOTIFY_TITLE = "@notification_title";
 const STORAGE_KEY_NOTIFY_BODY = "@notification_body";
 const STORAGE_KEY_SEEN_PREFIX = "@seen_events_v1:";
 
+const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
 
 // 데이터 캐시 TTL (6시간)
 const DATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -450,6 +451,76 @@ function getMonthDayOnly(baseDate, uiLang, tz) {
   );
 }
 
+function getYearRandomRank(yearStr, isoDate) {
+  const y = String(yearStr || "").trim() || "0";
+  // isoDate(YYYY-MM-DD) + 연도 기준으로 날짜마다 고정된 랜덤값
+  const rnd = xorshift(hash32(`yrank:${isoDate}:${y}`));
+  return rnd(); // 0 ~ 1 사이
+}
+
+function buildYearOrder(allItems, isoDate) {
+  if (!allItems.length) return [];
+
+  const withRank = allItems.map((it) => {
+    const yStr = getYearFromRow(it.row);
+    const rank = getYearRandomRank(yStr, isoDate);
+    return {
+      ...it,
+      yearKey: yStr || "0",
+      rank,
+    };
+  });
+
+  // rank 기준으로 오름차순 (연도 숫자순이 아니라 랜덤순)
+  withRank.sort((a, b) => {
+    if (a.rank !== b.rank) return a.rank - b.rank;
+    if (a.yearKey !== b.yearKey)
+      return String(a.yearKey).localeCompare(String(b.yearKey));
+    return String(a.key).localeCompare(String(b.key));
+  });
+
+  return withRank.map((it) => it.key);
+}
+
+async function pickByYearRotation(poolsByCid, chosenIds, isoDate) {
+  const all = [];
+  for (const cid of chosenIds) {
+    const arr = poolsByCid[cid] || [];
+    for (const it of arr) {
+      all.push(it); // { cid, row, key, body }
+    }
+  }
+  if (!all.length) return null;
+
+  // 🔥 여기서 "랜덤 연도 순서" (고정된 랜덤) 배열 생성
+  const order = buildYearOrder(all, isoDate);
+  if (!order.length) return null;
+
+  const idxKey = `${STORAGE_KEY_YEAR_ROT_INDEX}${isoDate}`;
+  let rawIdx = null;
+  try {
+    rawIdx = await AsyncStorage.getItem(idxKey);
+  } catch {}
+  let curIdx = parseInt(rawIdx || "0", 10);
+  if (Number.isNaN(curIdx) || curIdx < 0) curIdx = 0;
+
+  // 현재 인덱스에 해당하는 key 선택
+  const pickKey = order[curIdx % order.length];
+
+  let pick = all.find((it) => it.key === pickKey);
+  if (!pick) {
+    pick = all[0];
+  }
+
+  const nextIdx = (curIdx + 1) % order.length;
+  try {
+    await AsyncStorage.setItem(idxKey, String(nextIdx));
+  } catch {}
+
+  return pick;
+}
+
+
 function getYearFromRow(row) {
   const fromField = String(row?.Year || row?.year || "").trim();
   if (fromField) return fromField;
@@ -533,10 +604,15 @@ function makeFairSinglePickFromPools(poolsByCid, chosenIds, seed) {
   return [arr[idx]];
 }
 
-async function pickOneWithSeenRotation(poolsByCid, chosenIds, seed, isoDate) {
+async function pickOneWithSeenRotation(
+  poolsByCid,
+  chosenIds,
+  seed,
+  isoDate,
+  skipKey   // ✅ 추가
+) {
   if (!chosenIds || !chosenIds.length) return null;
 
-  // 1) 나라별( cid ) + 날짜별( isoDate )로 본 이벤트 정보 불러오기
   const bucketKeys = chosenIds.map(
     (cid) => `${STORAGE_KEY_SEEN_PREFIX}${cid}:${isoDate}`
   );
@@ -559,8 +635,10 @@ async function pickOneWithSeenRotation(poolsByCid, chosenIds, seed, isoDate) {
     }
   }
 
-  // 2) 각 나라별로 "아직 안 본 이벤트"만 남기기
-  const filteredPools = {};
+  const unSeenPoolsByCid = {};
+  let anyUnseen = false;
+
+  // ✅ 여기에서는 "이미 본 것만" 제외하고, skipKey는 쓰지 말자
   for (const cid of chosenIds) {
     const pool = poolsByCid[cid] || [];
     if (!pool.length) continue;
@@ -568,42 +646,73 @@ async function pickOneWithSeenRotation(poolsByCid, chosenIds, seed, isoDate) {
     const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${cid}:${isoDate}`;
     const seenSet = seenMap[bucketKey] || new Set();
 
-    const unSeen = pool.filter((p) => !seenSet.has(p.key));
+    const unSeen = pool.filter((p) => {
+      if (seenSet.has(p.key)) return false;
+      return true;
+    });
 
     if (unSeen.length > 0) {
-      // 아직 안 본 이벤트가 남아 있으면 그것들만 사용
-      filteredPools[cid] = unSeen;
-    } else {
-      // 다 본 상태면 한 바퀴 돌았다고 보고, 다시 전체 pool로 리셋
-      filteredPools[cid] = pool;
-      seenMap[bucketKey] = new Set();
+      anyUnseen = true;
+      unSeenPoolsByCid[cid] = unSeen;
     }
   }
 
-  // 3) 기존 "공평하게 나라 선택 + 해당 나라에서 랜덤 1개" 로직 재사용
+  let effectivePools = {};
+  let activeCids = [];
+
+  if (anyUnseen) {
+    // 아직 안 본 이벤트만 후보
+    effectivePools = unSeenPoolsByCid;
+    activeCids = Object.keys(effectivePools);
+  } else {
+    // 한 바퀴 다 돌았으면 → seen 리셋
+    for (const cid of chosenIds) {
+      const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${cid}:${isoDate}`;
+      seenMap[bucketKey] = new Set();
+      try {
+        await AsyncStorage.setItem(bucketKey, JSON.stringify([]));
+      } catch {}
+    }
+
+    // 여기서만 직전 pick(skipKey)을 가능한 한 피함
+    for (const cid of chosenIds) {
+      const pool = poolsByCid[cid] || [];
+      if (!pool.length) continue;
+
+      const filtered = skipKey
+        ? pool.filter((p) => p.key !== skipKey)
+        : pool;
+
+      effectivePools[cid] = filtered.length ? filtered : pool;
+    }
+
+    activeCids = Object.keys(effectivePools);
+  }
+
+  if (!activeCids.length) return null;
+
   const pickArr = makeFairSinglePickFromPools(
-    filteredPools,
-    chosenIds,
+    effectivePools,
+    activeCids,
     seed
   );
   if (!pickArr.length) return null;
 
   const pick = pickArr[0];
 
-  // 4) 이번에 뽑힌 이벤트를 "봤다"로 기록
   const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${pick.cid}:${isoDate}`;
   const prevSeen = seenMap[bucketKey] || new Set();
   prevSeen.add(pick.key);
 
   try {
-    await AsyncStorage.setItem(
-      bucketKey,
-      JSON.stringify([...prevSeen])
-    );
+    await AsyncStorage.setItem(bucketKey, JSON.stringify([...prevSeen]));
   } catch {}
 
   return pick;
 }
+
+
+
 
 
 function getHistoryTitle(uiLang, deltaDay) {
@@ -1878,6 +1987,7 @@ export default function Home() {
 
   const amplitudeReadyRef = useRef(false);
   const lastBackPressRef = useRef(0);
+  const lastPickKeyRef = useRef(null);   
 
   const handleLinkPress = useCallback((url) => {
     setWebViewUrl(url);
@@ -2426,32 +2536,34 @@ export default function Home() {
           }
         }
 
+
         // 2) 원격/로컬 API로 최신 데이터 받아와서 덮어쓰기
-        for (const cid of chosen) {
-          try {
-            const rows = await apiFetchForMode(cid, todayParts, isoDate);
-            await saveCache(cid, todayParts, rows);
-            const arr = [];
-            for (const r of rows) {
-              const body = bodyOfRowByLang(r, uiLang, cid);
-              if (!hasAnyText(body)) continue;
-              const tag = trimHtml(
-                r?.["한국어"] || r?.English || r?.["日本語"] || ""
-              ).slice(0, 50);
-              arr.push({
-                cid,
-                row: r,
-                key: `${cid}|${String(r?.Year || r?.year || "")}|${String(
-                  r?.Date || r?.date || ""
-                )}|${tag}`,
-                body,
-              });
-            }
-            if (arr.length) {
-              // 원격 결과가 있으면 캐시 대신 이걸 사용
-              poolsByCid[cid] = arr;
-            }
-          } catch (e) {
+          for (const cid of chosen) {
+        try {
+          const rows = await apiFetchForMode(cid, todayParts, isoDate);
+          await saveCache(cid, todayParts, rows);
+          const arr = [];
+          for (const r of rows) {
+            const body = bodyOfRowByLang(r, uiLang, cid);
+            if (!hasAnyText(body)) continue;
+            const tag = trimHtml(
+              r?.["한국어"] || r?.English || r?.["日本語"] || ""
+            ).slice(0, 50);
+            arr.push({
+              cid,
+              row: r,
+              key: `${cid}|${String(r?.Year || r?.year || "")}|${String(
+                r?.Date || r?.date || ""
+              )}|${tag}`,
+              body,
+      
+            });
+          }
+          if (arr.length) {
+            // 원격 결과가 있으면 캐시 대신 이걸 사용
+            poolsByCid[cid] = arr;
+          }
+        } catch (e) {
             if (e?.name !== "AbortError") {
               console.warn("fetchHistory failed:", e);
             }
@@ -2472,16 +2584,17 @@ export default function Home() {
         }
 
         // 3) "한 번 본 이벤트는 다시 안 나오는" 로테이션 선택
+        const skipKey = lastPickKeyRef.current; 
         const pick = await pickOneWithSeenRotation(
           poolsByCid,
           chosen,
-          seedKey,
           isoDate
         );
 
         if (!canceled) {
           if (pick) {
             setOnePick([pick]);
+             lastPickKeyRef.current = pick.key;
           } else {
             setOnePick([]);
             setHeaderImageUrl(null);
@@ -2519,7 +2632,7 @@ export default function Home() {
 
     (async () => {
       try {
-        const iso = isoDate; // ✅ 화면 날짜 기준 키
+        const iso = isoDate; //화면 날짜 기준 키
 
         // 1) 픽이 없을 때: 캐시에 저장된 배너 먼저 시도
         if (!onePick || !onePick.length) {
