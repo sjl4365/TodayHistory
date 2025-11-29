@@ -49,10 +49,14 @@ ios/build/
 ios/DerivedData/
 ios/Pods/
 ios/Podfile.lock
+*.xcworkspace
+*.xcuserstate
+ios/DerivedData/
 
 *.iml
 .gradle
 /local.properties
 *.log
+package-lock.json
 
 .idea

@@ -1004,7 +1004,6 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
   );
 }
 
-// Wikipedia Banner
 function WikipediaBanner({
   imageUrl,
   maxWidth = 340,
@@ -1019,18 +1018,55 @@ function WikipediaBanner({
   useEffect(() => {
     if (!imageUrl || imageFailed) return;
     
-    RNImage.getSize(
-      imageUrl,
-      (width, height) => {
-        setImageSize({ width, height });
-        setLoading(false);
-      },
-      (error) => {
-        console.warn("Failed to get image size:", error);
+    const getImageSize = async () => {
+      try {
+        const response = await fetch(imageUrl, {
+          method: 'GET',
+          headers: {
+            'User-Agent': 'Histree/1.0 (Educational History App)',
+            'Referer': 'https://en.wikipedia.org/',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        
+        // Blob을 Data URI로 변환
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUrl = reader.result;
+          
+          // Data URI로 이미지 크기 가져오기
+          RNImage.getSize(
+            dataUrl,
+            (width, height) => {
+              setImageSize({ width, height });
+              setLoading(false);
+            },
+            (error) => {
+              console.warn("Failed to get image size from blob:", error);
+              setImageFailed(true);
+              setLoading(false);
+            }
+          );
+        };
+        reader.onerror = () => {
+          setImageFailed(true);
+          setLoading(false);
+        };
+        reader.readAsDataURL(blob);
+
+      } catch (error) {
+        console.warn("Failed to fetch image:", error);
         setImageFailed(true);
         setLoading(false);
       }
-    );
+    };
+
+    getImageSize();
   }, [imageUrl, imageFailed]);
 
   if (!imageUrl || imageFailed) return null;
@@ -1088,7 +1124,13 @@ function WikipediaBanner({
           }}
         >
           <ExpoImage
-            source={imageUrl}
+            source={{
+              uri: imageUrl,
+              headers: {
+                'User-Agent': 'Histree/1.0 (Educational History App)',
+                'Referer': 'https://en.wikipedia.org/',
+              }
+            }}
             style={{
               width: "100%",
               height: "100%",
@@ -1131,7 +1173,13 @@ function WikipediaBanner({
           }}
         >
           <ExpoImage
-            source={imageUrl}
+            source={{
+              uri: imageUrl,
+              headers: {
+                'User-Agent': 'Histree/1.0 (Educational History App)',
+                'Referer': 'https://en.wikipedia.org/',
+              }
+            }}
             style={{
               width: "100%",
               height: "100%",
