@@ -23,6 +23,8 @@ import {
   Share as NativeShare,
   AppState,
   Modal,
+  BackHandler,
+  ToastAndroid,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -1198,7 +1200,7 @@ function formatYearsAgo(diff, uiLang) {
   if (uiLang === "ko") return `(${diff}년 전)`;
   if (uiLang === "ja") return `(${diff}年前)`;
   if (diff === 1) return "1 year ago";
-  return `(${diff} years ago)`;
+  return `(${diff} yrs ago)`;
 }
 
 function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
@@ -1253,7 +1255,7 @@ function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
   }
 
   const agoStr = formatYearsAgo(diff, uiLang);
-  return agoStr ? `${dateStr}  ${agoStr}` : dateStr;
+  return agoStr ? `${dateStr} ${agoStr}` : dateStr;
 }
 
 
@@ -1456,11 +1458,8 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
         if (!text || !url) return null;
 
         const onPress = () => {
-          if (onLinkPress) {
-            onLinkPress(url);
-          } else {
-            Linking.openURL(url).catch(() => {});
-          }
+          if (onLinkPress) onLinkPress(url);
+          else Linking.openURL(url).catch(() => {});
         };
 
         return (
@@ -1470,7 +1469,7 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
             accessibilityRole="link"
             hitSlop={6}
             style={{
-              marginRight: 3,
+              marginRight: 12,
               marginBottom: 4,
             }}
           >
@@ -1482,7 +1481,7 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
               }}
               numberOfLines={1}
             >
-              {text}
+              [{text}]
             </Text>
           </Pressable>
         );
@@ -1816,6 +1815,7 @@ export default function Home() {
   const anchorFontSize = Math.max(10, baseFontSize - 2);
 
   const amplitudeReadyRef = useRef(false);
+  const lastBackPressRef = useRef(0);
 
   const handleLinkPress = useCallback((url) => {
     setWebViewUrl(url);
@@ -1859,53 +1859,83 @@ export default function Home() {
   }, []);
 
   const buildSharePayload = useCallback(() => {
-    const list = Array.isArray(onePick)
-      ? onePick
-      : onePick
-      ? [onePick]
-      : [];
-    const header = getMonthDayOnly(today0, uiLang || "en", tz);
-    const appName =
-      APP_NAME_BY_LANG[uiLang || "en"] || APP_NAME_BY_LANG.en;
-    const sourceLabel =
-      SOURCE_LABEL[uiLang || "en"] || SOURCE_LABEL.en;
+  const lang = uiLang || "en";
 
-    const blocks = (list || []).map((p) => {
-      const label =
-        COUNTRY_CFG[p.cid]?.label?.[uiLang || "en"] || p.cid;
-      const yr = getYearFromRow(p.row) || "";
-      const content = (p.body || "").trim();
+  const appName =
+    APP_NAME_BY_LANG[lang] || APP_NAME_BY_LANG.en;
+  const historyTitle = getHistoryTitle(lang, deltaDay); // 오늘/어제/내일 제목 사용
 
-      const anchors = getAnchorsForLang(
-        p.row,
-        uiLang || "en"
-      ).slice(0, 2);
-      const anchorLines = anchors
-        .map((a) => {
-          const text = (a?.text || "").trim();
-          const url = (a?.url || "").trim();
-          if (text && url) return `${text} — ${url}`;
-          return null;
-        })
-        .filter(Boolean);
+  // 최상단 헤더: 예) "Histree: 오늘의 역사"
+  const header = `${appName}: ${historyTitle}`;
 
-      return [
-        label,
-        yr,
-        content,
-        ...anchorLines,
-        `${sourceLabel}: ${appName}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
-    });
+  const list = Array.isArray(onePick)
+    ? onePick
+    : onePick
+    ? [onePick]
+    : [];
 
-    const payload = [header, ...blocks, APP_DOWNLOAD_URL].join(
-      "\n\n"
-    );
+  // 보여줄 이벤트가 없을 때: 헤더 + 다운로드 링크만
+  if (!list.length) {
+    const payload = [
+      header,
+      "",
+      `*${lang === "ko"
+        ? "히스트리 앱 다운로드 링크"
+        : lang === "ja"
+        ? "Histreeアプリのダウンロードリンク"
+        : "Download Histree app"
+      } - ${APP_DOWNLOAD_URL}`,
+    ].join("\n");
 
     return { header, payload };
-  }, [onePick, today0, uiLang, tz]);
+  }
+
+  const p = list[0]; // 어차피 1개만 보여주니까 첫 번째만 사용
+  const label =
+    COUNTRY_CFG[p.cid]?.label?.[lang] ||
+    COUNTRY_CFG[p.cid]?.label?.en ||
+    p.cid;
+
+  const fieldLabels =
+    FIELD_LABELS[lang] || FIELD_LABELS.en;
+
+  const eventYear = getYearFromRow(p.row);
+  const dateLabel = formatEventDateLabel(
+    eventYear,
+    todayParts,
+    lang,
+    tz
+  );
+
+  const downloadLabel =
+    lang === "ko"
+      ? "히스트리 앱 다운로드 링크"
+      : lang === "ja"
+      ? "Histreeアプリのダウンロードリンク"
+      : "Download Histree app";
+
+  const bodyText = (p.body || "").trim();
+
+  const lines = [
+    header,
+    "",
+    // 위치: 한국
+    `${fieldLabels.location}: ${label}`,
+    // 날짜: 2019년 11월 29일 (6년 전)
+    `${fieldLabels.date}: ${dateLabel}`,
+    "",
+    // 본문
+    bodyText,
+    "",
+    // *히스트리 앱 다운로드 링크 - https://...
+    `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
+  ];
+
+  const payload = lines.join("\n");
+
+  return { header, payload };
+}, [onePick, uiLang, deltaDay, todayParts, tz]);
+
 
   const onSystemSharePress = useCallback(async () => {
     try {
@@ -2509,7 +2539,44 @@ export default function Home() {
     return () => sub.remove();
   }, [tz, uiLang, selectedCountries]);
 
-  const deltaDay = dayOffset;
+   useFocusEffect(
+    useCallback(() => {
+      // iOS에서는 처리 안 함
+      if (Platform.OS !== "android") return;
+
+      const onBackPress = () => {
+        // 1) 오늘이 아닌 화면(어제/내일)이면 → 일단 "오늘"로만 돌아오기
+        if (dayOffset !== 0) {
+          setDayOffset(0);
+          return true; // 이벤트 소비 (앱 종료 X)
+        }
+
+        // 2) 2초 안에 두 번 누르면 앱 종료
+        const now = Date.now();
+        if (now - lastBackPressRef.current < 2000) {
+          BackHandler.exitApp();
+          return true;
+        }
+
+        // 3) 첫 번째 누름: 토스트만 띄우고 종료 안 함
+        lastBackPressRef.current = now;
+        ToastAndroid.show(
+          "한 번 더 누르면 앱이 종료됩니다.",
+          ToastAndroid.SHORT
+        );
+        return true; // 기본 네비게이션 막기
+      };
+      const sub = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
+
+      // Home 화면 포커스 빠지면 핸들러 제거
+      return () => {
+        sub.remove();
+      };
+    }, [dayOffset])
+  );
 
   const handleCountriesChange = useCallback(
     (nextSetRaw) => {
