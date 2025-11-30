@@ -8,7 +8,8 @@ import {
   TouchableOpacity, 
   ScrollView,
   Linking,
-  Alert 
+  Alert,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -206,9 +207,31 @@ export default function SettingsIndex() {
       {/* <View style={styles.versionContainer}>
         <Text style={styles.versionText}>Test Build 2025.11.08 (Version 0.0.5)</Text>
       </View> */}
-    <View style={styles.bottomSpacing} />
 
-    </ScrollView>
+    <View style={styles.logoContainer}>
+      <Image
+        source={require('../../../assets/images/logo_mini.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
+      
+      <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={styles.button}
+              onPress={() => Alert.alert('Button 1', 'Navigate to page 1')}
+            >
+              <Text style={styles.buttonText}>Page 1</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.button}
+              onPress={() => Alert.alert('Button 2', 'Navigate to page 2')}
+            >
+              <Text style={styles.buttonText}>Page 2</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
   );
 }
 
@@ -299,5 +322,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'grey',
     opacity: 0.6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
