@@ -588,28 +588,184 @@ function makePicksFromPool(pool, _uiLang, stableKey) {
 }
 
 // 선택된 나라들 사이에서 공평하게 1개
-function makeFairSinglePickFromPools(poolsByCid, chosenIds, seed) {
+// 선택된 나라들 사이에서 공평하게 1개 (진짜 랜덤)
+function makeFairSinglePickFromPools(poolsByCid, chosenIds, _seed) {
   const availableCids = chosenIds.filter(
     (cid) => poolsByCid[cid] && poolsByCid[cid].length
   );
   if (!availableCids.length) return [];
 
-  const rndCid = xorshift(hash32(`${seed}:cid`));
-  const cid = availableCids[Math.floor(rndCid() * availableCids.length)];
+  // 1) 나라 랜덤 선택
+  const cid =
+    availableCids[Math.floor(Math.random() * availableCids.length)];
 
+  // 2) 그 나라 안에서 이벤트 랜덤 선택
   const arr = poolsByCid[cid];
-  const rndRow = xorshift(hash32(`${seed}:${cid}:row`));
-  const idx = Math.floor(rndRow() * arr.length);
+  const idx = Math.floor(Math.random() * arr.length);
 
   return [arr[idx]];
 }
 
+function getSeenCountForCid(seenMap, cid, isoDate) {
+  const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${cid}:${isoDate}`;
+  const set = seenMap[bucketKey];
+  return set ? set.size : 0;
+}
+
+function chooseFairAmong(candidates, effectivePools, seenMap, isoDate, seed) {
+  if (!candidates || !candidates.length) return null;
+
+  const metrics = candidates.map((cid) => ({
+    cid,
+    seen: getSeenCountForCid(seenMap, cid, isoDate),
+  }));
+
+  const minSeen = Math.min(...metrics.map((m) => m.seen));
+  const best = metrics.filter((m) => m.seen === minSeen).map((m) => m.cid);
+
+  if (best.length === 1) return best[0];
+
+  const rnd = xorshift(
+    hash32(`fair:${isoDate}:${seed || ""}`)
+  );
+  return best[Math.floor(rnd() * best.length)];
+}
+
+// 나라 패턴(세계 2번 + 한국/일본 1번, 한국/일본 1:1 등) 선택
+async function pickCidByPattern(
+  effectivePools,
+  chosenIds,
+  isoDate,
+  seenMap,
+  seed
+) {
+  // 지금 실제로 이벤트가 남아 있는 나라들만
+  const activeCids = chosenIds.filter(
+    (cid) => effectivePools[cid] && effectivePools[cid].length
+  );
+  if (!activeCids.length) return null;
+  if (activeCids.length === 1) return activeCids[0];
+
+  const hasWorld = activeCids.includes("world");
+  const nonWorld = activeCids.filter((c) => c !== "world");
+
+  // 패턴 step 저장용 키 (날짜 + 나라 조합 기준)
+  const patternKey = `@country_pattern_v1:${isoDate}:${activeCids
+    .slice()
+    .sort()
+    .join(",")}`;
+
+  let step = 0;
+  try {
+    const raw = await AsyncStorage.getItem(patternKey);
+    const n = parseInt(raw || "0", 10);
+    if (!Number.isNaN(n) && n >= 0 && n < 3) {
+      step = n;
+    }
+  } catch {}
+
+  let chosenCid = null;
+  let nextStep = step;
+
+  // ① world가 아예 없거나, world 하나뿐인 경우 → 그냥 균등 분배
+  if (!hasWorld || !nonWorld.length) {
+    chosenCid = chooseFairAmong(
+      activeCids,
+      effectivePools,
+      seenMap,
+      isoDate,
+      seed
+    );
+  }
+  // ② world + (한국 또는 일본) 둘만 선택된 경우
+  else if (nonWorld.length === 1) {
+    const other = nonWorld[0];
+    const slots = ["world", "world", other]; // 세계, 세계, 다른 나라
+
+    let cur = step;
+    for (let i = 0; i < 3; i++) {
+      const target = slots[cur];
+      if (effectivePools[target] && effectivePools[target].length) {
+        chosenCid = target;
+        nextStep = (cur + 1) % 3;
+        break;
+      }
+      cur = (cur + 1) % 3;
+    }
+
+    if (!chosenCid) {
+      // 둘 중 하나라도 남아 있으면 그걸 선택
+      if (effectivePools["world"] && effectivePools["world"].length) {
+        chosenCid = "world";
+      } else {
+        chosenCid = other;
+      }
+    }
+  }
+  // ③ world + 한국 + 일본 (또는 world + 여러 나라)인 경우
+  else {
+    const slots = ["world", "world", "nonWorld"]; // 세계, 세계, (한국/일본 중 하나)
+
+    let cur = step;
+    for (let i = 0; i <5; i++) {
+      const slot = slots[cur];
+
+      if (slot === "world") {
+        if (effectivePools["world"] && effectivePools["world"].length) {
+          chosenCid = "world";
+          nextStep = (cur + 1) % 3;
+          break;
+        }
+      } else {
+        const availNonWorld = nonWorld.filter(
+          (cid) => effectivePools[cid] && effectivePools[cid].length
+        );
+        if (availNonWorld.length) {
+          // 한국/일본 쪽은 서로 균등하게 돌려줌
+          chosenCid = chooseFairAmong(
+            availNonWorld,
+            effectivePools,
+            seenMap,
+            isoDate,
+            seed
+          );
+          nextStep = (cur + 1) % 3;
+          break;
+        }
+      }
+
+      cur = (cur + 1) % 3;
+    }
+
+    if (!chosenCid) {
+      // 다 막히면 world 우선, 그마저도 없으면 전체 중 균등
+      if (effectivePools["world"] && effectivePools["world"].length) {
+        chosenCid = "world";
+      } else {
+        chosenCid = chooseFairAmong(
+          activeCids,
+          effectivePools,
+          seenMap,
+          isoDate,
+          seed
+        );
+      }
+    }
+  }
+
+  try {
+    await AsyncStorage.setItem(patternKey, String(nextStep));
+  } catch {}
+
+  return chosenCid;
+}
+
+
 async function pickOneWithSeenRotation(
   poolsByCid,
   chosenIds,
-  seed,
   isoDate,
-  skipKey   // ✅ 추가
+  seed
 ) {
   if (!chosenIds || !chosenIds.length) return null;
 
@@ -638,7 +794,7 @@ async function pickOneWithSeenRotation(
   const unSeenPoolsByCid = {};
   let anyUnseen = false;
 
-  // ✅ 여기에서는 "이미 본 것만" 제외하고, skipKey는 쓰지 말자
+  // 아직 안 본 이벤트만 모으기
   for (const cid of chosenIds) {
     const pool = poolsByCid[cid] || [];
     if (!pool.length) continue;
@@ -646,11 +802,7 @@ async function pickOneWithSeenRotation(
     const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${cid}:${isoDate}`;
     const seenSet = seenMap[bucketKey] || new Set();
 
-    const unSeen = pool.filter((p) => {
-      if (seenSet.has(p.key)) return false;
-      return true;
-    });
-
+    const unSeen = pool.filter((p) => !seenSet.has(p.key));
     if (unSeen.length > 0) {
       anyUnseen = true;
       unSeenPoolsByCid[cid] = unSeen;
@@ -658,61 +810,63 @@ async function pickOneWithSeenRotation(
   }
 
   let effectivePools = {};
-  let activeCids = [];
 
   if (anyUnseen) {
-    // 아직 안 본 이벤트만 후보
+    // 아직 안 본 것들만 후보
     effectivePools = unSeenPoolsByCid;
-    activeCids = Object.keys(effectivePools);
   } else {
-    // 한 바퀴 다 돌았으면 → seen 리셋
+    // 오늘 날짜 기준으로 한 바퀴 다 돌았으면 → seen 리셋하고 다시 시작
     for (const cid of chosenIds) {
       const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${cid}:${isoDate}`;
       seenMap[bucketKey] = new Set();
       try {
         await AsyncStorage.setItem(bucketKey, JSON.stringify([]));
       } catch {}
-    }
-
-    // 여기서만 직전 pick(skipKey)을 가능한 한 피함
-    for (const cid of chosenIds) {
       const pool = poolsByCid[cid] || [];
-      if (!pool.length) continue;
-
-      const filtered = skipKey
-        ? pool.filter((p) => p.key !== skipKey)
-        : pool;
-
-      effectivePools[cid] = filtered.length ? filtered : pool;
+      if (pool.length) {
+        effectivePools[cid] = pool;
+      }
     }
-
-    activeCids = Object.keys(effectivePools);
   }
 
+  const activeCids = Object.keys(effectivePools);
   if (!activeCids.length) return null;
 
-  const pickArr = makeFairSinglePickFromPools(
+  // 🔥 여기서 나라 패턴(세계 2번 + 한국/일본 1번 등)을 적용해서
+  // 어떤 나라에서 뽑을지 먼저 결정
+  const cid = await pickCidByPattern(
     effectivePools,
     activeCids,
+    isoDate,
+    seenMap,
     seed
   );
-  if (!pickArr.length) return null;
+  if (!cid) return null;
 
-  const pick = pickArr[0];
+  const pool = effectivePools[cid];
 
-  const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${pick.cid}:${isoDate}`;
-  const prevSeen = seenMap[bucketKey] || new Set();
-  prevSeen.add(pick.key);
+  const bucketKey = `${STORAGE_KEY_SEEN_PREFIX}${cid}:${isoDate}`;
+  const seenSet = seenMap[bucketKey] || new Set();
 
+  // 같은 나라 안에서는 랜덤하게 골라주기 (하지만 한 번 뽑힌 건 seen에 기록됨)
+  const rnd = xorshift(
+    hash32(
+      `pick:${isoDate}:${cid}:${seed || ""}:${seenSet.size}:${pool.length}`
+    )
+  );
+  const idx = Math.floor(rnd() * pool.length);
+  const pick = pool[idx];
+
+  seenSet.add(pick.key);
   try {
-    await AsyncStorage.setItem(bucketKey, JSON.stringify([...prevSeen]));
+    await AsyncStorage.setItem(
+      bucketKey,
+      JSON.stringify([...seenSet])
+    );
   } catch {}
 
   return pick;
 }
-
-
-
 
 
 function getHistoryTitle(uiLang, deltaDay) {
@@ -2588,7 +2742,10 @@ export default function Home() {
         const pick = await pickOneWithSeenRotation(
           poolsByCid,
           chosen,
-          isoDate
+          isoDate,              // seed
+          isoDate,              // isoDate
+          lastPickKeyRef.current,
+          seedKey      
         );
 
         if (!canceled) {
