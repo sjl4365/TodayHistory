@@ -22,7 +22,7 @@ export default function SunnyGame() {
         id: 3,
         name: 'Dual Flashlight',
         icon: require('../../../assets/images/dualflashlight.png'),
-        url: 'https://dualflashlig.onelink.me/Wccx/qnv6yh8s',
+        url: 'https://dualflashlight.onelink.me/7gkq/qpbc8y65',
     },
     {
         id: 4,
@@ -35,12 +35,6 @@ export default function SunnyGame() {
         name: 'Find Four',
         icon: require('../../../assets/images/findfour.png'),
         url: 'https://apps.apple.com/app/find-four',
-    },
-    {
-        id: 6,
-        name: 'English Wangza',
-        icon: require('../../../assets/images/englishwangza.png'),
-        url: 'https://apps.apple.com/app/english-wangza',
     },
   ];
 

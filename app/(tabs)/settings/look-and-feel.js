@@ -383,12 +383,10 @@ export default function LookAndFeel() {
               <Text style={styles.dropdownArrow}>▼</Text>
             </View>
           </TouchableOpacity>
-        </View>
-
-          {/* Language specific font message */}
           <Text style={styles.fontNote}>
             {fontAppliedMessages[currentLanguage] || fontAppliedMessages.en}
           </Text>
+        </View>
 
         {/* Size Slider */}
         <View style={styles.section}>
