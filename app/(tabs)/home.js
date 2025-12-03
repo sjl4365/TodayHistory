@@ -1166,6 +1166,13 @@ function WebViewModal({ visible, url, onClose }) {
             backgroundColor: "#FFFFFF",
           }}
         >
+          <BannerAd
+            unitId={TestIds.BANNER}
+            size={BannerAdSize.BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+          />
           <Text
             style={{
               fontSize: 14,
