@@ -5,11 +5,21 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   TouchableOpacity,
   Linking,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const BASE_WIDTH = 390;
+const BASE_HEIGHT = 844;
+const scaleWidth =(size)=>(SCREEN_WIDTH/BASE_WIDTH)*size;
+const scaleHeight =(size)=>(SCREEN_HEIGHT/BASE_HEIGHT)*size;
+const resize = (size)=>(SCREEN_WIDTH/BASE_WIDTH)*size;
+const moderateScale=(size,factor=0.5)=>{
+  return size + (resize(size)-size)*factor;
+};
 
 export default function CreditScreen() {
   const openLink = (url) => {
@@ -20,70 +30,86 @@ export default function CreditScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <ScrollView style={styles.scrollView}>
-
-        {/* Credits List */}
-        <View style={styles.section}>
-          <View style={styles.creditRow}>
-            <Text style={styles.roleLabel}>Producer</Text>
-            <Text style={styles.nameValue}>R.S.</Text>
-          </View>
-
-          <View style={styles.creditRow}>
-            <Text style={styles.roleLabel}>Programmer</Text>
-            <Text style={styles.nameValue}>Kwanyeob Jung, Sam Lee, TK</Text>
-          </View>
-
-          <View style={styles.creditRow}>
-            <Text style={styles.roleLabel}>UIUX</Text>
-            <Text style={styles.nameValue}>Chloe Kim</Text>
-          </View>
-
-          <View style={styles.creditRow}>
-            <Text style={styles.roleLabel}>QA Testers</Text>
-            <Text style={styles.nameValue}> </Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Localization Managers</Text>
-          <Text style={styles.sectionContent}>
- 
-          </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Special Thanks</Text>
-          <Text style={styles.sectionContent}>
- 
-          </Text>
-        </View>
-
-        {/* <View style={styles.logoContainer}>
-          <View style={styles.logoPlaceholder}>
-            <View style={styles.sunIcon}>
-              <Text style={styles.sunText}>☀️</Text>
+      <View style={styles.contentWrapper}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Credits List */}
+          <View style={styles.section}>
+            <View style={styles.creditRow}>
+              <Text style={styles.roleLabel}>Producer</Text>
+              <Text style={styles.nameValue}>R.S.</Text>
             </View>
-            <Text style={styles.companyName}>SUNNY</Text>
-            <Text style={styles.companySubtitle}>INNOVATION LAB</Text>
+
+            <View style={styles.creditRow}>
+              <Text style={styles.roleLabel}>Programmers</Text>
+              <Text style={styles.nameValue}>
+                Kwanyeob Jung, Sam Lee, TK
+              </Text>
+            </View>
+
+            <View style={styles.creditRow}>
+              <Text style={styles.roleLabel}>UIUX Designer</Text>
+              <Text style={styles.nameValue}>Chloe Kim</Text>
+            </View>
+
+            <View style={styles.creditRow}>
+              <Text style={styles.roleLabel}>QA Testers</Text>
+              <Text style={styles.nameValue}>YC</Text>
+            </View>
+
+            <View style={styles.creditRow}>
+              <Text style={styles.roleLabel}>
+                Localization Managers
+              </Text>
+              <Text style={styles.nameValue}>Mary, Carol</Text>
+            </View>
+
+            <View style={[styles.creditRow, styles.lastCreditRow]}>
+              <Text style={styles.roleLabel}>Special Thanks</Text>
+              <Text style={styles.nameValue}>
+                Toronto Korean Developers, JA
+              </Text>
+            </View>
           </View>
-        </View> */}
+        </ScrollView>
 
-        {/* Footer Links */}
-        <View style={styles.footerLinks}>
-          <TouchableOpacity onPress={() => openLink('https://sunnyinnolab.notion.site/Terms-and-Conditions-0601612ffa404317a4ddaf5a094e5471')}>
-            <Text style={styles.linkText}>Terms of Service</Text>
-          </TouchableOpacity>
-          <Text style={styles.separator}>|</Text>
-          <TouchableOpacity onPress={() => openLink('https://sunnyinnolab.notion.site/Privacy-Policy-2919720d6e7848669b9d5e1170c6cabc')}>
-            <Text style={styles.linkText}>Privacy Policy</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Footer - Fixed at bottom */}
+        <View style={styles.footer}>
+          <View style={styles.footerLinks}>
+            <TouchableOpacity
+              onPress={() =>
+                openLink(
+                  'https://sunnyinnolab.notion.site/Terms-and-Conditions-0601612ffa404317a4ddaf5a094e5471'
+                )
+              }
+            >
+              <Text style={styles.linkText}>
+                Terms of Service
+              </Text>
+            </TouchableOpacity>
+            <Text style={styles.separator}>|</Text>
+            <TouchableOpacity
+              onPress={() =>
+                openLink(
+                  'https://sunnyinnolab.notion.site/Privacy-Policy-2919720d6e7848669b9d5e1170c6cabc'
+                )
+              }
+            >
+              <Text style={styles.linkText}>
+                Privacy Policy
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-        <View style={styles.versionContainer}>
-          <Text style={styles.versionText}>Version 1.0.0</Text>
+          <View style={styles.versionContainer}>
+            <Text style={styles.versionText}>
+              Version 1.0.0
+            </Text>
+          </View>
         </View>
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -93,117 +119,77 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
   },
+  contentWrapper: {
+    flex: 1,
+  },
   scrollView: {
     flex: 1,
   },
-  headerContainer: {
-    alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 30,
-  },
-  iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#1c1c1e',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  iconText: {
-    fontSize: 32,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: scaleHeight(20),
   },
   section: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
+    flex: 1,
+    paddingHorizontal: scaleWidth(20),
+    paddingTop: scaleHeight(20),
   },
   creditRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
+    alignItems: 'flex-start',
+    paddingVertical: scaleHeight(16),
     borderBottomWidth: 1,
     borderBottomColor: '#2c2c2e',
+    gap: scaleWidth(12),
+  },
+  lastCreditRow: {
+    borderBottomWidth: 0,
   },
   roleLabel: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: '#999',
     fontWeight: '400',
+    flex: 1,
+    minWidth: scaleWidth(100),
   },
   nameValue: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     color: '#fff',
     fontWeight: '500',
+    flex: 1.5,
+    textAlign: 'right',
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 12,
-  },
-  sectionContent: {
-    fontSize: 15,
-    color: '#999',
-    lineHeight: 24,
-  },
-  logoContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  logoPlaceholder: {
-    alignItems: 'center',
-  },
-  sunIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#1c1c1e',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sunText: {
-    fontSize: 40,
-  },
-  companyName: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
-    letterSpacing: 2,
-    marginBottom: 4,
-  },
-  companySubtitle: {
-    fontSize: 12,
-    color: '#999',
-    letterSpacing: 1,
+  footer: {
+    paddingTop: scaleHeight(20),
+    paddingBottom: scaleHeight(20),
+    borderTopWidth: 1,
+    borderTopColor: '#2c2c2e',
+    backgroundColor: '#000',
   },
   footerLinks: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
-    gap: 12,
+    paddingHorizontal: scaleWidth(20),
+    gap: scaleWidth(12),
+    flexWrap: 'wrap',
+    marginBottom: scaleHeight(12),
   },
   linkText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: '#007AFF',
     fontWeight: '500',
   },
   separator: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     color: '#666',
   },
   versionContainer: {
     alignItems: 'center',
-    paddingBottom: 40,
   },
   versionText: {
-    fontSize: 13,
+    fontSize: moderateScale(13),
     color: '#666',
   },
 });

@@ -82,35 +82,44 @@ export default function SettingsIndex() {
     const instagramUrl = 'instagram://user?username=sunnyinnolab';
     const webUrl = 'https://www.instagram.com/sunnyinnolab/';
     try {
-      const canOpen = await Linking.canOpenURL(instagramUrl);
-      if (canOpen) {
-        await Linking.openURL(instagramUrl);
+      const supported = await Linking.canOpenURL(instagramUrl);
+      if (supported) {
+        await Linking.openURL(instagramAppUrl);
       } else {
         await Linking.openURL(webUrl);
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to open Instagram');
-      console.error(error);
+      try {
+        await Linking.openURL(webUrl);
+      } catch (webError) {
+      }
     }
   };
+ 
 
   const openTwitter = async () => {
-    const twitterUsername = 'Sunnyinnolab';
-    const twitterUrl = `twitter://user?screen_name=${twitterUsername}`;
-    const webUrl = `https://x.com/Sunnyinnolab`;
-
+    // Twitter/X app URLs
+    const twitterAppUrl = 'twitter://user?screen_name=Sunnyinnolab';
+    const webUrl = 'https://x.com/Sunnyinnolab';
+   
     try {
-      const canOpen = await Linking.canOpenURL(twitterUrl);
-      if (canOpen) {
-        await Linking.openURL(twitterUrl);
+      const supported = await Linking.canOpenURL(twitterAppUrl);
+     
+      if (supported) {
+        await Linking.openURL(twitterAppUrl);
       } else {
         await Linking.openURL(webUrl);
       }
     } catch (error) {
-      Alert.alert('Error', 'Unable to open X (Twitter)');
-      console.error(error);
+      try {
+        await Linking.openURL(webUrl);
+      } catch (webError) {
+        Alert.alert('Error', 'Unable to open X (Twitter)');
+        console.error('Twitter error:', webError);
+      }
     }
   };
+ 
 
   const SettingItem = ({ title, onPress, rightComponent, showArrow = true }) => (
     <TouchableOpacity style={styles.settingItem} onPress={onPress}>
@@ -204,7 +213,7 @@ export default function SettingsIndex() {
       {/* Credit */}
       <View style={styles.section}>
         <SettingItem
-          title="Credit"
+          title="Credits"
           onPress={() => router.push('/settings/credit')}
         />
       </View>

@@ -9,7 +9,7 @@
     },
     "scheme": "todayhistory",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/Histree_icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -28,6 +28,9 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "notification": {
+        "icon": "./assets/Histree_icon.png"
       }
     },
     "web": {
