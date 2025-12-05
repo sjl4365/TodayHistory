@@ -60,8 +60,16 @@ import { getLocalHistory } from "../../lib/localHistory";
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { WebView } from "react-native-webview";
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
+import { BannerAd, BannerAdSize, TestIds
+  // ,RewardedAd, RewardedAdEventType, AdEventType, mobileAds 
+ } from 'react-native-google-mobile-ads';
 import { BlurView } from "expo-blur";
+
+// mobileAds()
+//   .initialize()
+//   .then(() => {
+//     console.log('[AD] mobileAds initialized');
+//   });
 
 // 콘솔
 if (__DEV__) {
@@ -93,6 +101,10 @@ const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
 // 데이터 캐시 TTL (6시간)
 const DATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const DATA_CACHE_VERSION = "v5";
+
+// 리워드 광고 시청 후 12시간 패스
+const STORAGE_KEY_REWARD_PASS_UNTIL = "@reward_pass_until_v1";
+const REWARD_PASS_DURATION_MS = 12 * 60 * 60 * 1000; // 12시간
 
 
 const COUNTRY_CFG = {
@@ -231,6 +243,18 @@ const AD_RATIO = 3.2;
 const AD_TARGET = { w: 320, h: 100 };
 const ENABLE_BOTTOM_BANNER = true;
 
+// const REWARDED_AD_UNIT_ID = __DEV__
+//   ? TestIds.REWARDED
+//   : Platform.select({
+//       android: "ca-app-pub-3940256099942544/5224354917",
+//       ios: "ca-app-pub-3940256099942544/1712485313",
+//     });
+
+// // 전역 보상형 광고 인스턴스
+// const rewardedAd = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
+//   requestNonPersonalizedAdsOnly: true,
+// });
+
 // 날짜 시간
 function safeTimeZone(tzCandidate) {
   const tz = String(tzCandidate || "");
@@ -269,7 +293,7 @@ function safeToLocaleDateString(date, locale, opts = {}) {
 }
 
 function safeFormatParts(date, tz) {
-  // ✅ 1) date를 무조건 유효한 Date로 정규화
+  // date를 무조건 유효한 Date로 정규화
   let d = date;
 
   // Date 인스턴스가 아니면 한 번 감싸보기
@@ -282,7 +306,7 @@ function safeFormatParts(date, tz) {
     d = new Date();
   }
 
-  // ✅ 2) 실제 formatToParts 호출
+  // 실제 formatToParts 호출
   try {
     const dtf = new Intl.DateTimeFormat("en-CA", {
       timeZone: safeTimeZone(tz),
@@ -291,7 +315,7 @@ function safeFormatParts(date, tz) {
       day: "2-digit",
     });
     return dtf
-      .formatToParts(d)  // ⬅️ 항상 유효한 Date만 들어감
+      .formatToParts(d)  // 항상 유효한 Date만 들어감
       .reduce((a, p) => {
         if (p.type !== "literal") a[p.type] = p.value;
         return a;
@@ -315,16 +339,28 @@ function safeFormatParts(date, tz) {
 
 // 유틸
 function resolveUiLangFromDevice() {
-  const raw =
-    Localization.locale ||
-    (Localization.getLocales?.()[0]?.languageCode) ||
-    "en";
+  // 1. getLocales() 우선 사용 (Expo 권장 방식)
+  try {
+    const locales = Localization.getLocales?.();
+    if (Array.isArray(locales) && locales.length > 0) {
+      const code = String(locales[0].languageCode || "").toLowerCase();
+      if (code === "ko") return "ko";
+      if (code === "ja") return "ja";
+      if (code === "en") return "en";
+      return "en"; // 그 외 언어는 전부 영어로
+    }
+        console.log("[LOCALIZATION] getLocales error:", e);
 
+  } catch {}
+
+  //  fallback: Localization.locale 문자열 파싱
+  const raw = Localization.locale || "en";
   const tag = String(raw).toLowerCase();
-  const code = tag.split(/[-_]/)[0];
+  const base = tag.split(/[-_]/)[0];
 
-  if (code === "ko") return "ko";
-  if (code === "ja") return "ja";
+  if (base === "ko") return "ko";
+  if (base === "ja") return "ja";
+  if (base === "en") return "en";
   return "en";
 }
 
@@ -340,6 +376,7 @@ function normalizeUiLang(value, fallback = "en") {
 
   return fallback;
 }
+
 
 function startOfDayInTz(base = new Date(), tz = "UTC") {
   const parts = safeFormatParts(base, tz);
@@ -383,13 +420,30 @@ function pickFirstNonEmpty(raw, keys) {
 }
 
 function bodyOfRowByLang(raw, uiLang, cid) {
-  const order = [
-    UI_COL[uiLang] || "English",
-    "English",
-    NATIVE_COL_BY_COUNTRY[cid] || "English",
-  ];
-  const unique = Array.from(new Set([...order, "한국어", "日本語"]));
-  return pickFirstNonEmpty(raw, unique);
+  // 혹시 "ko-KR", "ja-JP" 같은 값이 들어와도 앞부분만 사용
+  const base = String(uiLang || "en").split(/[-_]/)[0];
+
+  let order;
+
+  if (base === "ko") {
+    // ✅ 한국어 UI: 한국어가 있으면 무조건 한국어, 없으면 영어
+    order = ["한국어", "English"];
+  } else if (base === "ja") {
+    // ✅ 일본어 UI: 일본어 → 영어 → 한국어
+    order = ["日本語", "English", "한국어"];
+  } else {
+    // ✅ 그 외(영어) UI: 영어 → 한국어 → 일본어
+    order = ["English", "한국어", "日本語"];
+  }
+
+  // 디버그용 (원하면 잠깐 켜놓기)
+  // console.log("[BODY PICK]", { base, order, rowSample: {
+  //   ko: raw?.["한국어"],
+  //   en: raw?.["English"],
+  //   ja: raw?.["日本語"],
+  // }});
+
+  return pickFirstNonEmpty(raw, order);
 }
 
 // 앵커(언어별, URL 없으면 제외)
@@ -493,7 +547,7 @@ async function pickByYearRotation(poolsByCid, chosenIds, isoDate) {
   }
   if (!all.length) return null;
 
-  // 🔥 여기서 "랜덤 연도 순서" (고정된 랜덤) 배열 생성
+  // 여기서 "랜덤 연도 순서" (고정된 랜덤) 배열 생성
   const order = buildYearOrder(all, isoDate);
   if (!order.length) return null;
 
@@ -1021,21 +1075,22 @@ function SegmentedCountrySelector({
   ordered,
   value,
   onChange,
-  fixedHeight = 39,
+  fixedHeight = 39, 
 }) {
   const { scale } = useUIScale();
 
-  // Figma 값 기준
-  const W = scale(323);         // width: 323
-  const H = fixedHeight || 38;  // height: 38
-  const R = scale(80);          // border-radius: 80px
-  const BTN_W = (W - 32 * 2 - 8 * 2) / 3; // padding 32 + gap 8 기준으로 계산
-  const BTN_H = H;
+  const W = scale(323);          // 전체 폭
+  const H = fixedHeight || 39;   // 전체 높이
+  const CONTAINER_RADIUS = 80;   // Corner radius: 80
+  const BTN_H = 37;              // 선택된 나라 버튼 높이: 37
   const ICON = Math.max(14, Math.min(22, scale(16)));
+
+  const BTN_W = (W - 32 * 2 - 8 * 2) / 3; // padding 32 + gap 8 * 2 기준
 
   const toggle = (id) => {
     const next = new Set(value);
     if (next.has(id)) {
+      // 최소 1개는 항상 선택
       if (next.size === 1) return;
       next.delete(id);
     } else {
@@ -1049,18 +1104,27 @@ function SegmentedCountrySelector({
       style={{
         width: W,
         height: H,
-        borderRadius: R,
-        overflow: "hidden",            // blur 잘리게
-        shadowColor: "#000000",
-        shadowOpacity: 0.15,          // box-shadow alpha 대략 맞춰줌
-        shadowRadius: 12,             // 0 4 12 0 #00000026
+        borderRadius: CONTAINER_RADIUS,
+        overflow: "hidden",
+
+        // Fill: #FFFFFF 60%
+        backgroundColor: "rgba(255,255,255,0.6)",
+
+        // Stroke: #FFFFFF 50%
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.5)",
+
+        // Drop shadow (0, 4, blur 4, 25%)
+        shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
-        elevation: 6,
+        shadowRadius: 4,
+        shadowOpacity: 0.25,
+        elevation: 4,
       }}
     >
-      {/* 블러 + 반투명 배경 */}
+      {/* Background blur: 15 */}
       <BlurView
-        intensity={35}
+        intensity={15}
         tint="light"
         style={StyleSheet.absoluteFillObject}
       />
@@ -1071,12 +1135,9 @@ function SegmentedCountrySelector({
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "space-between",
-          paddingHorizontal: 32,       // padding-left/right: 32
-          paddingVertical: 8,          // padding-top/bottom: 8
-          borderRadius: R,
-          borderWidth: 1,
-          borderColor: "#FFFFFF80",    // border: 1px solid #FFFFFF80
-          backgroundColor: "rgba(255,255,255,0.25)", // 살짝 더 밝게
+          paddingHorizontal: 32,
+          // 위아래 살짝 여유
+          paddingVertical: (H - BTN_H) / 2,
         }}
       >
         {ordered.map((id) => {
@@ -1091,17 +1152,25 @@ function SegmentedCountrySelector({
             <Pressable
               key={id}
               onPress={() => toggle(id)}
-              style={{
-                width: BTN_W,
-                height: BTN_H - 8,  // 안쪽 pill 조금 작게
-                borderRadius: R,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: active
-                  ? "rgba(255,255,255,0.95)"
-                  : "transparent",
-              }}
               hitSlop={6}
+              style={[
+                {
+                  width: BTN_W,
+                  height: BTN_H,
+                  borderRadius: 100, // Corner radius: 100
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: active ? "#FFFFFF" : "transparent",
+                },
+                active && {
+                  // Shadow / Elevation: Level 3
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowRadius: 3,
+                  shadowOpacity: 0.3,
+                  elevation: 3,
+                },
+              ]}
             >
               <View
                 style={{
@@ -1125,7 +1194,7 @@ function SegmentedCountrySelector({
                   style={{
                     fontWeight: "700",
                     fontSize: scale(13),
-                    color: "#000",
+                    color: "#000000",
                   }}
                 >
                   {label}
@@ -1302,7 +1371,7 @@ function WikipediaBanner({
   const [imageSize, setImageSize] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ 이미지 크기 가져오기 useEffect
+  // 이미지 크기 가져오기 useEffect
   useEffect(() => {
     if (!imageUrl) {
       setLoading(false);
@@ -1342,7 +1411,7 @@ function WikipediaBanner({
     ? customBgColor.trim()
     : BG_MAP[cardBg] ?? "#FFFFFF";
 
-  // 🎯 이미지가 없거나 실패했을 때 AdMob 광고 표시
+  // 이미지가 없거나 실패했을 때 AdMob 광고 표시
   if (!imageUrl || imageFailed) {
     return (
       <View
@@ -1382,6 +1451,8 @@ function WikipediaBanner({
       </View>
     );
   }
+
+  
 
   const { width: imgWidth, height: imgHeight } = imageSize;
   const aspectRatio = imgWidth / imgHeight;
@@ -1828,6 +1899,8 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
               style={{
                 fontSize: fontSize || 15,
                 color: "#000000ff",
+                textDecorationLine:"underline",
+
               }}
               numberOfLines={1}
             >
@@ -1998,6 +2071,13 @@ function scheduleMidnightWarmup({
 // 홈 화면
 // 홈 화면
 export default function Home() {
+
+  useEffect(() => {
+  console.log("[LANG DEBUG] deviceLang =", deviceLang);
+  console.log("[LANG DEBUG] uiLang     =", uiLang);
+  console.log("[TZ DEBUG]    tz =", tz);
+}, [deviceLang, uiLang, tz]);
+
   const insets = useSafeAreaInsets();
   const { scale, screenW } = useUIScale();
   const [tz] = useState(() => {
@@ -2044,7 +2124,7 @@ export default function Home() {
   const todayParts = screenDate.parts;
   const isoDate = screenDate.iso;
 
-  const bannerHeight = Math.max(
+    const bannerHeight = Math.max(
     60,
     Math.round(Math.min(AD_TARGET.h, Math.min(width, 340) / AD_RATIO))
   );
@@ -2054,7 +2134,9 @@ export default function Home() {
     []
   );
 
-  const [uiLang, setUiLang] = useState(null);
+  const [uiLang, setUiLang] = useState(resolveUiLangFromDevice());
+
+
   const [selectedCountries, setSelectedCountries] =
     useState(new Set());
   const [onePick, setOnePick] = useState([]);
@@ -2114,6 +2196,88 @@ export default function Home() {
   const lastBackPressRef = useRef(0);
   const lastPickKeyRef = useRef(null);   
 
+  // const [adPromptVisible, setAdPromptVisible] = useState(false); // "광고 시청 후 이용 가능" 알림창
+  // const [rewardedLoaded, setRewardedLoaded] = useState(false);   // 광고 로딩 여부
+  // const pendingNavRef = useRef(null); // -1(어제), +1(내일) 저장
+  // const [rewardPassUntil, setRewardPassUntil] = useState(0);
+
+
+
+// goBy를 먼저 선언
+const goBy = useCallback((delta) => {
+  const step = delta < 0 ? -1 : delta > 0 ? 1 : 0;
+  if (!step) return;
+  setDayOffset((prev) => {
+    const next = Math.max(-1, Math.min(1, prev + step));
+    return next;
+  });
+}, []);
+
+// useEffect(() => {
+//   console.log('[AD] setup rewarded listener');
+
+//   const unsubscribe = rewardedAd.addAdEventsListener(({ type, payload }) => {
+//     console.log('[AD] event =', type);
+
+//     // 광고 로드 완료
+//     if (type === RewardedAdEventType.LOADED) {
+//       setRewardedLoaded(true);
+//     }
+
+//     // 광고 끝까지 시청 → 날짜 이동 + 12시간 패스 부여
+//     if (type === RewardedAdEventType.EARNED_REWARD) {
+//       console.log('[AD] earned reward:', payload);
+
+//       // 12시간 패스 만료 시각 계산
+//       const until = Date.now() + REWARD_PASS_DURATION_MS;
+//       setRewardPassUntil(until);
+//       AsyncStorage.setItem(
+//         STORAGE_KEY_REWARD_PASS_UNTIL,
+//         String(until)
+//       ).catch(() => {});
+
+//       // 대기 중이던 방향(-1 or +1)으로 이동
+//       const dir = pendingNavRef.current;
+//       if (dir === -1 || dir === 1) {
+//         goBy(dir);
+//       }
+//       pendingNavRef.current = null;
+//       setAdPromptVisible(false);
+//       setRewardedLoaded(false);
+
+//       // 다음 광고 미리 로드
+//       rewardedAd.load();
+//     }
+
+//     // 광고 닫힘 (중간에 닫아버린 경우)
+//     if (type === AdEventType.CLOSED) {
+//       console.log('[AD] closed');
+//       setAdPromptVisible(false);
+//       pendingNavRef.current = null;
+//       setRewardedLoaded(false);
+//       rewardedAd.load();
+//     }
+
+//     // 에러
+//     if (type === AdEventType.ERROR) {
+//       console.warn('[AD] error:', payload);
+//       setAdPromptVisible(false);
+//       pendingNavRef.current = null;
+//       setRewardedLoaded(false);
+//     }
+//   });
+
+//   // 최초 로드
+//   rewardedAd.load();
+
+//   return () => {
+//     console.log('[AD] cleanup rewarded listener');
+//     unsubscribe();
+//     rewardedAd.removeAllListeners();
+//   };
+// }, [goBy]);
+
+
   const handleLinkPress = useCallback((url) => {
     setWebViewUrl(url);
     setWebViewVisible(true);
@@ -2145,15 +2309,7 @@ export default function Home() {
     setHeaderImageUrl(null);
   }, [uiLang]);
 
-  // +/- 1일 이동
-  const goBy = useCallback((delta) => {
-    const step = delta < 0 ? -1 : delta > 0 ? 1 : 0;
-    if (!step) return;
-    setDayOffset((prev) => {
-      const next = Math.max(-1, Math.min(1, prev + step));
-      return next;
-    });
-  }, []);
+ 
 
   const buildSharePayload = useCallback(() => {
   const lang = uiLang || "en";
@@ -2265,31 +2421,72 @@ export default function Home() {
     } catch {}
   }, [buildSharePayload]);
 
+  // useEffect(() => {
+  // const offPrev = onGoPrevDay?.(() => {
+  //   if (amplitudeReadyRef.current)
+  //     trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
+  //       language: uiLang,
+  //       countries: [...selectedCountries],
+  //     });
+
+  //   const now = Date.now();
+  //   // ✅ 12시간 패스가 아직 유효하면 광고 없이 바로 이동
+  //   if (rewardPassUntil && rewardPassUntil > now) {
+  //     goBy(-1);
+  //     return;
+  //   }
+
+  //   // 그렇지 않으면 광고 모달
+  //   pendingNavRef.current = -1;
+  //   setAdPromptVisible(true);
+  // });
+
+  // const offNext = onGoNextDay?.(() => {
+  //   if (amplitudeReadyRef.current)
+  //     trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
+  //       language: uiLang,
+  //       countries: [...selectedCountries],
+  //     });
+
+  //   const now = Date.now();
+  //   if (rewardPassUntil && rewardPassUntil > now) {
+  //     goBy(+1);
+  //     return;
+  //   }
+
+  //   pendingNavRef.current = +1;
+  //   setAdPromptVisible(true);
+  // });
+
+  // 어제 / 내일 / 새로고침 / 공유 버튼 핸들러 등록
   useEffect(() => {
     const offPrev = onGoPrevDay?.(() => {
-      if (amplitudeReadyRef.current)
+      if (amplitudeReadyRef.current) {
         trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
           language: uiLang,
           countries: [...selectedCountries],
         });
-      goBy(-1);
+      }
+      goBy(-1);   // 광고 없이 바로 어제로 이동
     });
 
     const offNext = onGoNextDay?.(() => {
-      if (amplitudeReadyRef.current)
+      if (amplitudeReadyRef.current) {
         trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
           language: uiLang,
           countries: [...selectedCountries],
         });
-      goBy(+1);
+      }
+      goBy(+1);   // 광고 없이 바로 내일로 이동
     });
 
     const offRefresh = onRefresh?.(() => {
-      if (amplitudeReadyRef.current)
+      if (amplitudeReadyRef.current) {
         trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, {
           language: uiLang,
           countries: [...selectedCountries],
         });
+      }
       handlePullToRefresh();
     });
 
@@ -2303,7 +2500,15 @@ export default function Home() {
       offRefresh && offRefresh();
       offShare && offShare();
     };
-  }, [goBy, uiLang, selectedCountries, onSystemSharePress]);
+  }, [
+    goBy,
+    uiLang,
+    selectedCountries,
+    handlePullToRefresh,
+    onSystemSharePress,
+  ]);
+
+
 
   const fetchingRef = useRef(false);
 
@@ -2312,7 +2517,7 @@ export default function Home() {
     setRefreshTick((t) => t + 1);
   }, []);
 
-  // 초기 설정/복원
+   // 초기 설정/복원
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -2327,14 +2532,28 @@ export default function Home() {
           STORAGE_KEY_FONT,
           STORAGE_KEY_FONT_SIZE,
           STORAGE_KEY_FONT_COLOR,
+          // STORAGE_KEY_REWARD_PASS_UNTIL,
         ]).catch(() => []);
         const dict = Object.fromEntries(pairs || []);
         if (!alive) return;
 
+        // ✅ 언어 결정
         const storedLangRaw = dict[STORAGE_KEY_UI_LANG] || null;
-        const lang = normalizeUiLang(storedLangRaw, deviceLang);
+        let lang;
+
+        if (storedLangRaw) {
+          // 유저가 이미 선택해 둔 언어가 있으면 그것 우선
+          lang = normalizeUiLang(storedLangRaw, deviceLang);
+        } else {
+          // 처음 실행 등: 저장된 값이 없으면 폰 언어(deviceLang)로 결정 + 저장
+          lang = deviceLang;
+          try {
+            await AsyncStorage.setItem(STORAGE_KEY_UI_LANG, lang);
+          } catch {}
+        }
 
         setUiLang(lang);
+
         if (amplitudeReadyRef.current) {
           setUserProperties({
             language: lang,
@@ -2342,6 +2561,7 @@ export default function Home() {
           });
         }
 
+        // 이하 selectedCountries, notify, bg, font 복원 로직
         let nextSet;
         if (dict[STORAGE_KEY_SELECTED]) {
           let arr = [];
@@ -2363,9 +2583,8 @@ export default function Home() {
           );
         } catch {}
 
-        setNotifyEnabled(
-          dict[STORAGE_KEY_NOTIFY_ENABLED] === "1"
-        );
+        setNotifyEnabled(dict[STORAGE_KEY_NOTIFY_ENABLED] === "1");
+
         if (dict[STORAGE_KEY_NOTIFY_TIME]) {
           setNotifyTime(dict[STORAGE_KEY_NOTIFY_TIME]);
         }
@@ -2379,18 +2598,23 @@ export default function Home() {
           isValidColorString(rawBg) ? rawBg : null
         );
 
-        if (dict[STORAGE_KEY_FONT])
+        if (dict[STORAGE_KEY_FONT]) {
           setCustomFont(dict[STORAGE_KEY_FONT]);
+        }
+
         if (dict[STORAGE_KEY_FONT_SIZE]) {
           const v = parseInt(
             dict[STORAGE_KEY_FONT_SIZE],
             10
           );
-          if (!Number.isNaN(v) && v > 8)
+          if (!Number.isNaN(v) && v > 8) {
             setCustomFontSize(v);
+          }
         }
-        if (dict[STORAGE_KEY_FONT_COLOR])
+
+        if (dict[STORAGE_KEY_FONT_COLOR]) {
           setCustomFontColor(dict[STORAGE_KEY_FONT_COLOR]);
+        }
       } catch (e) {
         console.warn("Init restore failed:", e);
       } finally {
@@ -2401,6 +2625,7 @@ export default function Home() {
       alive = false;
     };
   }, [deviceLang]);
+
 
   // 포커스될 때 설정 재동기화
   useFocusEffect(
@@ -3412,6 +3637,120 @@ export default function Home() {
               </Text>
             </View>
           )}
+{/* 
+          <Modal
+  visible={adPromptVisible}
+  transparent
+  animationType="fade"
+  onRequestClose={() => {
+    setAdPromptVisible(false);
+    pendingNavRef.current = null;
+  }}
+>
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.35)",
+      alignItems: "center",
+      justifyContent: "center",
+    }}
+  >
+    <View
+      style={{
+        width: 280,
+        borderRadius: 16,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        backgroundColor: "#FFFFFF",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: 16,
+          fontWeight: "700",
+          marginBottom: 8,
+        }}
+      >
+        광고 시청 후 이용 가능
+      </Text>
+      <Text
+        style={{
+          fontSize: 14,
+          color: "#4b5563",
+        }}
+      >
+        어제 / 내일의 역사는{"\n"}
+        광고를 한 편 시청하신 후에 볼 수 있어요.
+      </Text>
+
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "flex-end",
+          marginTop: 18,
+          gap: 12,
+        }}
+      >
+        <Pressable
+          onPress={() => {
+            setAdPromptVisible(false);
+            pendingNavRef.current = null;
+          }}
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              color: "#6b7280",
+            }}
+          >
+            나중에
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => {
+  console.log('[AD] button pressed, rewardedLoaded =', rewardedLoaded);
+
+  if (rewardedLoaded) {
+    console.log('[AD] calling rewardedAd.show()');
+    rewardedAd.show();
+  } else {
+    console.log('[AD] not loaded yet → load() 호출');
+              if (Platform.OS === "android") {
+                ToastAndroid.show(
+                  "광고를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+                  ToastAndroid.SHORT
+                );
+              }
+              rewardedAd.load();
+            }
+          }}
+          style={{
+            paddingHorizontal: 12,
+            paddingVertical: 8,
+            borderRadius: 999,
+            backgroundColor: "#111827",
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              color: "#FFFFFF",
+            }}
+          >
+            광고 시청하러 가기
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal> */}
+
         </>
       )}
     </SafeAreaView>
