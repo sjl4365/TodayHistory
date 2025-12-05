@@ -1841,14 +1841,16 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
 }
 
 // 배너 URL 캐시 키
-const BANNER_KEY = (dateISO, lang) =>
-  `@banner_url:${dateISO}:${lang}`;
+const BANNER_KEY = (dateISO, cid) =>
+  `@banner_url:${dateISO}:${cid}`; 
 
 // pick → 배너 URL 계산
 async function computeBannerUrlForPick(pick, uiLang) {
+  const nativeLang = COUNTRY_CFG[pick.cid]?.lang || "en";
+  
   const anchorsText = getAnchorsForLang(
     pick.row,
-    uiLang || "en"
+    nativeLang 
   )
     .map((a) => a.text)
     .filter(Boolean);
@@ -1860,7 +1862,7 @@ async function computeBannerUrlForPick(pick, uiLang) {
       imageUrl = await withTimeout(
         fetchWikipediaImageFromAnchors(
           anchorsText,
-          uiLang
+          nativeLang 
         ),
         2500
       );
@@ -1869,10 +1871,12 @@ async function computeBannerUrlForPick(pick, uiLang) {
 
   if (!imageUrl) {
     const y = getYearFromRow(pick.row);
+    // 원본 언어로 작성된 본문 사용
+    const nativeBody = bodyOfRowByLang(pick.row, nativeLang, pick.cid);
     try {
       imageUrl = await withTimeout(
         fetchImageForContent(
-          pick.body,
+          nativeBody || pick.body, 
           y,
           pick.cid
         ),
@@ -1882,44 +1886,13 @@ async function computeBannerUrlForPick(pick, uiLang) {
   }
 
   if (imageUrl) {
-    const best = await bestWikiThumb(
-      imageUrl,
-      640
-    );
+    const best = await bestWikiThumb(imageUrl, 640);
     imageUrl = best || sanitizeImageUrl(imageUrl);
   }
   return imageUrl || null;
 }
 
 // 오늘 캐시 워밍
-async function warmCacheFor({
-  date,
-  tz,
-  uiLang,
-  selectedCountries,
-}) {
-  const parts = getDayPartsFrom(date, tz);
-  const chosen = [
-    ...ensureNonEmptySelection(
-      selectedCountries,
-      uiLang
-    ),
-  ];
-  for (const cid of chosen) {
-    try {
-      let rows = await loadCache(cid, parts);
-      if (!rows) {
-        rows = await apiFetchForMode(
-          cid,
-          parts
-        );
-        await saveCache(cid, parts, rows);
-      }
-    } catch {}
-  }
-}
-
-// 캐시 + 배너 프리컴퓨트
 async function warmCacheAndBanner({
   date,
   tz,
@@ -1943,37 +1916,20 @@ async function warmCacheAndBanner({
 
   const pool = [];
   for (const cid of chosen) {
-    const rows = await loadCache(
-      cid,
-      parts
-    );
+    const rows = await loadCache(cid, parts);
     if (Array.isArray(rows)) {
       for (const r of rows) {
-        const body = bodyOfRowByLang(
-          r,
-          uiLang,
-          cid
-        );
+        const body = bodyOfRowByLang(r, uiLang, cid);
         if (!hasAnyText(body)) continue;
         const tag = trimHtml(
-          r?.["한국어"] ||
-            r?.English ||
-            r?.["日本語"] ||
-            ""
+          r?.["한국어"] || r?.English || r?.["日本語"] || ""
         ).slice(0, 50);
         pool.push({
           cid,
           row: r,
-          key: `${cid}|${String(
-            r?.Year ||
-              r?.year ||
-              ""
-          )}|${String(
-            r?.Date ||
-              r?.date ||
-              ""
+          key: `${cid}|${String(r?.Year || r?.year || "")}|${String(
+            r?.Date || r?.date || ""
           )}|${tag}`,
-
           body,
         });
       }
@@ -1981,28 +1937,18 @@ async function warmCacheAndBanner({
   }
 
   if (pool.length) {
-    const seed = `${date
-      .toISOString()
-      .slice(0, 10)}__${chosen
+    const seed = `${date.toISOString().slice(0, 10)}__${chosen
       .sort()
       .join(",")}`;
-    const pick = makePicksFromPool(
-      pool,
-      uiLang,
-      seed
-    )[0];
-    const url =
-      await computeBannerUrlForPick(
-        pick,
-        uiLang
-      );
+    const pick = makePicksFromPool(pool, uiLang, seed)[0];
+    
+    // ✅ 나라별로 이미지 캐시
+    const url = await computeBannerUrlForPick(pick, uiLang);
     try {
       await AsyncStorage.setItem(
         BANNER_KEY(
-          date
-            .toISOString()
-            .slice(0, 10),
-          uiLang || "en"
+          date.toISOString().slice(0, 10),
+          pick.cid  // ✅ 나라 ID로 저장
         ),
         url || ""
       );
@@ -2814,28 +2760,31 @@ export default function Home() {
 
     (async () => {
       try {
-        const iso = isoDate; //화면 날짜 기준 키
+        const iso = isoDate;
 
-        // 1) 픽이 없을 때: 캐시에 저장된 배너 먼저 시도
         if (!onePick || !onePick.length) {
           if (hydrated && uiLang) {
-            try {
-              const cachedUrl =
-                await AsyncStorage.getItem(
-                  BANNER_KEY(iso, uiLang)
-                );
-              if (alive && cachedUrl !== null) {
-                setHeaderImageUrl(cachedUrl || null);
-                return;
-              }
-            } catch {}
+            if (alive) setHeaderImageUrl(null);
+            return;
           }
           if (alive) setHeaderImageUrl(null);
           return;
         }
 
-        // 2) 픽이 있으면 새 이미지 계산 + 캐시에 저장
         const first = onePick[0];
+        const cid = first.cid; 
+        
+        try {
+          const cachedUrl = await AsyncStorage.getItem(
+            BANNER_KEY(iso, cid)  
+          );
+          if (cachedUrl && alive) {
+            setHeaderImageUrl(cachedUrl || null);
+            return; 
+          }
+        } catch {}
+        
+        // 캐시 없으면 새로 계산
         const url = await computeBannerUrlForPick(
           first,
           uiLang
@@ -2845,7 +2794,7 @@ export default function Home() {
           setHeaderImageUrl(url || null);
           try {
             await AsyncStorage.setItem(
-              BANNER_KEY(iso, uiLang || "en"),
+              BANNER_KEY(iso, cid), 
               url || ""
             );
           } catch {}
