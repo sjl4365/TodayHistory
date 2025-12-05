@@ -339,16 +339,28 @@ function safeFormatParts(date, tz) {
 
 // 유틸
 function resolveUiLangFromDevice() {
-  const raw =
-    Localization.locale ||
-    (Localization.getLocales?.()[0]?.languageCode) ||
-    "en";
+  // 1. getLocales() 우선 사용 (Expo 권장 방식)
+  try {
+    const locales = Localization.getLocales?.();
+    if (Array.isArray(locales) && locales.length > 0) {
+      const code = String(locales[0].languageCode || "").toLowerCase();
+      if (code === "ko") return "ko";
+      if (code === "ja") return "ja";
+      if (code === "en") return "en";
+      return "en"; // 그 외 언어는 전부 영어로
+    }
+        console.log("[LOCALIZATION] getLocales error:", e);
 
+  } catch {}
+
+  //  fallback: Localization.locale 문자열 파싱
+  const raw = Localization.locale || "en";
   const tag = String(raw).toLowerCase();
-  const code = tag.split(/[-_]/)[0];
+  const base = tag.split(/[-_]/)[0];
 
-  if (code === "ko") return "ko";
-  if (code === "ja") return "ja";
+  if (base === "ko") return "ko";
+  if (base === "ja") return "ja";
+  if (base === "en") return "en";
   return "en";
 }
 
@@ -364,6 +376,7 @@ function normalizeUiLang(value, fallback = "en") {
 
   return fallback;
 }
+
 
 function startOfDayInTz(base = new Date(), tz = "UTC") {
   const parts = safeFormatParts(base, tz);
@@ -407,13 +420,30 @@ function pickFirstNonEmpty(raw, keys) {
 }
 
 function bodyOfRowByLang(raw, uiLang, cid) {
-  const order = [
-    UI_COL[uiLang] || "English",
-    "English",
-    NATIVE_COL_BY_COUNTRY[cid] || "English",
-  ];
-  const unique = Array.from(new Set([...order, "한국어", "日本語"]));
-  return pickFirstNonEmpty(raw, unique);
+  // 혹시 "ko-KR", "ja-JP" 같은 값이 들어와도 앞부분만 사용
+  const base = String(uiLang || "en").split(/[-_]/)[0];
+
+  let order;
+
+  if (base === "ko") {
+    // ✅ 한국어 UI: 한국어가 있으면 무조건 한국어, 없으면 영어
+    order = ["한국어", "English"];
+  } else if (base === "ja") {
+    // ✅ 일본어 UI: 일본어 → 영어 → 한국어
+    order = ["日本語", "English", "한국어"];
+  } else {
+    // ✅ 그 외(영어) UI: 영어 → 한국어 → 일본어
+    order = ["English", "한국어", "日本語"];
+  }
+
+  // 디버그용 (원하면 잠깐 켜놓기)
+  // console.log("[BODY PICK]", { base, order, rowSample: {
+  //   ko: raw?.["한국어"],
+  //   en: raw?.["English"],
+  //   ja: raw?.["日本語"],
+  // }});
+
+  return pickFirstNonEmpty(raw, order);
 }
 
 // 앵커(언어별, URL 없으면 제외)
@@ -2095,6 +2125,13 @@ function scheduleMidnightWarmup({
 // 홈 화면
 // 홈 화면
 export default function Home() {
+
+  useEffect(() => {
+  console.log("[LANG DEBUG] deviceLang =", deviceLang);
+  console.log("[LANG DEBUG] uiLang     =", uiLang);
+  console.log("[TZ DEBUG]    tz =", tz);
+}, [deviceLang, uiLang, tz]);
+
   const insets = useSafeAreaInsets();
   const { scale, screenW } = useUIScale();
   const [tz] = useState(() => {
@@ -2141,7 +2178,7 @@ export default function Home() {
   const todayParts = screenDate.parts;
   const isoDate = screenDate.iso;
 
-  const bannerHeight = Math.max(
+    const bannerHeight = Math.max(
     60,
     Math.round(Math.min(AD_TARGET.h, Math.min(width, 340) / AD_RATIO))
   );
@@ -2151,7 +2188,9 @@ export default function Home() {
     []
   );
 
-  const [uiLang, setUiLang] = useState(null);
+  const [uiLang, setUiLang] = useState(resolveUiLangFromDevice());
+
+
   const [selectedCountries, setSelectedCountries] =
     useState(new Set());
   const [onePick, setOnePick] = useState([]);
@@ -2532,7 +2571,7 @@ const goBy = useCallback((delta) => {
     setRefreshTick((t) => t + 1);
   }, []);
 
-  // 초기 설정/복원
+   // 초기 설정/복원
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -2547,22 +2586,28 @@ const goBy = useCallback((delta) => {
           STORAGE_KEY_FONT,
           STORAGE_KEY_FONT_SIZE,
           STORAGE_KEY_FONT_COLOR,
-          // STORAGE_KEY_REWARD_PASS_UNTIL, 
+          // STORAGE_KEY_REWARD_PASS_UNTIL,
         ]).catch(() => []);
         const dict = Object.fromEntries(pairs || []);
         if (!alive) return;
 
-        // if (dict[STORAGE_KEY_REWARD_PASS_UNTIL]) {
-        //   const ts = parseInt(dict[STORAGE_KEY_REWARD_PASS_UNTIL], 10) || 0;
-        //   if (ts > Date.now()) {
-        //     setRewardPassUntil(ts);
-        //   }
-        // }
-
+        // ✅ 언어 결정
         const storedLangRaw = dict[STORAGE_KEY_UI_LANG] || null;
-        const lang = normalizeUiLang(storedLangRaw, deviceLang);
+        let lang;
+
+        if (storedLangRaw) {
+          // 유저가 이미 선택해 둔 언어가 있으면 그것 우선
+          lang = normalizeUiLang(storedLangRaw, deviceLang);
+        } else {
+          // 처음 실행 등: 저장된 값이 없으면 폰 언어(deviceLang)로 결정 + 저장
+          lang = deviceLang;
+          try {
+            await AsyncStorage.setItem(STORAGE_KEY_UI_LANG, lang);
+          } catch {}
+        }
 
         setUiLang(lang);
+
         if (amplitudeReadyRef.current) {
           setUserProperties({
             language: lang,
@@ -2570,6 +2615,7 @@ const goBy = useCallback((delta) => {
           });
         }
 
+        // 이하 selectedCountries, notify, bg, font 복원 로직
         let nextSet;
         if (dict[STORAGE_KEY_SELECTED]) {
           let arr = [];
@@ -2591,9 +2637,8 @@ const goBy = useCallback((delta) => {
           );
         } catch {}
 
-        setNotifyEnabled(
-          dict[STORAGE_KEY_NOTIFY_ENABLED] === "1"
-        );
+        setNotifyEnabled(dict[STORAGE_KEY_NOTIFY_ENABLED] === "1");
+
         if (dict[STORAGE_KEY_NOTIFY_TIME]) {
           setNotifyTime(dict[STORAGE_KEY_NOTIFY_TIME]);
         }
@@ -2607,18 +2652,23 @@ const goBy = useCallback((delta) => {
           isValidColorString(rawBg) ? rawBg : null
         );
 
-        if (dict[STORAGE_KEY_FONT])
+        if (dict[STORAGE_KEY_FONT]) {
           setCustomFont(dict[STORAGE_KEY_FONT]);
+        }
+
         if (dict[STORAGE_KEY_FONT_SIZE]) {
           const v = parseInt(
             dict[STORAGE_KEY_FONT_SIZE],
             10
           );
-          if (!Number.isNaN(v) && v > 8)
+          if (!Number.isNaN(v) && v > 8) {
             setCustomFontSize(v);
+          }
         }
-        if (dict[STORAGE_KEY_FONT_COLOR])
+
+        if (dict[STORAGE_KEY_FONT_COLOR]) {
           setCustomFontColor(dict[STORAGE_KEY_FONT_COLOR]);
+        }
       } catch (e) {
         console.warn("Init restore failed:", e);
       } finally {
@@ -2629,6 +2679,7 @@ const goBy = useCallback((delta) => {
       alive = false;
     };
   }, [deviceLang]);
+
 
   // 포커스될 때 설정 재동기화
   useFocusEffect(

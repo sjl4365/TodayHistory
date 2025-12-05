@@ -60,3 +60,6 @@ ios/DerivedData/
 package-lock.json
 
 .idea
+
+android/
+ios/
