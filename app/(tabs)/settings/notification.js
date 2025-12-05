@@ -211,7 +211,7 @@ export default function Notification() {
 
       const id = await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Today In History',
+          title: 'Histree',
           body: cachedBody, 
           sound: 'default',
           channelId: CHANNEL_ID,
