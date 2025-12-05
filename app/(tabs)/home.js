@@ -60,9 +60,14 @@ import { getLocalHistory } from "../../lib/localHistory";
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import { WebView } from "react-native-webview";
-import { BannerAd, BannerAdSize, TestIds
-  // ,RewardedAd, RewardedAdEventType, AdEventType, mobileAds 
- } from 'react-native-google-mobile-ads';
+import mobileAds, {
+  BannerAd,
+  BannerAdSize,
+  TestIds,
+  RewardedAd,
+  RewardedAdEventType,
+  AdEventType,
+} from "react-native-google-mobile-ads";
 import { BlurView } from "expo-blur";
 
 // mobileAds()
@@ -243,17 +248,17 @@ const AD_RATIO = 3.2;
 const AD_TARGET = { w: 320, h: 100 };
 const ENABLE_BOTTOM_BANNER = true;
 
-// const REWARDED_AD_UNIT_ID = __DEV__
-//   ? TestIds.REWARDED
-//   : Platform.select({
-//       android: "ca-app-pub-3940256099942544/5224354917",
-//       ios: "ca-app-pub-3940256099942544/1712485313",
-//     });
+const REWARDED_AD_UNIT_ID = __DEV__
+  ? TestIds.REWARDED
+  : Platform.select({
+      android: "ca-app-pub-3940256099942544/5224354917",
+      ios: "ca-app-pub-3940256099942544/1712485313",
+    });
 
-// // 전역 보상형 광고 인스턴스
-// const rewardedAd = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
-//   requestNonPersonalizedAdsOnly: true,
-// });
+// 전역 보상형 광고 인스턴스
+const rewardedAd = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
+  requestNonPersonalizedAdsOnly: true,
+});
 
 // 날짜 시간
 function safeTimeZone(tzCandidate) {
@@ -349,11 +354,11 @@ function resolveUiLangFromDevice() {
       if (code === "en") return "en";
       return "en"; // 그 외 언어는 전부 영어로
     }
-        console.log("[LOCALIZATION] getLocales error:", e);
+  } catch (e) {
+    console.log("[LOCALIZATION] getLocales error:", e);
+  }
 
-  } catch {}
-
-  //  fallback: Localization.locale 문자열 파싱
+  // fallback: Localization.locale 문자열 파싱
   const raw = Localization.locale || "en";
   const tag = String(raw).toLowerCase();
   const base = tag.split(/[-_]/)[0];
@@ -363,6 +368,7 @@ function resolveUiLangFromDevice() {
   if (base === "en") return "en";
   return "en";
 }
+
 
 function normalizeUiLang(value, fallback = "en") {
   const v = String(value || "").toLowerCase();
@@ -426,13 +432,13 @@ function bodyOfRowByLang(raw, uiLang, cid) {
   let order;
 
   if (base === "ko") {
-    // ✅ 한국어 UI: 한국어가 있으면 무조건 한국어, 없으면 영어
+    // 한국어 UI: 한국어가 있으면 무조건 한국어, 없으면 영어
     order = ["한국어", "English"];
   } else if (base === "ja") {
-    // ✅ 일본어 UI: 일본어 → 영어 → 한국어
+    // 일본어 UI: 일본어 → 영어 → 한국어
     order = ["日本語", "English", "한국어"];
   } else {
-    // ✅ 그 외(영어) UI: 영어 → 한국어 → 일본어
+    // 그 외(영어) UI: 영어 → 한국어 → 일본어
     order = ["English", "한국어", "日本語"];
   }
 
@@ -642,7 +648,6 @@ function makePicksFromPool(pool, _uiLang, stableKey) {
   return [pool[Math.floor(rnd() * pool.length)]];
 }
 
-// 선택된 나라들 사이에서 공평하게 1개
 // 선택된 나라들 사이에서 공평하게 1개 (진짜 랜덤)
 function makeFairSinglePickFromPools(poolsByCid, chosenIds, _seed) {
   const availableCids = chosenIds.filter(
@@ -887,7 +892,7 @@ async function pickOneWithSeenRotation(
   const activeCids = Object.keys(effectivePools);
   if (!activeCids.length) return null;
 
-  // 🔥 여기서 나라 패턴(세계 2번 + 한국/일본 1번 등)을 적용해서
+  // 여기서 나라 패턴(세계 2번 + 한국/일본 1번 등)을 적용해서
   // 어떤 나라에서 뽑을지 먼저 결정
   const cid = await pickCidByPattern(
     effectivePools,
@@ -2069,14 +2074,8 @@ function scheduleMidnightWarmup({
 }
 
 // 홈 화면
-// 홈 화면
 export default function Home() {
 
-  useEffect(() => {
-  console.log("[LANG DEBUG] deviceLang =", deviceLang);
-  console.log("[LANG DEBUG] uiLang     =", uiLang);
-  console.log("[TZ DEBUG]    tz =", tz);
-}, [deviceLang, uiLang, tz]);
 
   const insets = useSafeAreaInsets();
   const { scale, screenW } = useUIScale();
@@ -2136,6 +2135,11 @@ export default function Home() {
 
   const [uiLang, setUiLang] = useState(resolveUiLangFromDevice());
 
+    useEffect(() => {
+  console.log("[LANG DEBUG] deviceLang =", deviceLang);
+  console.log("[LANG DEBUG] uiLang     =", uiLang);
+  console.log("[TZ DEBUG]    tz =", tz);
+}, [deviceLang, uiLang, tz]);
 
   const [selectedCountries, setSelectedCountries] =
     useState(new Set());
@@ -2183,6 +2187,15 @@ export default function Home() {
     }
   };
 
+  
+   useEffect(() => {
+    mobileAds()
+      .initialize()
+      .then(() => {
+        console.log("[AD] mobileAds initialized");
+      });
+  }, []);
+
   const bodyLineHeight = Math.round(
     (customFontSize || 18) * 1.45
   );
@@ -2196,10 +2209,10 @@ export default function Home() {
   const lastBackPressRef = useRef(0);
   const lastPickKeyRef = useRef(null);   
 
-  // const [adPromptVisible, setAdPromptVisible] = useState(false); // "광고 시청 후 이용 가능" 알림창
-  // const [rewardedLoaded, setRewardedLoaded] = useState(false);   // 광고 로딩 여부
-  // const pendingNavRef = useRef(null); // -1(어제), +1(내일) 저장
-  // const [rewardPassUntil, setRewardPassUntil] = useState(0);
+  const [adPromptVisible, setAdPromptVisible] = useState(false); // "광고 시청 후 이용 가능" 알림창
+  const [rewardedLoaded, setRewardedLoaded] = useState(false);   // 광고 로딩 여부
+  const pendingNavRef = useRef(null); // -1(어제), +1(내일) 저장
+  const [rewardPassUntil, setRewardPassUntil] = useState(0);
 
 
 
@@ -2213,69 +2226,69 @@ const goBy = useCallback((delta) => {
   });
 }, []);
 
-// useEffect(() => {
-//   console.log('[AD] setup rewarded listener');
+useEffect(() => {
+  console.log('[AD] setup rewarded listener');
 
-//   const unsubscribe = rewardedAd.addAdEventsListener(({ type, payload }) => {
-//     console.log('[AD] event =', type);
+  const unsubscribe = rewardedAd.addAdEventsListener(({ type, payload }) => {
+    console.log('[AD] event =', type);
 
-//     // 광고 로드 완료
-//     if (type === RewardedAdEventType.LOADED) {
-//       setRewardedLoaded(true);
-//     }
+    // 광고 로드 완료
+    if (type === RewardedAdEventType.LOADED) {
+      setRewardedLoaded(true);
+    }
 
-//     // 광고 끝까지 시청 → 날짜 이동 + 12시간 패스 부여
-//     if (type === RewardedAdEventType.EARNED_REWARD) {
-//       console.log('[AD] earned reward:', payload);
+    // 광고 끝까지 시청 → 날짜 이동 + 12시간 패스 부여
+    if (type === RewardedAdEventType.EARNED_REWARD) {
+      console.log('[AD] earned reward:', payload);
 
-//       // 12시간 패스 만료 시각 계산
-//       const until = Date.now() + REWARD_PASS_DURATION_MS;
-//       setRewardPassUntil(until);
-//       AsyncStorage.setItem(
-//         STORAGE_KEY_REWARD_PASS_UNTIL,
-//         String(until)
-//       ).catch(() => {});
+      // 12시간 패스 만료 시각 계산
+      const until = Date.now() + REWARD_PASS_DURATION_MS;
+      setRewardPassUntil(until);
+      AsyncStorage.setItem(
+        STORAGE_KEY_REWARD_PASS_UNTIL,
+        String(until)
+      ).catch(() => {});
 
-//       // 대기 중이던 방향(-1 or +1)으로 이동
-//       const dir = pendingNavRef.current;
-//       if (dir === -1 || dir === 1) {
-//         goBy(dir);
-//       }
-//       pendingNavRef.current = null;
-//       setAdPromptVisible(false);
-//       setRewardedLoaded(false);
+      // 대기 중이던 방향(-1 or +1)으로 이동
+      const dir = pendingNavRef.current;
+      if (dir === -1 || dir === 1) {
+        goBy(dir);
+      }
+      pendingNavRef.current = null;
+      setAdPromptVisible(false);
+      setRewardedLoaded(false);
 
-//       // 다음 광고 미리 로드
-//       rewardedAd.load();
-//     }
+      // 다음 광고 미리 로드
+      rewardedAd.load();
+    }
 
-//     // 광고 닫힘 (중간에 닫아버린 경우)
-//     if (type === AdEventType.CLOSED) {
-//       console.log('[AD] closed');
-//       setAdPromptVisible(false);
-//       pendingNavRef.current = null;
-//       setRewardedLoaded(false);
-//       rewardedAd.load();
-//     }
+    // 광고 닫힘 (중간에 닫아버린 경우)
+    if (type === AdEventType.CLOSED) {
+      console.log('[AD] closed');
+      setAdPromptVisible(false);
+      pendingNavRef.current = null;
+      setRewardedLoaded(false);
+      rewardedAd.load();
+    }
 
-//     // 에러
-//     if (type === AdEventType.ERROR) {
-//       console.warn('[AD] error:', payload);
-//       setAdPromptVisible(false);
-//       pendingNavRef.current = null;
-//       setRewardedLoaded(false);
-//     }
-//   });
+    // 에러
+    if (type === AdEventType.ERROR) {
+      console.warn('[AD] error:', payload);
+      setAdPromptVisible(false);
+      pendingNavRef.current = null;
+      setRewardedLoaded(false);
+    }
+  });
 
-//   // 최초 로드
-//   rewardedAd.load();
+  // 최초 로드
+  rewardedAd.load();
 
-//   return () => {
-//     console.log('[AD] cleanup rewarded listener');
-//     unsubscribe();
-//     rewardedAd.removeAllListeners();
-//   };
-// }, [goBy]);
+  return () => {
+    console.log('[AD] cleanup rewarded listener');
+    unsubscribe();
+    rewardedAd.removeAllListeners();
+  };
+}, [goBy]);
 
 
   const handleLinkPress = useCallback((url) => {
@@ -2421,65 +2434,46 @@ const goBy = useCallback((delta) => {
     } catch {}
   }, [buildSharePayload]);
 
-  // useEffect(() => {
-  // const offPrev = onGoPrevDay?.(() => {
-  //   if (amplitudeReadyRef.current)
-  //     trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
-  //       language: uiLang,
-  //       countries: [...selectedCountries],
-  //     });
-
-  //   const now = Date.now();
-  //   // ✅ 12시간 패스가 아직 유효하면 광고 없이 바로 이동
-  //   if (rewardPassUntil && rewardPassUntil > now) {
-  //     goBy(-1);
-  //     return;
-  //   }
-
-  //   // 그렇지 않으면 광고 모달
-  //   pendingNavRef.current = -1;
-  //   setAdPromptVisible(true);
-  // });
-
-  // const offNext = onGoNextDay?.(() => {
-  //   if (amplitudeReadyRef.current)
-  //     trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
-  //       language: uiLang,
-  //       countries: [...selectedCountries],
-  //     });
-
-  //   const now = Date.now();
-  //   if (rewardPassUntil && rewardPassUntil > now) {
-  //     goBy(+1);
-  //     return;
-  //   }
-
-  //   pendingNavRef.current = +1;
-  //   setAdPromptVisible(true);
-  // });
-
-  // 어제 / 내일 / 새로고침 / 공유 버튼 핸들러 등록
   useEffect(() => {
-    const offPrev = onGoPrevDay?.(() => {
-      if (amplitudeReadyRef.current) {
-        trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
-          language: uiLang,
-          countries: [...selectedCountries],
-        });
-      }
-      goBy(-1);   // 광고 없이 바로 어제로 이동
-    });
+  const offPrev = onGoPrevDay?.(() => {
+    if (amplitudeReadyRef.current)
+      trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+      });
 
-    const offNext = onGoNextDay?.(() => {
-      if (amplitudeReadyRef.current) {
-        trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
-          language: uiLang,
-          countries: [...selectedCountries],
-        });
-      }
-      goBy(+1);   // 광고 없이 바로 내일로 이동
-    });
+    const now = Date.now();
+    // ✅ 12시간 패스가 아직 유효하면 광고 없이 바로 이동
+    if (rewardPassUntil && rewardPassUntil > now) {
+      goBy(-1);
+      return;
+    }
 
+    // 그렇지 않으면 광고 모달
+    pendingNavRef.current = -1;
+    setAdPromptVisible(true);
+  });
+
+  const offNext = onGoNextDay?.(() => {
+    if (amplitudeReadyRef.current)
+      trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
+        language: uiLang,
+        countries: [...selectedCountries],
+      });
+
+    const now = Date.now();
+    if (rewardPassUntil && rewardPassUntil > now) {
+      goBy(+1);
+      return;
+    }
+
+    pendingNavRef.current = +1;
+    setAdPromptVisible(true);
+  });
+
+   
+    
+    // 새로고침 버튼
     const offRefresh = onRefresh?.(() => {
       if (amplitudeReadyRef.current) {
         trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, {
@@ -2490,10 +2484,12 @@ const goBy = useCallback((delta) => {
       handlePullToRefresh();
     });
 
+    // 공유 버튼
     const offShare = onShareAttach?.(() => {
       onSystemSharePress();
     });
 
+    // cleanup
     return () => {
       offPrev && offPrev();
       offNext && offNext();
@@ -2501,12 +2497,14 @@ const goBy = useCallback((delta) => {
       offShare && offShare();
     };
   }, [
-    goBy,
     uiLang,
     selectedCountries,
+    rewardPassUntil,
+    goBy,
     handlePullToRefresh,
     onSystemSharePress,
   ]);
+
 
 
 
@@ -2532,12 +2530,12 @@ const goBy = useCallback((delta) => {
           STORAGE_KEY_FONT,
           STORAGE_KEY_FONT_SIZE,
           STORAGE_KEY_FONT_COLOR,
-          // STORAGE_KEY_REWARD_PASS_UNTIL,
+          STORAGE_KEY_REWARD_PASS_UNTIL,
         ]).catch(() => []);
         const dict = Object.fromEntries(pairs || []);
         if (!alive) return;
 
-        // ✅ 언어 결정
+        // 언어 결정
         const storedLangRaw = dict[STORAGE_KEY_UI_LANG] || null;
         let lang;
 
@@ -2939,7 +2937,6 @@ const goBy = useCallback((delta) => {
           poolsByCid,
           chosen,
           isoDate,              // seed
-          isoDate,              // isoDate
           lastPickKeyRef.current,
           seedKey      
         );
@@ -3637,7 +3634,7 @@ const goBy = useCallback((delta) => {
               </Text>
             </View>
           )}
-{/* 
+
           <Modal
   visible={adPromptVisible}
   transparent
@@ -3749,10 +3746,10 @@ const goBy = useCallback((delta) => {
       </View>
     </View>
   </View>
-</Modal> */}
+</Modal> 
 
         </>
       )}
     </SafeAreaView>
   );
-}
+} 
