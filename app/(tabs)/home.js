@@ -2978,6 +2978,13 @@ useEffect(() => {
 
   // 헤더 배너 이미지 로딩/캐시
   useEffect(() => {
+    console.log('🎯 [IMAGE EFFECT] Started', { 
+      onePick: onePick?.length, 
+      uiLang, 
+      hydrated, 
+      isoDate,
+    });
+
     let alive = true;
 
     (async () => {
@@ -2985,51 +2992,56 @@ useEffect(() => {
         const iso = isoDate;
 
         if (!onePick || !onePick.length) {
-          if (hydrated && uiLang) {
-            if (alive) setHeaderImageUrl(null);
-            return;
-          }
+          console.log('❌ [IMAGE] No pick');
           if (alive) setHeaderImageUrl(null);
           return;
         }
 
         const first = onePick[0];
-        const cid = first.cid; 
+        const cid = first.cid;
+        const pickKey = first.key;
+        
+        console.log('🔍 [IMAGE] Checking cache for', { iso, cid, pickKey });
+        
+      
+        const cacheKey = `${BANNER_KEY(iso, cid)}:${pickKey}`;
         
         try {
-          const cachedUrl = await AsyncStorage.getItem(
-            BANNER_KEY(iso, cid)  
-          );
+          const cachedUrl = await AsyncStorage.getItem(cacheKey);
+          console.log('📦 [IMAGE] Cached URL:', cachedUrl);
           if (cachedUrl && alive) {
             setHeaderImageUrl(cachedUrl || null);
-            return; 
+            return;
           }
-        } catch {}
+        } catch (e) {
+          console.log('⚠️ [IMAGE] Cache read error:', e);
+        }
         
-        // 캐시 없으면 새로 계산
-        const url = await computeBannerUrlForPick(
-          first,
-          uiLang
-        );
+        // 새로 계산
+        console.log('🆕 [IMAGE] Computing new URL...');
+        const url = await computeBannerUrlForPick(first, uiLang);
+        console.log('✅ [IMAGE] Computed URL:', url);
 
         if (alive) {
           setHeaderImageUrl(url || null);
           try {
-            await AsyncStorage.setItem(
-              BANNER_KEY(iso, cid), 
-              url || ""
-            );
-          } catch {}
+            await AsyncStorage.setItem(cacheKey, url || "");
+            console.log('💾 [IMAGE] Saved to cache with key:', pickKey);
+          } catch (e) {
+            console.log('⚠️ [IMAGE] Cache save error:', e);
+          }
         }
-      } catch {
+      } catch (e) {
+        console.error('❌ [IMAGE] Error:', e);
         if (alive) setHeaderImageUrl(null);
       }
     })();
 
     return () => {
+      console.log('🧹 [IMAGE EFFECT] Cleanup');
       alive = false;
     };
-  }, [onePick, uiLang, hydrated, isoDate]);
+  }, [onePick, uiLang, hydrated, isoDate]); 
 
   // 자정 워밍
   useEffect(() => {
@@ -3578,6 +3590,7 @@ useEffect(() => {
                             }}
                           >
                             <WikipediaBanner
+                              key={onePick[0]?.key || 'empty'} 
                               imageUrl={headerImageUrl} 
                               maxWidth={CONTENT_W}
                               screenWidth={screenW}
