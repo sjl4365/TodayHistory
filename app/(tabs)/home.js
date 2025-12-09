@@ -25,6 +25,7 @@ import {
   Modal,
   BackHandler,
   ToastAndroid,
+  PanResponder,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -189,6 +190,36 @@ const UI_STR = {
     ja: "画像を読み込み中…",
   },
 };
+
+const AD_MODAL_TEXT = {
+  en: {
+    description:
+      '✅ Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.',
+    badge: 'Free to use',
+  },
+  ko: {
+    description:
+      '✅ 광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.',
+    badge: '무료 이용',
+  },
+  ja: {
+    description:
+      '✅ 広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。',
+    badge: '無料利用',
+  },
+  es: {
+    description:
+      '✅ Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.',
+    badge: 'Gratis',
+  },
+  it: {
+    description:
+      '✅ Guarda un annuncio per usare “Yesterday & Tomorrow History” senza annunci video per le prossime 12 ore.',
+    badge: 'Gratis',
+  },
+};
+
+
 
 const SOURCE_LABEL = { ko: "출처", en: "Source", ja: "出典" };
 const LOCALE_BY_LANG = { ko: "ko", en: "en", ja: "ja" };
@@ -1583,6 +1614,7 @@ function FullBleedCard({
   topInset,
   cardBg,
   customBgColor,
+  panHandlers,  
 }) {
   const BG_MAP = {
     none: "#FFFFFF",
@@ -1596,6 +1628,7 @@ function FullBleedCard({
 
   return (
     <View
+    {...(panHandlers || {})} 
       style={{
         position: "absolute",
         top: topInset,
@@ -1904,12 +1937,15 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
               style={{
                 fontSize: fontSize || 15,
                 color: "#000000ff",
-                textDecorationLine:"underline",
 
               }}
               numberOfLines={1}
             >
-              [{text}]
+                [
+                  <Text style={{ textDecorationLine: "underline" }}>
+                    {text}
+                  </Text>
+                  ]
             </Text>
           </Pressable>
         );
@@ -2226,6 +2262,42 @@ const goBy = useCallback((delta) => {
   });
 }, []);
 
+const handlePrevDay = useCallback(() => {
+  if (amplitudeReadyRef.current)
+    trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
+      language: uiLang,
+      countries: [...selectedCountries],
+    });
+
+  const now = Date.now();
+  if (rewardPassUntil && rewardPassUntil > now) {
+    // 12시간 패스 중이면 광고 없이 이동
+    goBy(-1);
+    return;
+  }
+
+  // 광고 필요 → 모달 띄우고 방향 저장
+  pendingNavRef.current = -1;
+  setAdPromptVisible(true);
+}, [uiLang, selectedCountries, rewardPassUntil, goBy]);
+
+const handleNextDay = useCallback(() => {
+  if (amplitudeReadyRef.current)
+    trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
+      language: uiLang,
+      countries: [...selectedCountries],
+    });
+
+  const now = Date.now();
+  if (rewardPassUntil && rewardPassUntil > now) {
+    goBy(+1);
+    return;
+  }
+
+  pendingNavRef.current = +1;
+  setAdPromptVisible(true);
+}, [uiLang, selectedCountries, rewardPassUntil, goBy]);
+
 useEffect(() => {
   console.log('[AD] setup rewarded listener');
 
@@ -2289,6 +2361,34 @@ useEffect(() => {
     rewardedAd.removeAllListeners();
   };
 }, [goBy]);
+
+
+const panResponder = React.useMemo(
+  () =>
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_evt, gestureState) => {
+        const { dx, dy } = gestureState;
+        // 가로 스와이프만 잡기 (세로 스크롤과 충돌 최소화)
+        return Math.abs(dx) > 15 && Math.abs(dx) > Math.abs(dy);
+      },
+      onPanResponderRelease: (_evt, gestureState) => {
+        const { dx, vx } = gestureState;
+
+        if (Math.abs(dx) < 40 || Math.abs(vx) < 0.1) return;
+
+        if (dx > 0) {
+          // 오른쪽 → 어제
+          handlePrevDay();
+        } else {
+          // 왼쪽 → 내일
+          handleNextDay();
+        }
+      },
+    }),
+  [handlePrevDay, handleNextDay]   // ⭐ 요게 포인트
+);
+
+
 
 
   const handleLinkPress = useCallback((url) => {
@@ -2434,87 +2534,52 @@ useEffect(() => {
     } catch {}
   }, [buildSharePayload]);
 
+const fetchingRef = useRef(false);
+
+const handlePullToRefresh = useCallback(() => {
+  setIsRefreshing(true);
+  setRefreshTick((t) => t + 1);
+}, []);
+
+
   useEffect(() => {
-  const offPrev = onGoPrevDay?.(() => {
-    if (amplitudeReadyRef.current)
-      trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
+  const offPrev = onGoPrevDay?.(handlePrevDay);
+  const offNext = onGoNextDay?.(handleNextDay);
+
+  const offRefresh = onRefresh?.(() => {
+    if (amplitudeReadyRef.current) {
+      trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, {
         language: uiLang,
         countries: [...selectedCountries],
       });
-
-    const now = Date.now();
-    // ✅ 12시간 패스가 아직 유효하면 광고 없이 바로 이동
-    if (rewardPassUntil && rewardPassUntil > now) {
-      goBy(-1);
-      return;
     }
-
-    // 그렇지 않으면 광고 모달
-    pendingNavRef.current = -1;
-    setAdPromptVisible(true);
+    handlePullToRefresh();
   });
 
-  const offNext = onGoNextDay?.(() => {
-    if (amplitudeReadyRef.current)
-      trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
-        language: uiLang,
-        countries: [...selectedCountries],
-      });
-
-    const now = Date.now();
-    if (rewardPassUntil && rewardPassUntil > now) {
-      goBy(+1);
-      return;
-    }
-
-    pendingNavRef.current = +1;
-    setAdPromptVisible(true);
+  const offShare = onShareAttach?.(() => {
+    onSystemSharePress();
   });
 
-   
-    
-    // 새로고침 버튼
-    const offRefresh = onRefresh?.(() => {
-      if (amplitudeReadyRef.current) {
-        trackEvent(AMPLITUDE_EVENTS.REFRESH_CLICKED, {
-          language: uiLang,
-          countries: [...selectedCountries],
-        });
-      }
-      handlePullToRefresh();
-    });
-
-    // 공유 버튼
-    const offShare = onShareAttach?.(() => {
-      onSystemSharePress();
-    });
-
-    // cleanup
-    return () => {
-      offPrev && offPrev();
-      offNext && offNext();
-      offRefresh && offRefresh();
-      offShare && offShare();
-    };
-  }, [
-    uiLang,
-    selectedCountries,
-    rewardPassUntil,
-    goBy,
-    handlePullToRefresh,
-    onSystemSharePress,
-  ]);
+  return () => {
+    offPrev && offPrev();
+    offNext && offNext();
+    offRefresh && offRefresh();
+    offShare && offShare();
+  };
+}, [
+  uiLang,
+  selectedCountries,
+  handlePrevDay,
+  handleNextDay,
+  handlePullToRefresh,
+  onSystemSharePress,
+]);
 
 
 
 
-  const fetchingRef = useRef(false);
 
-  const handlePullToRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    setRefreshTick((t) => t + 1);
-  }, []);
-
+ 
    // 초기 설정/복원
   useEffect(() => {
     let alive = true;
@@ -2534,6 +2599,16 @@ useEffect(() => {
         ]).catch(() => []);
         const dict = Object.fromEntries(pairs || []);
         if (!alive) return;
+
+         if (dict[STORAGE_KEY_REWARD_PASS_UNTIL]) {
+        const ts = parseInt(
+          dict[STORAGE_KEY_REWARD_PASS_UNTIL],
+          10
+        );
+        if (!Number.isNaN(ts) && ts > 0) {
+          setRewardPassUntil(ts);
+        }
+      }
 
         // 언어 결정
         const storedLangRaw = dict[STORAGE_KEY_UI_LANG] || null;
@@ -3360,6 +3435,9 @@ useEffect(() => {
     BOTTOM_PX;
   const CONTENT_W = 340;
 
+  const modalLang = AD_MODAL_TEXT[uiLang] ? uiLang : 'en';
+  const tModal = AD_MODAL_TEXT[modalLang];
+  
   return (
     <SafeAreaView
       style={{
@@ -3423,6 +3501,7 @@ useEffect(() => {
             topInset={HEADER_H - 60}
             cardBg={cardBg}
             customBgColor={customBgColor}
+            panHandlers={panResponder.panHandlers} 
           >
             <ScrollView
               style={{ flex: 1 }}
@@ -3676,21 +3755,22 @@ useEffect(() => {
     >
       <Text
         style={{
-          fontSize: 16,
-          fontWeight: "700",
-          marginBottom: 8,
+          fontSize: 12,
+          fontWeight: "600",
+          color: "#10B981",
+          marginBottom: 4,
         }}
       >
-        광고 시청 후 이용 가능
+        {tModal.badge}
       </Text>
       <Text
         style={{
           fontSize: 14,
           color: "#4b5563",
+          
         }}
       >
-        어제 / 내일의 역사는{"\n"}
-        광고를 한 편 시청하신 후에 볼 수 있어요.
+         {tModal.description}
       </Text>
 
       <View
