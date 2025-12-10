@@ -30,20 +30,23 @@
         "backgroundColor": "#ffffff"
         
       },
-      
       "splash": {
-        "image": "./assets/splash.png",
+        "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#111827"
-      },      
-      "notification": {
-        "icon": "./assets/Histree_icon.png"
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android_icon.png",
+          "color": "#8B5CF6" 
+        }
+      ],
       [
         "react-native-google-mobile-ads",
         {
