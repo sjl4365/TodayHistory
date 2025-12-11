@@ -1,33 +1,11 @@
 param(
     [string]$CsvRoot = ".",
-    [string]$OutRoot = ".\assets\seed"
+    [string]$OutRoot = "..\assets\seed"
 )
 
-# 🔍 특정 패턴이 들어간 컬럼 값 가져오기 (앞뒤 공백 정리)
-function Get-ColumnValue {
-    param(
-        [pscustomobject]$row,
-        [string]$pattern
-    )
-
-    $prop = $row.PSObject.Properties |
-        ForEach-Object {
-            [pscustomobject]@{
-                Name  = $_.Name.Trim()
-                Value = $_.Value
-            }
-        } |
-        Where-Object { $_.Name -like "*$pattern*" } |
-        Select-Object -First 1
-
-    if ($prop) {
-        return $prop.Value
-    }
-
-    return $null
-}
-
-# 앵커 배열 만드는 함수
+# ================================
+#  공통: 앵커 배열 만드는 함수
+# ================================
 function New-Anchors {
     param(
         [string]$Text1, [string]$Url1,
@@ -53,15 +31,17 @@ function New-Anchors {
     return $anchors
 }
 
-# CSV 한 줄을 HistoryItem 객체로 변환
+# ================================
+#  한 줄(row)을 HistoryItem 으로 변환
+# ================================
 function Convert-RowToHistoryItem {
     param(
         [pscustomobject]$row
     )
 
-    $item = [ordered]@{}
+    $item  = [ordered]@{}
 
-    # year
+    # ===== year =====
     if ($row.Year) {
         $yearInt = 0
         if ([int]::TryParse($row.Year, [ref]$yearInt)) {
@@ -71,93 +51,131 @@ function Convert-RowToHistoryItem {
         }
     }
 
-    # 영어 본문
+    # ===== English 본문 =====
     if ($row.English) {
         $item.en = $row.English
     }
 
-    # ⚠️ 본문 컬럼만 추려서 ko / ja 매핑
-    $descProps = $row.PSObject.Properties |
-        Where-Object {
-            $_.Name -ne 'Date' -and
-            $_.Name -ne 'Year' -and
-            $_.Name -ne 'English' -and
-            ($_.Name -notlike 'Anchor_text*') -and
-            ($_.Name -notlike 'URL*')
+    # ===== 컬럼 순서 유지를 위해 props 배열로 받기 =====
+    $props = @($row.PSObject.Properties)
+
+    function Get-BodyBeforeAnchor {
+        param([string]$anchorName)
+
+        for ($i = 0; $i -lt $props.Count; $i++) {
+            if ($props[$i].Name -eq $anchorName) {
+                if ($i -gt 0) {
+                    return $props[$i - 1].Value
+                }
+            }
         }
-
-    $descProps = @($descProps)
-
-    if ($descProps.Count -ge 1 -and $descProps[0].Value) {
-        $item.ko = $descProps[0].Value
-    }
-    if ($descProps.Count -ge 2 -and $descProps[1].Value) {
-        $item.ja = $descProps[1].Value
+        return $null
     }
 
-    # 영어 앵커
-    $enAnchors = New-Anchors `
-        $row.Anchor_text1_english $row.URL1_english `
-        $row.Anchor_text2_english $row.URL2_english
-    if ($enAnchors.Count -gt 0) {
-        $item.enAnchors = $enAnchors
+    # ===== 각 언어 본문: Anchor_text1_* 바로 왼쪽 컬럼을 본문으로 사용 =====
+    $koBody = Get-BodyBeforeAnchor -anchorName 'Anchor_text1_korean'
+    if ($koBody) { $item.ko = $koBody }
+
+    $jaBody = Get-BodyBeforeAnchor -anchorName 'Anchor_text1_japanese'
+    if ($jaBody) { $item.ja = $jaBody }
+
+    $scBody = Get-BodyBeforeAnchor -anchorName 'Anchor_text1_sc'
+    if ($scBody) { $item.sc = $scBody }
+
+    $tcBody = Get-BodyBeforeAnchor -anchorName 'Anchor_text1_tc'
+    if ($tcBody) { $item.tc = $tcBody }
+
+    $esBody = Get-BodyBeforeAnchor -anchorName 'Anchor_text1_es'
+    if ($esBody) { $item.es = $esBody }
+
+    $frBody = Get-BodyBeforeAnchor -anchorName 'Anchor_text1_fr'
+    if ($frBody) { $item.fr = $frBody }
+
+    # ===== 앵커: 컬럼 이름을 직접 써서 가져오기 =====
+    function Get-LangAnchors {
+        param([string]$suffix)
+
+        $a1Name = "Anchor_text1_$suffix"
+        $u1Name = "URL1_$suffix"
+        $a2Name = "Anchor_text2_$suffix"
+        $u2Name = "URL2_$suffix"
+
+        $text1 = $row.$a1Name
+        $url1  = $row.$u1Name
+        $text2 = $row.$a2Name
+        $url2  = $row.$u2Name
+
+        return (New-Anchors -Text1 $text1 -Url1 $url1 -Text2 $text2 -Url2 $url2)
     }
 
-    # 한국어 앵커
-    $koAnchors = New-Anchors `
-        $row.Anchor_text1_korean $row.URL1_korean `
-        $row.Anchor_text2_korean $row.URL2_korean
-    if ($koAnchors.Count -gt 0) {
-        $item.koAnchors = $koAnchors
-    }
+    # en
+    $enAnchors = Get-LangAnchors -suffix 'english'
+    if ($enAnchors.Count -gt 0) { $item.enAnchors = $enAnchors }
 
-    # 일본어 앵커
-    $jaAnchors = New-Anchors `
-        $row.Anchor_text1_japanese $row.URL1_japanese `
-        $row.Anchor_text2_japanese $row.URL2_japanese
-    if ($jaAnchors.Count -gt 0) {
-        $item.jaAnchors = $jaAnchors
-    }
+    # ko
+    $koAnchors = Get-LangAnchors -suffix 'korean'
+    if ($koAnchors.Count -gt 0) { $item.koAnchors = $koAnchors }
+
+    # ja
+    $jaAnchors = Get-LangAnchors -suffix 'japanese'
+    if ($jaAnchors.Count -gt 0) { $item.jaAnchors = $jaAnchors }
+
+    # sc
+    $scAnchors = Get-LangAnchors -suffix 'sc'
+    if ($scAnchors.Count -gt 0) { $item.scAnchors = $scAnchors }
+
+    # tc
+    $tcAnchors = Get-LangAnchors -suffix 'tc'
+    if ($tcAnchors.Count -gt 0) { $item.tcAnchors = $tcAnchors }
+
+    # es
+    $esAnchors = Get-LangAnchors -suffix 'es'
+    if ($esAnchors.Count -gt 0) { $item.esAnchors = $esAnchors }
+
+    # fr
+    $frAnchors = Get-LangAnchors -suffix 'fr'
+    if ($frAnchors.Count -gt 0) { $item.frAnchors = $frAnchors }
 
     return $item
 }
 
-# 파일 이름을 보고 출력 JSON 파일 이름 결정
+
+# ================================
+#  출력 JSON 이름 결정
+# ================================
 function Get-OutputNameFromCsv {
     param(
         [string]$CsvName  # e.g. "Today Data - Korea Q1.csv"
     )
 
-    # 확장자 제거
     $base = [System.IO.Path]::GetFileNameWithoutExtension($CsvName)
 
-    # "Today Data - " 제거
     if ($base -like "Today Data -*") {
         $base = $base.Replace("Today Data - ", "").Trim()
     }
 
-    # 예: "Korea Q1", "Japan Q3", "world 01"
     $parts = $base.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)
 
     if ($parts.Count -eq 2) {
-        $region = $parts[0].ToLower()   # korea, japan, world
-        $suffix = $parts[1]             # Q1, Q2, 01, 02 ...
+        $region = $parts[0].ToLower()   # korea, japan, world, china ...
+        $suffix = $parts[1]             # Q1, Q2, All, 01, 02 ...
         return "$region-$suffix.json"
     } else {
         return ($base.ToLower().Replace(" ", "") + ".json")
     }
 }
 
-# 메인 로직 시작
-Write-Host "CSV root: $CsvRoot"
-Write-Host "Output root: $OutRoot"
+# ================================
+#  메인 로직
+# ================================
+Write-Host "CSV root : $CsvRoot"
+Write-Host "Out root : $OutRoot"
 
 if (-not (Test-Path $OutRoot)) {
     Write-Host "Output directory not found. Creating: $OutRoot"
     New-Item -ItemType Directory -Path $OutRoot | Out-Null
 }
 
-# 폴더 내 모든 "Today Data - *.csv" 파일 처리
 $csvFiles = Get-ChildItem -Path $CsvRoot -Filter "Today Data - *.csv" -File
 
 if ($csvFiles.Count -eq 0) {
@@ -165,39 +183,45 @@ if ($csvFiles.Count -eq 0) {
 }
 
 foreach ($file in $csvFiles) {
+    Write-Host ""
+    Write-Host "==============================="
     Write-Host "Processing CSV: $($file.Name)"
+    Write-Host "==============================="
 
-    # CSV 로드 (UTF-8)
     $rows = Import-Csv -Path $file.FullName -Encoding UTF8
 
-    # 🔍 디버그: 첫 줄의 컬럼 이름/샘플 값 확인
-    if ($rows.Count -gt 0) {
-        Write-Host "  Columns and sample values:"
-        $first = $rows[0]
-        $first.PSObject.Properties | ForEach-Object {
-            $name = $_.Name
-            $val  = $_.Value
-            $sample = ""
-            if ($val -ne $null) {
-                $s = $val.ToString()
-                if ($s.Length -gt 30) {
-                    $sample = $s.Substring(0, 30) + "..."
-                } else {
-                    $sample = $s
-                }
-            }
-            Write-Host "    [$name] = '$sample'"
-        }
+    if ($rows.Count -eq 0) {
+        Write-Warning "  -> No rows in CSV, skipping."
+        continue
     }
 
-    # days 오브젝트 (DMMDD -> 배열)
+    # Date 컬럼에 값이 하나라도 있는지 확인
+    $hasNonEmptyDate = $rows |
+        Where-Object { $_.Date -and $_.Date.Trim() -ne "" } |
+        Select-Object -First 1
+
+    if ($hasNonEmptyDate) {
+        Write-Host "  -> Detected non-empty Date column. Using Date -> DMMDD keys."
+    } else {
+        Write-Host "  -> Date column empty. Using single bucket key 'D0000'."
+    }
+
     $days = @{}
+    $rowIndex = 0
 
     foreach ($row in $rows) {
-        if (-not $row.Date) { continue }
+        $rowIndex++
 
-        # "1201" -> "D1201"
-        $dateKey = "D" + $row.Date.PadLeft(4, '0')
+        # 날짜 키 결정
+        if ($hasNonEmptyDate) {
+            if (-not $row.Date -or $row.Date.Trim() -eq "") {
+                continue
+            }
+            $dateKey = "D" + $row.Date.Trim().PadLeft(4, '0')
+        } else {
+            # 중국 All 처럼 Date가 비어 있는 경우: 전부 D0000
+            $dateKey = "D0000"
+        }
 
         if (-not $days.ContainsKey($dateKey)) {
             $days[$dateKey] = @()
@@ -214,7 +238,9 @@ foreach ($file in $csvFiles) {
     $outName = Get-OutputNameFromCsv -CsvName $file.Name
     $outPath = Join-Path $OutRoot $outName
 
-    Write-Host " -> Writing JSON: $outPath"
+    Write-Host "  -> Writing JSON: $outPath"
+    Write-Host "  -> Days count : $($days.Keys.Count)"
+    Write-Host "  -> Total rows : $rowIndex"
 
     try {
         ConvertTo-Json $bucket -Depth 10 |
@@ -225,4 +251,5 @@ foreach ($file in $csvFiles) {
     }
 }
 
+Write-Host ""
 Write-Host "Done."
