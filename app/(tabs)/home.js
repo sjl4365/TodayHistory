@@ -95,6 +95,7 @@ const STORAGE_KEY_FONT = "@app_font";
 const STORAGE_KEY_FONT_SIZE = "@app_font_size";
 const STORAGE_KEY_FONT_COLOR = "@app_font_color";
 const STORAGE_KEY_BG_COLOR = "@app_bg_color";
+const STORAGE_KEY_BG_IMAGE = "@app_bg_image";
 const STORAGE_KEY_NOTIFY_ENABLED = "@notify_enabled";
 const STORAGE_KEY_NOTIFY_TIME = "@notify_time";
 const STORAGE_KEY_CARD_BG = "@card_bg"; // "bg1" | "bg2" | "bg3" | "none"
@@ -1304,7 +1305,12 @@ function SegmentedCountrySelector({
 // WebView Modal Component
 function WebViewModal({ visible, url, onClose }) {
   const { scale } = useUIScale();
-  
+  const [showAd,setShowAd] =useState(true);
+  useEffect(() => {
+    if (visible && url) {
+      setShowAd(true);
+    }
+  }, [visible, url]);
   if (!visible || !url) return null;
 
   return (
@@ -1327,14 +1333,46 @@ function WebViewModal({ visible, url, onClose }) {
             backgroundColor: "#FFFFFF",
           }}
         >
-          <BannerAd
-            unitId={TestIds.BANNER}
-            size={BannerAdSize.BANNER}
-            requestOptions={{
+          <View style={{ position: 'relative' }}>
+            <BannerAd
+              unitId={TestIds.BANNER}
+              size={BannerAdSize.BANNER}
+              requestOptions={{
               requestNonPersonalizedAdsOnly: true,
-            }}
-          />
+              }}
+            />
+            <Pressable
+              onPress={onClose}
+              hitSlop={10}
+              style={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              padding: 8,
+              borderRadius: 8,
+              backgroundColor: "rgba(243, 244, 246, 0.9)", // Semi-transparent background
+              zIndex: 10,
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
+                ✕
+              </Text>
+            </Pressable>
+          </View>
+
           <Text
+            style={{
+              fontSize: 14,
+              fontWeight: "600",
+              flex: 1,
+              color: "#111827",
+            marginTop: 8,
+            }}
+          numberOfLines={1}
+          >
+            {url}
+          </Text>
+          {/* <Text
             style={{
               fontSize: 14,
               fontWeight: "600",
@@ -1344,8 +1382,8 @@ function WebViewModal({ visible, url, onClose }) {
             numberOfLines={1}
           >
             {url}
-          </Text>
-          <Pressable
+          </Text> */}
+          {/* <Pressable
             onPress={onClose}
             hitSlop={10}
             style={{
@@ -1358,7 +1396,7 @@ function WebViewModal({ visible, url, onClose }) {
             <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
               ✕
             </Text>
-          </Pressable>
+          </Pressable> */}
         </View>
 
         <WebView
@@ -1382,6 +1420,44 @@ function WebViewModal({ visible, url, onClose }) {
             </View>
           )}
         />
+
+        {showAd &&
+          (<View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: "#E5E7EB",
+              backgroundColor: "#FFFFFF",
+              alignItems: "center",
+              paddingVertical: 8,
+              position: "relative",
+            }}
+            >
+            {/* <BannerAd
+              unitId={TestIds.BANNER}
+              size={BannerAdSize.BANNER}
+              requestOptions={{
+                requestNonPersonalizedAdsOnly: true,
+              }}
+            /> */}
+            <Pressable
+              onPress={() => setShowAd(false)}
+              hitSlop={10}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                padding: 6,
+                borderRadius: 6,
+                backgroundColor: "rgba(0, 0, 0, 0.6)",
+                zIndex: 10,
+              }}
+            >
+              <Text style={{ fontSize: 14, fontWeight: "700", color: "#FFFFFF" }}>
+                ✕
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </SafeAreaView>
     </Modal>
   );
@@ -1670,7 +1746,8 @@ function FullBleedCard({
   topInset,
   cardBg,
   customBgColor,
-  panHandlers,  
+  panHandlers,
+  customBgImage,
 }) {
   const BG_MAP = {
     none: "#FFFFFF",
@@ -1691,13 +1768,24 @@ function FullBleedCard({
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: bgColor,
+        backgroundColor: customBgImage ? 'transparent' : bgColor,
         borderTopLeftRadius: 24,
         borderTopRightRadius: 24,
         overflow: "hidden",
         zIndex: 1,
       }}
     >
+      {customBgImage && (
+        <RNImage
+          source={{ uri: customBgImage }}
+          style={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+          }}
+          resizeMode="cover"
+        />
+      )}
       {children}
     </View>
   );
@@ -2252,6 +2340,7 @@ export default function Home() {
   const [notifyTime, setNotifyTime] = useState("09:00");
   const [cardBg, setCardBg] = useState("none");
   const [customBgColor, setCustomBgColor] = useState(null);
+  const [customBgImage, setCustomBgImage] = useState(null);
 
   const [customFont, setCustomFont] = useState("System");
   const [customFontSize, setCustomFontSize] = useState(18);
@@ -2666,6 +2755,7 @@ const handlePullToRefresh = useCallback(() => {
           STORAGE_KEY_NOTIFY_TIME,
           STORAGE_KEY_CARD_BG,
           STORAGE_KEY_BG_COLOR,
+          STORAGE_KEY_BG_IMAGE,
           STORAGE_KEY_FONT,
           STORAGE_KEY_FONT_SIZE,
           STORAGE_KEY_FONT_COLOR,
@@ -2744,6 +2834,9 @@ const handlePullToRefresh = useCallback(() => {
         setCustomBgColor(
           isValidColorString(rawBg) ? rawBg : null
         );
+        if (dict[STORAGE_KEY_BG_IMAGE]) {
+          setCustomBgImage(dict[STORAGE_KEY_BG_IMAGE]);
+        }
 
         if (dict[STORAGE_KEY_FONT]) {
           setCustomFont(dict[STORAGE_KEY_FONT]);
@@ -2787,6 +2880,7 @@ const handlePullToRefresh = useCallback(() => {
             STORAGE_KEY_SELECTED,
             STORAGE_KEY_CARD_BG,
             STORAGE_KEY_BG_COLOR,
+            STORAGE_KEY_BG_IMAGE,
             STORAGE_KEY_FONT,
             STORAGE_KEY_FONT_SIZE,
             STORAGE_KEY_FONT_COLOR,
@@ -2801,6 +2895,12 @@ const handlePullToRefresh = useCallback(() => {
           const storedLang = storedLangRaw
             ? normalizeUiLang(storedLangRaw, null)
             : null;
+
+          if (dict[STORAGE_KEY_BG_IMAGE]) {
+            setCustomBgImage(dict[STORAGE_KEY_BG_IMAGE]);
+          } else {
+            setCustomBgImage(null);
+          }
 
           let nextLang = uiLang || deviceLang;
           if (storedLang) {
@@ -3575,6 +3675,7 @@ const ordered = getCountryOrderByUiLang(uiLang || "en");
             topInset={HEADER_H - 60}
             cardBg={cardBg}
             customBgColor={customBgColor}
+            customBgImage={customBgImage}
             panHandlers={panResponder.panHandlers} 
           >
             <ScrollView
