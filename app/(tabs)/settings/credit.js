@@ -56,7 +56,7 @@ export default function CreditScreen() {
 
             <View style={styles.creditRow}>
               <Text style={styles.roleLabel}>QA Testers</Text>
-              <Text style={styles.nameValue}>YC</Text>
+              <Text style={styles.nameValue}>YC, SJ</Text>
             </View>
 
             <View style={styles.creditRow}>
