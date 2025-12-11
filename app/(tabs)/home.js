@@ -130,6 +130,11 @@ const COUNTRY_CFG = {
     label: { ko: "세계", en: "World", ja: "世界" },
     lang: "en",
   },
+  china: {
+    id: "china",
+    label: { ko: "중국", en: "China", ja: "中国" },
+    lang: "sc",
+  },
 };
 
 const DEFAULT_COUNTRIES_BY_LANG = {
@@ -180,6 +185,11 @@ const UI_STR = {
       next: "明日の歴史",
     },
   },
+   yearTitle: {
+    ko: "연도별 역사",
+    en: "Year in History",
+    ja: "年の歴史",
+  },
   empty: {
     ko: "표시할 항목이 없습니다.",
     en: "No items to display.",
@@ -195,28 +205,28 @@ const UI_STR = {
 const AD_MODAL_TEXT = {
   en: {
     description:
-      '✅ Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.',
-    badge: 'Free to use',
+      'Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.',
+    badge: ' ✅ Free to use',
   },
   ko: {
     description:
-      '✅ 광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.',
-    badge: '무료 이용',
+      '광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.',
+    badge: '✅ 무료 이용',
   },
   ja: {
     description:
-      '✅ 広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。',
-    badge: '無料利用',
+      '広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。',
+    badge: '✅ 無料利用',
   },
   es: {
     description:
-      '✅ Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.',
-    badge: 'Gratis',
+      'Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.',
+    badge: '✅ Gratis',
   },
   it: {
     description:
-      '✅ Guarda un annuncio per usare “Yesterday & Tomorrow History” senza annunci video per le prossime 12 ore.',
-    badge: 'Gratis',
+      'Guarda un annuncio per usare “Yesterday & Tomorrow History” senza annunci video per le prossime 12 ore.',
+    badge: '✅ Gratis',
   },
 };
 
@@ -229,12 +239,14 @@ const NATIVE_COL_BY_COUNTRY = {
   korea: "한국어",
   japan: "日本語",
   world: "English",
+  china: "중국어", 
 };
 
 const LABEL_BY_ID = {
   world: COUNTRY_CFG.world.label,
   korea: COUNTRY_CFG.korea.label,
   japan: COUNTRY_CFG.japan.label,
+  china: COUNTRY_CFG.china.label,
 };
 
 const FLAG_ICON = {
@@ -961,12 +973,37 @@ async function pickOneWithSeenRotation(
 }
 
 
-function getHistoryTitle(uiLang, deltaDay) {
-  const t = UI_STR.title[uiLang] || UI_STR.title.en;
-  if (deltaDay < 0) return t.prev;
-  if (deltaDay > 0) return t.next;
-  return t.today;
+// function getHistoryTitle(uiLang, deltaDay) {
+//   const t = UI_STR.title[uiLang] || UI_STR.title.en;
+//   if (deltaDay < 0) return t.prev;
+//   if (deltaDay > 0) return t.next;
+//   return t.today;
+// }
+
+function getOnlyCountryId(selectedSet) {
+  if (!selectedSet || !selectedSet.size) return null;
+  const arr = [...selectedSet];
+  return arr[0] || null;
 }
+
+function getHistoryTitle(uiLang, deltaDay, selectedCountries) {
+  const lang = uiLang || "en";
+  const t = UI_STR.title[lang] || UI_STR.title.en;
+  const yearT = UI_STR.yearTitle?.[lang] || UI_STR.yearTitle.en;
+
+  const cid = getOnlyCountryId(selectedCountries);
+
+  // 세계만 어제/오늘/내일 유지
+  if (cid === "world") {
+    if (deltaDay < 0) return t.prev;
+    if (deltaDay > 0) return t.next;
+    return t.today;
+  }
+
+  // 한국/중국/일본은 항상 Year in History
+  return yearT;
+}
+
 
 function ensureNonEmptySelection(inputSet, uiLang) {
   let s = new Set(inputSet || []);
@@ -976,8 +1013,11 @@ function ensureNonEmptySelection(inputSet, uiLang) {
         DEFAULT_COUNTRIES_BY_LANG.default
     );
   }
-  const allow = new Set(["world", "korea", "japan"]);
+
+  // china 허용
+  const allow = new Set(["world", "korea", "japan", "china"]);
   for (const id of [...s]) if (!allow.has(id)) s.delete(id);
+
   if (s.size === 0) {
     s.add(
       (DEFAULT_COUNTRIES_BY_LANG[uiLang] ||
@@ -986,6 +1026,7 @@ function ensureNonEmptySelection(inputSet, uiLang) {
   }
   return s;
 }
+
 
 // 이미지로드
 const RENDERABLE_EXT_RE = /\.(jpg|jpeg|png|webp)(\?.*)?$/i;
@@ -1088,7 +1129,28 @@ function useUIScale() {
   return { scale, screenW: width };
 }
 
-const FIXED_ORDER = ["world", "korea", "japan"];
+//const FIXED_ORDER = ["world", "korea", "japan"];
+function getCountryOrderByUiLang(uiLang) {
+  const base = String(uiLang || "en").split(/[-_]/)[0];
+
+  // 영어 / 한국어 UI
+  if (base === "en" || base === "ko") {
+    return ["world", "korea", "china", "japan"];
+  }
+
+  // 일본어 UI
+  if (base === "ja") {
+    return ["world", "japan", "korea", "china"];
+  }
+
+  // 중국어 UI (기본 코드 zh 가정)
+  if (base === "zh") {
+    return ["world", "china", "korea", "japan"];
+  }
+
+  // 그 외: 기본은 영어와 동일
+  return ["world", "korea", "china", "japan"];
+}
 
 // 색상 유효성 검사
 function isValidColorString(s) {
@@ -1110,29 +1172,26 @@ function isValidColorString(s) {
 function SegmentedCountrySelector({
   uiLang,
   ordered,
-  value,
+  value,        // Set<string>
   onChange,
-  fixedHeight = 39, 
+  fixedHeight = 39,
 }) {
   const { scale } = useUIScale();
 
   const W = scale(323);          // 전체 폭
   const H = fixedHeight || 39;   // 전체 높이
-  const CONTAINER_RADIUS = 80;   // Corner radius: 80
-  const BTN_H = 37;              // 선택된 나라 버튼 높이: 37
+  const CONTAINER_RADIUS = 80;
+  const BTN_H = 37;
   const ICON = Math.max(14, Math.min(22, scale(16)));
 
-  const BTN_W = (W - 32 * 2 - 8 * 2) / 3; // padding 32 + gap 8 * 2 기준
+  // 지금 선택된 나라 (단일 선택 전제)
+  const selectedId =
+    value && value.size ? [...value][0] : null;
 
-  const toggle = (id) => {
-    const next = new Set(value);
-    if (next.has(id)) {
-      // 최소 1개는 항상 선택
-      if (next.size === 1) return;
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
+  // ✅ 단일 선택: 누르면 해당 나라만 선택
+  const handlePress = (id) => {
+    if (selectedId === id) return;     // 같은 거면 무시
+    const next = new Set([id]);        // 항상 1개만
     onChange(next);
   };
 
@@ -1143,15 +1202,9 @@ function SegmentedCountrySelector({
         height: H,
         borderRadius: CONTAINER_RADIUS,
         overflow: "hidden",
-
-        // Fill: #FFFFFF 60%
         backgroundColor: "rgba(255,255,255,0.6)",
-
-        // Stroke: #FFFFFF 50%
         borderWidth: 1,
         borderColor: "rgba(255,255,255,0.5)",
-
-        // Drop shadow (0, 4, blur 4, 25%)
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
@@ -1159,7 +1212,7 @@ function SegmentedCountrySelector({
         elevation: 4,
       }}
     >
-      {/* Background blur: 15 */}
+      {/* Background blur */}
       <BlurView
         intensity={15}
         tint="light"
@@ -1171,14 +1224,11 @@ function SegmentedCountrySelector({
           flex: 1,
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          paddingHorizontal: 32,
-          // 위아래 살짝 여유
-          paddingVertical: (H - BTN_H) / 2,
+          paddingHorizontal: 16, // 패딩 줄여서 4개 다 들어오게
         }}
       >
-        {ordered.map((id) => {
-          const active = value.has(id);
+        {ordered.map((id, idx) => {
+          const active = selectedId === id;
           const iconId = id;
           const label =
             LABEL_BY_ID[id]?.[uiLang] ||
@@ -1188,19 +1238,20 @@ function SegmentedCountrySelector({
           return (
             <Pressable
               key={id}
-              onPress={() => toggle(id)}
+              onPress={() => handlePress(id)}   // ✅ 여기!
               hitSlop={6}
               style={[
                 {
-                  width: BTN_W,
+                  flex: 1,                    // 4개 균등 분배
                   height: BTN_H,
-                  borderRadius: 100, // Corner radius: 100
-                  alignItems: "center",
+                  borderRadius: 100,
                   justifyContent: "center",
+                  alignItems: "flex-start",   // ✅ 왼쪽 정렬
+                  paddingHorizontal: 10,
+                  marginLeft: idx === 0 ? 0 : 6,
                   backgroundColor: active ? "#FFFFFF" : "transparent",
                 },
                 active && {
-                  // Shadow / Elevation: Level 3
                   shadowColor: "#000",
                   shadowOffset: { width: 0, height: 1 },
                   shadowRadius: 3,
@@ -1213,6 +1264,7 @@ function SegmentedCountrySelector({
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
+                  justifyContent: "flex-start",  // 왼쪽 정렬
                 }}
               >
                 {!!iconId && !!FLAG_ICON[iconId] && (
@@ -1232,7 +1284,9 @@ function SegmentedCountrySelector({
                     fontWeight: "700",
                     fontSize: scale(13),
                     color: "#000000",
+                    textAlign: "left",
                   }}
+                  numberOfLines={1}
                 >
                   {label}
                 </Text>
@@ -1244,6 +1298,8 @@ function SegmentedCountrySelector({
     </View>
   );
 }
+
+
 
 
 // WebView Modal Component
@@ -2267,6 +2323,10 @@ export default function Home() {
 
   const [selectedCountries, setSelectedCountries] =
     useState(new Set());
+  const hasWorldSelected = useMemo(
+  () => selectedCountries.has("world"),
+  [selectedCountries]
+);
   const [onePick, setOnePick] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
@@ -2342,16 +2402,27 @@ export default function Home() {
 
 
 // goBy를 먼저 선언
-const goBy = useCallback((delta) => {
-  const step = delta < 0 ? -1 : delta > 0 ? 1 : 0;
-  if (!step) return;
-  setDayOffset((prev) => {
-    const next = Math.max(-1, Math.min(1, prev + step));
-    return next;
-  });
-}, []);
+const goBy = useCallback(
+  (delta) => {
+    const step = delta < 0 ? -1 : delta > 0 ? 1 : 0;
+    if (!step) return;
+
+    // ✅ 세계가 선택되지 않았으면 어제/내일 이동 막기
+    if (!hasWorldSelected) {
+      return;
+    }
+
+    setDayOffset((prev) => {
+      const next = Math.max(-1, Math.min(1, prev + step));
+      return next;
+    });
+  },
+  [hasWorldSelected]
+);
 
 const handlePrevDay = useCallback(() => {
+    if (!hasWorldSelected) return;
+
   if (amplitudeReadyRef.current)
     trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
       language: uiLang,
@@ -2371,6 +2442,8 @@ const handlePrevDay = useCallback(() => {
 }, [uiLang, selectedCountries, rewardPassUntil, goBy]);
 
 const handleNextDay = useCallback(() => {
+    if (!hasWorldSelected) return;
+
   if (amplitudeReadyRef.current)
     trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
       language: uiLang,
@@ -2518,7 +2591,8 @@ const panResponder = React.useMemo(
 
   const appName =
     APP_NAME_BY_LANG[lang] || APP_NAME_BY_LANG.en;
-  const historyTitle = getHistoryTitle(lang, dayOffset); // 오늘/어제/내일 제목 사용
+const historyTitle = getHistoryTitle(lang, dayOffset, selectedCountries);
+// 오늘/어제/내일 제목 사용
 
   // 최상단 헤더: 예) "Histree: 오늘의 역사"
   const header = `${appName}: ${historyTitle}`;
@@ -3503,7 +3577,7 @@ const handlePullToRefresh = useCallback(() => {
     ? [onePick]
     : [];
 
-  const ordered = FIXED_ORDER;
+const ordered = getCountryOrderByUiLang(uiLang || "en");
 
   const heroBgSource = useMemo(() => {
     const count = selectedCountries.size;
@@ -3640,7 +3714,8 @@ const handlePullToRefresh = useCallback(() => {
                   >
                     {getHistoryTitle(
                       uiLang || "en",
-                      dayOffset   
+                      dayOffset,
+                      selectedCountries   
                     )}
                   </Text>
                   <Text
@@ -3828,7 +3903,7 @@ const handlePullToRefresh = useCallback(() => {
             </View>
           )}
 
-          <Modal
+   <Modal
   visible={adPromptVisible}
   transparent
   animationType="fade"
@@ -3854,26 +3929,59 @@ const handlePullToRefresh = useCallback(() => {
         backgroundColor: "#FFFFFF",
       }}
     >
-      <Text
+      {/* 🔹 상단 X 버튼 + 뱃지 */}
+      <View
         style={{
-          fontSize: 12,
-          fontWeight: "600",
-          color: "#10B981",
-          marginBottom: 4,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 8,
         }}
       >
-        {tModal.badge}
-      </Text>
+        <Text
+          style={{
+            fontSize: 12,
+            fontWeight: "600",
+            color: "#10B981",
+          }}
+        >
+          {tModal.badge}
+        </Text>
+
+        <Pressable
+          onPress={() => {
+            setAdPromptVisible(false);
+            pendingNavRef.current = null;
+          }}
+          hitSlop={8}
+          style={{
+            paddingHorizontal: 4,
+            paddingVertical: 2,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 18,
+              fontWeight: "700",
+              color: "#9CA3AF",
+            }}
+          >
+            ✕
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* 설명 텍스트 */}
       <Text
         style={{
           fontSize: 14,
           color: "#4b5563",
-          
         }}
       >
-         {tModal.description}
+        {tModal.description}
       </Text>
 
+      {/* 하단 버튼 영역 */}
       <View
         style={{
           flexDirection: "row",
@@ -3882,6 +3990,7 @@ const handlePullToRefresh = useCallback(() => {
           gap: 12,
         }}
       >
+        {/* 취소 버튼 (텍스트 넣어서 살리거나 지워도 됨) */}
         <Pressable
           onPress={() => {
             setAdPromptVisible(false);
@@ -3892,31 +4001,23 @@ const handlePullToRefresh = useCallback(() => {
             paddingVertical: 6,
           }}
         >
-          <Text
-            style={{
-              fontSize: 14,
-              color: "#6b7280",
-            }}
-          >
-            나중에
-          </Text>
         </Pressable>
 
+        {/* 광고 시청하러 가기 버튼 */}
         <Pressable
           onPress={() => {
-  console.log('[AD] button pressed, rewardedLoaded =', rewardedLoaded);
+            console.log(
+              "[AD] button pressed, rewardedLoaded =",
+              rewardedLoaded
+            );
 
-  if (rewardedLoaded) {
-    console.log('[AD] calling rewardedAd.show()');
-    rewardedAd.show();
-  } else {
-    console.log('[AD] not loaded yet → load() 호출');
-              if (Platform.OS === "android") {
-                ToastAndroid.show(
-                  "광고를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
-                  ToastAndroid.SHORT
-                );
-              }
+            if (rewardedLoaded) {
+              console.log("[AD] calling rewardedAd.show()");
+              rewardedAd.show();
+            } else {
+              console.log(
+                "[AD] not loaded yet → load() 호출"
+              );
               rewardedAd.load();
             }
           }}
@@ -3940,7 +4041,8 @@ const handlePullToRefresh = useCallback(() => {
       </View>
     </View>
   </View>
-</Modal> 
+</Modal>
+
 
         </>
       )}
