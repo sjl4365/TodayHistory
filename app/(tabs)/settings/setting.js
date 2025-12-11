@@ -10,6 +10,7 @@ import {
   Linking,
   Alert,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,9 +18,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
+function useUIScale() {
+  const { width } = useWindowDimensions();
+  const BASE = 393;
+  const scale = (n) => Math.round((width / BASE) * n);
+  return { scale, screenW: width };
+}
+
 export default function SettingsIndex() {
   const router = useRouter();
-  const [selectedTheme, setSelectedTheme] = useState('Dark');
+  const { scale, screenW } = useUIScale();
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
 
@@ -29,7 +37,6 @@ export default function SettingsIndex() {
     { name: '日本語', code: 'ja' },
   ];
 
-  // Load saved language on mount
   useEffect(() => {
     loadLanguage();
   }, []);
@@ -93,145 +100,247 @@ export default function SettingsIndex() {
     }
   };
 
+  const openExternalLink = async (url) => {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Error', 'Unable to open link');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Unable to open link');
+      console.error(error);
+    }
+  };
+
   const SettingItem = ({ title, onPress, rightComponent, showArrow = true }) => (
-    <TouchableOpacity style={styles.settingItem} onPress={onPress}>
-      <Text style={styles.settingTitle}>{title}</Text>
+    <TouchableOpacity 
+      style={[
+        styles.settingItem,
+        {
+          paddingVertical: scale(16),
+          paddingHorizontal: scale(10),
+        }
+      ]} 
+      onPress={onPress}
+    >
+      <Text style={[styles.settingTitle, { fontSize: scale(16) }]}>
+        {title}
+      </Text>
       <View style={styles.rightContainer}>
         {rightComponent}
-        {showArrow && <Ionicons name="chevron-forward" size={20} color="grey" />}
+        {showArrow && (
+          <Ionicons 
+            name="chevron-forward" 
+            size={scale(20)} 
+            color="grey" 
+          />
+        )}
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <ScrollView style={styles.container}>
-
-      <View style={styles.section}>
-        
-        <SettingItem
-          title="Look & Feel"
-          onPress={() => router.push('/settings/look-and-feel')}
-        />
-      </View>
-      
-      <View style={styles.section}>
-        <SettingItem
-          title="Notification"
-          onPress={() => router.push('/settings/notification')}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <TouchableOpacity 
-          style={styles.settingItem} 
-          onPress={() => setIsLanguageExpanded(!isLanguageExpanded)}
-        >
-          <Text style={styles.settingTitle}>Language</Text>
-          <View style={styles.rightContainer}>
-            <Text style={styles.selectedLanguageText}>{selectedLanguage}</Text>
-            <Ionicons 
-              name={isLanguageExpanded ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="grey" 
-            />
-          </View>
-        </TouchableOpacity>
-
-        {isLanguageExpanded && (
-          <View style={styles.dropdownContainer}>
-            {languages.map((language) => (
-              <TouchableOpacity
-                key={language.code}
-                style={styles.languageOption}
-                onPress={() => handleLanguageSelect(language)}
-              >
-                <Text style={styles.languageText}>{language.name}</Text>
-                {selectedLanguage === language.name && (
-                  <Ionicons name="checkmark" size={20} color="#007AFF" />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* Social Media Links Section */}
-      <View style={styles.section}>
-        <SettingItem
-          title="Instagram"
-          onPress={openInstagram}
-          rightComponent={<Text style={styles.linkText}>Link</Text>}
-          showArrow={false}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <SettingItem
-          title="X (Twitter)"
-          onPress={openTwitter}
-          rightComponent={<Text style={styles.linkText}>Link</Text>}
-          showArrow={false}
-        />
-      </View>
+    <View style={styles.container}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.section}>
+          <SettingItem
+            title="Look & Feel"
+            onPress={() => router.push('/settings/look-and-feel')}
+          />
+        </View>
         
         <View style={styles.section}>
-        <SettingItem
-          title="Sunny's Game and Apps"
-          onPress={()=>router.push('/settings/sunnygame')}
-        />
-      </View>
-
-      {/* Credit */}
-      <View style={styles.section}>
-        <SettingItem
-          title="Credit"
-          onPress={() => router.push('/settings/credit')}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <SettingItem
-          title="Open Source Info"
-          onPress={() => router.push('/settings/opensource')}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <SettingItem
-          title="App Version"
-          rightComponent={<Text style={styles.selectedLanguageText}>v 1.3.3</Text>}
-          showArrow={false}
-        />
-      </View>
-
-      {/* <View style={styles.versionContainer}>
-        <Text style={styles.versionText}>Test Build 2025.11.08 (Version 0.0.5)</Text>
-      </View> */}
-
-    <View style={styles.logoContainer}>
-      <Image
-        source={require('../../../assets/images/logo_mini.png')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
-      
-      <View style={styles.buttonContainer}>
-            <TouchableOpacity 
-              style={styles.button}
-              onPress={() => Alert.alert('Button 1', 'Navigate to page 1')}
-            >
-              <Text style={styles.buttonText}>Page 1</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.button}
-              onPress={() => Alert.alert('Button 2', 'Navigate to page 2')}
-            >
-              <Text style={styles.buttonText}>Page 2</Text>
-            </TouchableOpacity>
-          </View>
+          <SettingItem
+            title="Notification"
+            onPress={() => router.push('/settings/notification')}
+          />
         </View>
+
+        <View style={styles.section}>
+          <TouchableOpacity 
+            style={[
+              styles.settingItem,
+              {
+                paddingVertical: scale(16),
+                paddingHorizontal: scale(10),
+              }
+            ]} 
+            onPress={() => setIsLanguageExpanded(!isLanguageExpanded)}
+          >
+            <Text style={[styles.settingTitle, { fontSize: scale(16) }]}>
+              Language
+            </Text>
+            <View style={styles.rightContainer}>
+              <Text style={[
+                styles.selectedLanguageText, 
+                { fontSize: scale(15) }
+              ]}>
+                {selectedLanguage}
+              </Text>
+              <Ionicons 
+                name={isLanguageExpanded ? "chevron-up" : "chevron-down"} 
+                size={scale(20)} 
+                color="grey" 
+              />
+            </View>
+          </TouchableOpacity>
+
+          {isLanguageExpanded && (
+            <View style={styles.dropdownContainer}>
+              {languages.map((language) => (
+                <TouchableOpacity
+                  key={language.code}
+                  style={[
+                    styles.languageOption,
+                    {
+                      paddingVertical: scale(12),
+                      paddingHorizontal: scale(20),
+                    }
+                  ]}
+                  onPress={() => handleLanguageSelect(language)}
+                >
+                  <Text style={[
+                    styles.languageText, 
+                    { fontSize: scale(15) }
+                  ]}>
+                    {language.name}
+                  </Text>
+                  {selectedLanguage === language.name && (
+                    <Ionicons 
+                      name="checkmark" 
+                      size={scale(20)} 
+                      color="#007AFF" 
+                    />
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
+
+        <View style={styles.section}>
+          <SettingItem
+            title="Instagram"
+            onPress={openInstagram}
+            rightComponent={
+              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
+                Link
+              </Text>
+            }
+            showArrow={false}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SettingItem
+            title="X (Twitter)"
+            onPress={openTwitter}
+            rightComponent={
+              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
+                Link
+              </Text>
+            }
+            showArrow={false}
+          />
+        </View>
+          
+        <View style={styles.section}>
+          <SettingItem
+            title="Sunny's Game and Apps"
+            onPress={() => router.push('/settings/sunnygame')}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SettingItem
+            title="Credit"
+            onPress={() => router.push('/settings/credit')}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SettingItem
+            title="Open Source Info"
+            onPress={() => router.push('/settings/opensource')}
+          />
+        </View>
+
+        <View style={styles.section}>
+          <SettingItem
+            title="App Version"
+            rightComponent={
+              <Text style={[
+                styles.selectedLanguageText, 
+                { fontSize: scale(15) }
+              ]}>
+                v 1.3.3
+              </Text>
+            }
+            showArrow={false}
+          />
+        </View>
+
+        <View style={{ flex: 1, minHeight: scale(60) }} />
       </ScrollView>
+
+      {/* Footer */}
+      <View style={[
+        styles.footerContainer,
+        {
+          paddingVertical: scale(20),
+          paddingHorizontal: scale(20),
+        }
+      ]}>
+        <Image
+          source={require('../../../assets/images/logo_mini.png')}
+          style={[
+            styles.footerLogo, 
+            { 
+              width: Math.min(screenW * 0.5, scale(200)),
+              height: Math.min(screenW * 0.5, scale(200)) * 0.3,
+              marginBottom: scale(12),
+            }
+          ]}
+          resizeMode="contain"
+        />
+        
+        <View style={styles.footerLinksContainer}>
+          <TouchableOpacity onPress={() => openExternalLink('https://example.com/terms')}>
+            <Text style={[
+              styles.footerLink, 
+              { fontSize: scale(13) }
+            ]}>
+              Terms of Service
+            </Text>
+          </TouchableOpacity>
+          
+          <Text style={[
+            styles.footerSeparator, 
+            { 
+              fontSize: scale(13),
+              marginHorizontal: scale(8),
+            }
+          ]}>
+            |
+          </Text>
+          
+          <TouchableOpacity onPress={() => openExternalLink('https://example.com/privacy')}>
+            <Text style={[
+              styles.footerLink, 
+              { fontSize: scale(13) }
+            ]}>
+              Privacy Policy
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -239,6 +348,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'black',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
   },
   section: {
     backgroundColor: '#2a2a2a',
@@ -249,11 +365,8 @@ const styles = StyleSheet.create({
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 16,
   },
   settingTitle: {
-    fontSize: 16,
     color: 'white',
     flex: 1,
   },
@@ -263,12 +376,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   selectedLanguageText: {
-    fontSize: 15,
     color: 'white',
     marginRight: 4,
   },
   linkText: {
-    fontSize: 14,
     color: 'grey',
   },
   dropdownContainer: {
@@ -280,52 +391,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#3a3a3a',
   },
   languageText: {
-    fontSize: 15,
     color: 'white',
   },
-  themeContainer: {
-    flexDirection: 'row',
-    borderRadius: 8,
-    overflow: 'hidden',
-    backgroundColor: '#3a3a3a',
-  },
-  themeButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: '#3a3a3a',
-  },
-  themeButtonSelected: {
-    backgroundColor: '#8B5CF6',
-  },
-  themeText: {
-    fontSize: 14,
-    color: '#ffffff',
-  },
-  themeTextSelected: {
-    color: '#ffffff',
-    fontWeight: '600',
-  },
-  bottomSpacing: {
-    height: 100,
-  },
-  versionContainer: {
+  footerContainer: {
     alignItems: 'center',
-    paddingVertical: 20,
+    justifyContent: 'center',
+    backgroundColor: 'black',
+    borderTopWidth: 1,
+    borderTopColor: '#2a2a2a',
   },
-  versionText: {
-    fontSize: 13,
-    color: 'grey',
-    opacity: 0.6,
+  footerLogo: {
+    // Dynamic sizing applied inline
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+  footerLinksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footerLink: {
+    color: '#999',
+    textDecorationLine: 'underline',
+    paddingHorizontal: 4,
+  },
+  footerSeparator: {
+    color: '#666',
   },
 });
