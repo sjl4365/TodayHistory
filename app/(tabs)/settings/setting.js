@@ -1,6 +1,6 @@
 // app/(tabs)/settings/index.js
 // Main settings screen that replaces your settings.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
   Text, 
@@ -24,7 +24,7 @@ const LANGUAGE_STORAGE_KEY = '@app_language';
 function useUIScale() {
   const { width } = useWindowDimensions();
   const BASE = 393;
-  const scale = (n) => Math.round((width / BASE) * n);
+  const scale = useMemo(() => (n) => Math.round((width / BASE) * n), [width]);
   return { scale, screenW: width };
 }
 
@@ -92,7 +92,7 @@ export default function SettingsIndex() {
     try {
       const supported = await Linking.canOpenURL(instagramUrl);
       if (supported) {
-        await Linking.openURL(instagramAppUrl);
+        await Linking.openURL(instagramUrl);
       } else {
         await Linking.openURL(webUrl);
       }
@@ -147,21 +147,21 @@ export default function SettingsIndex() {
       style={[
         styles.settingItem,
         {
-          paddingVertical: scale(16),
+          paddingVertical: scale(20),
           paddingHorizontal: scale(10),
         }
       ]} 
       onPress={onPress}
     >
-      <Text style={[styles.settingTitle, { fontSize: scale(16) }]}>
+      <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>
         {title}
       </Text>
-      <View style={styles.rightContainer}>
+      <View style={[styles.rightContainer, { gap: scale(8) }]}>
         {rightComponent}
         {showArrow && (
           <Ionicons 
             name="chevron-forward" 
-            size={scale(20)} 
+            size={scale(22)} 
             color="grey" 
           />
         )}
@@ -196,25 +196,25 @@ export default function SettingsIndex() {
             style={[
               styles.settingItem,
               {
-                paddingVertical: scale(16),
+                paddingVertical: scale(20),
                 paddingHorizontal: scale(10),
               }
             ]} 
             onPress={() => setIsLanguageExpanded(!isLanguageExpanded)}
           >
-            <Text style={[styles.settingTitle, { fontSize: scale(16) }]}>
+            <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>
               Language
             </Text>
-            <View style={styles.rightContainer}>
+            <View style={[styles.rightContainer, { gap: scale(8) }]}>
               <Text style={[
                 styles.selectedLanguageText, 
-                { fontSize: scale(15) }
+                { fontSize: scale(16), marginRight: scale(4) }
               ]}>
                 {selectedLanguage}
               </Text>
               <Ionicons 
                 name={isLanguageExpanded ? "chevron-up" : "chevron-down"} 
-                size={scale(20)} 
+                size={scale(22)} 
                 color="grey" 
               />
             </View>
@@ -228,7 +228,7 @@ export default function SettingsIndex() {
                   style={[
                     styles.languageOption,
                     {
-                      paddingVertical: scale(12),
+                      paddingVertical: scale(16),
                       paddingHorizontal: scale(20),
                     }
                   ]}
@@ -236,14 +236,14 @@ export default function SettingsIndex() {
                 >
                   <Text style={[
                     styles.languageText, 
-                    { fontSize: scale(15) }
+                    { fontSize: scale(16) }
                   ]}>
                     {language.name}
                   </Text>
                   {selectedLanguage === language.name && (
                     <Ionicons 
                       name="checkmark" 
-                      size={scale(20)} 
+                      size={scale(22)} 
                       color="#007AFF" 
                     />
                   )}
@@ -258,7 +258,7 @@ export default function SettingsIndex() {
             title="Instagram"
             onPress={openInstagram}
             rightComponent={
-              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
+              <Text style={[styles.linkText, { fontSize: scale(15) }]}>
                 Link
               </Text>
             }
@@ -271,7 +271,7 @@ export default function SettingsIndex() {
             title="X (Twitter)"
             onPress={openTwitter}
             rightComponent={
-              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
+              <Text style={[styles.linkText, { fontSize: scale(15) }]}>
                 Link
               </Text>
             }
@@ -301,29 +301,28 @@ export default function SettingsIndex() {
           />
         </View>
 
-        <View style={styles.section}>
+        <View style={[styles.section, styles.lastSection]}>
           <SettingItem
             title="App Version"
             rightComponent={
               <Text style={[
                 styles.selectedLanguageText, 
-                { fontSize: scale(15) }
+                { fontSize: scale(16) }
               ]}>
-                v 1.3.3
+                v 0.0.11
               </Text>
             }
             showArrow={false}
           />
         </View>
-
-        <View style={{ flex: 1, minHeight: scale(60) }} />
       </ScrollView>
 
       {/* Footer */}
       <View style={[
         styles.footerContainer,
         {
-          paddingVertical: scale(20),
+          paddingTop: scale(12),
+          paddingBottom: scale(16),
           paddingHorizontal: scale(20),
         }
       ]}>
@@ -332,9 +331,9 @@ export default function SettingsIndex() {
           style={[
             styles.footerLogo, 
             { 
-              width: Math.min(screenW * 0.5, scale(200)),
-              height: Math.min(screenW * 0.5, scale(200)) * 0.3,
-              marginBottom: scale(12),
+              width: scale(180),
+              height: scale(50),
+              marginBottom: scale(8),
             }
           ]}
           resizeMode="contain"
@@ -344,7 +343,10 @@ export default function SettingsIndex() {
           <TouchableOpacity onPress={() => openExternalLink('https://example.com/terms')}>
             <Text style={[
               styles.footerLink, 
-              { fontSize: scale(13) }
+              { 
+                fontSize: scale(12),
+                paddingHorizontal: scale(4),
+              }
             ]}>
               Terms of Service
             </Text>
@@ -353,8 +355,8 @@ export default function SettingsIndex() {
           <Text style={[
             styles.footerSeparator, 
             { 
-              fontSize: scale(13),
-              marginHorizontal: scale(8),
+              fontSize: scale(12),
+              marginHorizontal: scale(6),
             }
           ]}>
             |
@@ -363,7 +365,10 @@ export default function SettingsIndex() {
           <TouchableOpacity onPress={() => openExternalLink('https://example.com/privacy')}>
             <Text style={[
               styles.footerLink, 
-              { fontSize: scale(13) }
+              { 
+                fontSize: scale(12),
+                paddingHorizontal: scale(4),
+              }
             ]}>
               Privacy Policy
             </Text>
@@ -384,13 +389,16 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
   },
   section: {
     backgroundColor: '#2a2a2a',
     marginHorizontal: 0,
     borderTopWidth: 1,
     borderColor: 'grey',
+  },
+  lastSection: {
+    borderBottomWidth: 1,
+    borderBottomColor: 'grey',
   },
   settingItem: {
     flexDirection: 'row',
@@ -403,11 +411,9 @@ const styles = StyleSheet.create({
   rightContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   selectedLanguageText: {
     color: 'white',
-    marginRight: 4,
   },
   linkText: {
     color: 'grey',
@@ -431,8 +437,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'black',
-    borderTopWidth: 1,
-    borderTopColor: '#2a2a2a',
   },
   footerLogo: {
     // Dynamic sizing applied inline
@@ -446,7 +450,6 @@ const styles = StyleSheet.create({
   footerLink: {
     color: '#999',
     textDecorationLine: 'underline',
-    paddingHorizontal: 4,
   },
   footerSeparator: {
     color: '#666',

@@ -9,6 +9,7 @@ import {
   Platform,
   Modal,
   Image,
+  useWindowDimensions,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,7 +22,15 @@ const STORAGE_KEY_BG_COLOR = '@app_bg_color';
 const STORAGE_KEY_BG_IMAGE = '@app_bg_image';
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
+function useUIScale() {
+  const { width } = useWindowDimensions();
+  const BASE = 393;
+  const scale = (n) => Math.round((width / BASE) * n);
+  return { scale, screenW: width };
+}
+
 export default function LookAndFeel() {
+  const { scale } = useUIScale();
   const [selectedFont, setSelectedFont] = useState('Verdana');
   const [fontSize, setFontSize] = useState(18);
   const [fontColor, setFontColor] = useState('#000000');
@@ -102,11 +111,18 @@ export default function LookAndFeel() {
       animationType="slide"
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Select Font</Text>
+        <View style={[styles.modalContent,{padding: scale(20),borderRadius: scale(16),}]}>
+          <View style={[
+            styles.modalHeader,
+            { marginBottom: scale(20) }
+          ]}>
+            <Text style={[styles.modalTitle, { fontSize: scale(18) }]}>
+              Select Font
+            </Text>
             <TouchableOpacity onPress={onClose}>
-              <Text style={styles.closeButton}>✕</Text>
+              <Text style={[styles.closeButton, { fontSize: scale(20) }]}>
+                ✕
+              </Text>
             </TouchableOpacity>
           </View>
           
@@ -116,6 +132,7 @@ export default function LookAndFeel() {
                 key={font}
                 style={[
                   styles.fontDropdownOption,
+                  { padding: scale(16) },
                   selectedFont === font && styles.selectedFontDropdownOption,
                 ]}
                 onPress={() => {
@@ -126,6 +143,7 @@ export default function LookAndFeel() {
                 <Text
                   style={[
                     styles.fontDropdownText,
+                    { fontSize: scale(16) },
                     { fontFamily: getFontFamily(font) },
                     selectedFont === font && styles.selectedFontDropdownText,
                   ]}
@@ -133,7 +151,9 @@ export default function LookAndFeel() {
                   {font}
                 </Text>
                 {selectedFont === font && (
-                  <Text style={styles.fontCheckmark}>✓</Text>
+                  <Text style={[styles.fontCheckmark, { fontSize: scale(16) }]}>
+                    ✓
+                  </Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -164,14 +184,23 @@ export default function LookAndFeel() {
 
   // Font Color Palette Component
   const FontColorPalette = ({ title, selectedColor, onColorChange }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.section, { marginBottom: scale(24) }]}>
+      <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+        {title}
+      </Text>
       <View style={styles.inlineColorContainer}>
         {fontcolorOptions.map((color) => (
           <TouchableOpacity
             key={color.value}
             style={[
               styles.inlineColorOption,
+              {
+                width: scale(40),
+                height: scale(40),
+                borderRadius: scale(20),
+                marginHorizontal: scale(4),
+                marginVertical: scale(4),
+              },
               { backgroundColor: color.value },
               (color.value === '#FFFFFF' && selectedColor !== color.value) && styles.whiteColorBorder,
               selectedColor === color.value && styles.selectedInlineColorOption,
@@ -186,14 +215,23 @@ export default function LookAndFeel() {
 
   // Background Color Palette Component (with upload button)
   const BackColorPalette = ({ title, selectedColor, onColorChange }) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+    <View style={[styles.section, { marginBottom: scale(24) }]}>
+      <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+        {title}
+      </Text>
       <View style={styles.inlineColorContainer}>
         {backcolorOptions.map((color) => (
           <TouchableOpacity
             key={color.value}
             style={[
               styles.inlineColorOption,
+              {
+                width: scale(40),
+                height: scale(40),
+                borderRadius: scale(20),
+                marginHorizontal: scale(4),
+                marginVertical: scale(4),
+              },
               { backgroundColor: color.value },
               (color.value === '#FFFFFF' && selectedColor !== color.value) && styles.whiteColorBorder,
               selectedColor === color.value && styles.selectedInlineColorOption,
@@ -212,29 +250,22 @@ export default function LookAndFeel() {
           style={[
             styles.inlineColorOption,
             styles.uploadImageButton,
+            {
+              width: scale(40),
+              height: scale(40),
+              borderRadius: scale(20),
+              marginHorizontal: scale(4),
+              marginVertical: scale(4),
+            },
             backgroundImage && styles.selectedInlineColorOption,
           ]}
           onPress={pickImage}
         >
-          <Text style={styles.uploadImageIcon}>📷</Text>
+          <Text style={[styles.uploadImageIcon, { fontSize: scale(18) }]}>
+            📷
+          </Text>
         </TouchableOpacity>
       </View>
-      
-      {/* Show selected image preview */}
-      {/* {backgroundImage && (
-        <View style={styles.imagePreviewContainer}>
-          <Image
-            source={{ uri: backgroundImage }}
-            style={styles.imagePreview}
-          />
-          <TouchableOpacity 
-            style={styles.removeImageButton}
-            onPress={removeBackgroundImage}
-          >
-            <Text style={styles.removeImageButtonText}>✕ Remove</Text>
-          </TouchableOpacity>
-        </View>
-      )} */}
     </View>
   );
 
@@ -340,13 +371,19 @@ export default function LookAndFeel() {
       <View
         style={[
           styles.previewArea,
+          {
+            height: scale(100),
+            marginHorizontal: scale(20),
+            marginVertical: scale(16),
+            borderRadius: scale(8),
+          },
           backgroundImage ? { backgroundColor: 'transparent' } : { backgroundColor },
         ]}
       >
         {backgroundImage && (
           <Image
             source={{ uri: backgroundImage }}
-            style={styles.previewImage}
+            style={[styles.previewImage, { borderRadius: scale(8) }]}
           />
         )}
         <Text
@@ -363,38 +400,63 @@ export default function LookAndFeel() {
         </Text>
       </View>
 
-      <ScrollView style={styles.controlsContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={[
+          styles.controlsContainer,
+          {
+            paddingHorizontal: scale(20),
+            paddingBottom: scale(100),
+          }
+        ]} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* Font Selection */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Font</Text>
+        <View style={[styles.section, { marginBottom: scale(24) }]}>
+          <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+            Font
+          </Text>
           <TouchableOpacity 
-            style={styles.fontDropdownButton}
+            style={[
+              styles.fontDropdownButton,
+              {
+                borderRadius: scale(8),
+                padding: scale(16),
+                marginBottom: scale(8),
+              }
+            ]}
             onPress={() => setShowFontModal(true)}
           >
             <View style={styles.fontDropdownContent}>
               <Text
                 style={[
                   styles.fontDropdownButtonText,
+                  { fontSize: scale(16) },
                   { fontFamily: getFontFamily(selectedFont) }
                 ]}
               >
                 {selectedFont}
               </Text>
-              <Text style={styles.dropdownArrow}>▼</Text>
+              <Text style={[styles.dropdownArrow, { fontSize: scale(12) }]}>
+                ▼
+              </Text>
             </View>
           </TouchableOpacity>
-          <Text style={styles.fontNote}>
+          <Text style={[styles.fontNote, { fontSize: scale(12), marginTop: scale(8) }]}>
             {fontAppliedMessages[currentLanguage] || fontAppliedMessages.en}
           </Text>
         </View>
 
         {/* Size Slider */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Size</Text>
-          <View style={styles.sliderContainer}>
-            <Text style={styles.sizeLabel}>12</Text>
+        <View style={[styles.section, { marginBottom: scale(24) }]}>
+          <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+            Size
+          </Text>
+          <View style={[styles.sliderContainer, { gap: scale(12) }]}>
+            <Text style={[styles.sizeLabel, { fontSize: scale(12) }]}>
+              12
+            </Text>
             <Slider
-              style={styles.slider}
+              style={[styles.slider, { height: scale(40) }]}
               minimumValue={12}
               maximumValue={48}
               value={fontSize}
@@ -403,9 +465,13 @@ export default function LookAndFeel() {
               minimumTrackTintColor="#006AFF"
               maximumTrackTintColor="#D1D1D1"
             />
-            <Text style={styles.sizeLabel}>48</Text>
+            <Text style={[styles.sizeLabel, { fontSize: scale(12) }]}>
+              48
+            </Text>
           </View>
-          <Text style={styles.currentSize}>{Math.round(fontSize)}pt</Text>
+          <Text style={[styles.currentSize, { fontSize: scale(12), marginTop: scale(4) }]}>
+            {Math.round(fontSize)}pt
+          </Text>
           
         </View>
 
@@ -443,14 +509,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'white',
   },
-
   previewArea: {
-    height: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 20,
-    marginVertical: 16,
-    borderRadius: 8,
     elevation: 2,
     shadowColor: '#000',
     shadowOffset: {
@@ -465,72 +526,53 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: '100%',
     height: '100%',
-    borderRadius: 8,
   },
   previewText: {
-    fontSize: 18,
     fontWeight: '500',
     zIndex: 1,
   },
   controlsContainer: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingBottom: 100, 
   },
   section: {
-    marginBottom: 24,
+    // Dynamic marginBottom applied inline
   },
   sectionTitle: {
-    fontSize: 14,
     fontWeight: '600',
-    marginBottom: 12,
     color: '#333',
   },
-  
   sliderContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
   },
   slider: {
     flex: 1,
-    height: 40,
   },
   sizeLabel: {
-    fontSize: 12,
     color: 'black',
     minWidth: 20,
     textAlign: 'center',
   },
   currentSize: {
-    fontSize: 12,
     color: 'black',
     textAlign: 'center',
-    marginTop: 4,
   },
   fontNote: {
-    fontSize: 12,
     color: '#666',
     fontStyle: 'italic',
     textAlign: 'center',
-    marginTop: 8,
   },
   inlineColorContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 12,
-    maxWidth: 330,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   inlineColorOption: {
-    width: 35,
-    height: 35,
-    borderRadius: 17.5,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    margin: 2,
   },
   selectedInlineColorOption: {
     borderColor: '#007AFF',
@@ -546,7 +588,7 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
   },
   uploadImageIcon: {
-    fontSize: 18,
+    // Dynamic fontSize applied inline
   },
   imagePreviewContainer: {
     marginTop: 12,
@@ -583,15 +625,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     textAlign: 'center',
   },
-
-
   fontDropdownButton: {
     backgroundColor: 'white',
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    padding: 16,
-    marginBottom: 8,
   },
   fontDropdownContent: {
     flexDirection: 'row',
@@ -599,15 +636,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fontDropdownButtonText: {
-    fontSize: 16,
     color: 'black',
     fontWeight: '500',
   },
   dropdownArrow: {
-    fontSize: 12,
     color: '#666',
   },
-
   // Modal styles (for font only)
   modalOverlay: {
     flex: 1,
@@ -617,8 +651,6 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 20,
     width: '85%',
     maxWidth: 400,
   },
@@ -626,15 +658,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
   modalTitle: {
-    fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
   },
   closeButton: {
-    fontSize: 20,
     color: '#666',
     fontWeight: 'bold',
   },
@@ -645,7 +674,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
@@ -653,7 +681,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f8ff',
   },
   fontDropdownText: {
-    fontSize: 16,
     color: '#333',
   },
   selectedFontDropdownText: {
@@ -661,7 +688,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   fontCheckmark: {
-    fontSize: 16,
     color: '#007AFF',
     fontWeight: 'bold',
   },

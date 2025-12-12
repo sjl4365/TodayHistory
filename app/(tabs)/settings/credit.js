@@ -7,21 +7,19 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const BASE_WIDTH = 390;
-const BASE_HEIGHT = 844;
-const scaleWidth =(size)=>(SCREEN_WIDTH/BASE_WIDTH)*size;
-const scaleHeight =(size)=>(SCREEN_HEIGHT/BASE_HEIGHT)*size;
-const resize = (size)=>(SCREEN_WIDTH/BASE_WIDTH)*size;
-const moderateScale=(size,factor=0.5)=>{
-  return size + (resize(size)-size)*factor;
-};
+function useUIScale() {
+  const { width } = useWindowDimensions();
+  const BASE = 393;
+  const scale = (n) => Math.round((width / BASE) * n);
+  return { scale, screenW: width };
+}
 
 export default function CreditScreen() {
+  const { scale } = useUIScale();
   const openLink = (url) => {
     Linking.openURL(url).catch((err) =>
       console.error('Failed to open URL:', err)
@@ -33,42 +31,106 @@ export default function CreditScreen() {
       <View style={styles.contentWrapper}>
         <ScrollView 
           style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: scale(20) }
+          ]}
         >
-          {/* Credits List */}
-          <View style={styles.section}>
-            <View style={styles.creditRow}>
-              <Text style={styles.roleLabel}>Producer</Text>
-              <Text style={styles.nameValue}>R.S.</Text>
+          
+          <View style={[
+            styles.section,
+            {
+              paddingHorizontal: scale(20),
+              paddingTop: scale(20),
+            }
+          ]}>
+            <View style={[
+              styles.creditRow,
+              {
+                paddingVertical: scale(16),
+                gap: scale(12),
+              }
+            ]}>
+              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+                Producer
+              </Text>
+              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+                R.S.
+              </Text>
             </View>
 
-            <View style={styles.creditRow}>
-              <Text style={styles.roleLabel}>Programmers</Text>
-              <Text style={styles.nameValue}>
+            <View style={[
+              styles.creditRow,
+              {
+                paddingVertical: scale(16),
+                gap: scale(12),
+              }
+            ]}>
+              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+                Programmers
+              </Text>
+              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
                 Kwanyeob Jung, Sam Lee, TK
               </Text>
             </View>
 
-            <View style={styles.creditRow}>
-              <Text style={styles.roleLabel}>UIUX Designer</Text>
-              <Text style={styles.nameValue}>Chloe Kim</Text>
+            <View style={[
+              styles.creditRow,
+              {
+                paddingVertical: scale(16),
+                gap: scale(12),
+              }
+            ]}>
+              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+                UIUX Designer
+              </Text>
+              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+                Chloe Kim
+              </Text>
             </View>
 
-            <View style={styles.creditRow}>
-              <Text style={styles.roleLabel}>QA Testers</Text>
-              <Text style={styles.nameValue}>YC, SJ</Text>
+            <View style={[
+              styles.creditRow,
+              {
+                paddingVertical: scale(16),
+                gap: scale(12),
+              }
+            ]}>
+              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+                QA Testers
+              </Text>
+              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+                YC, SJ
+              </Text>
             </View>
 
-            <View style={styles.creditRow}>
-              <Text style={styles.roleLabel}>
+            <View style={[
+              styles.creditRow,
+              {
+                paddingVertical: scale(16),
+                gap: scale(12),
+              }
+            ]}>
+              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
                 Localization Managers
               </Text>
-              <Text style={styles.nameValue}>Mary, Carol</Text>
+              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+                Mary, Carol
+              </Text>
             </View>
 
-            <View style={[styles.creditRow, styles.lastCreditRow]}>
-              <Text style={styles.roleLabel}>Special Thanks</Text>
-              <Text style={styles.nameValue}>
+            <View style={[
+              styles.creditRow,
+              styles.lastCreditRow,
+              {
+                paddingVertical: scale(16),
+                gap: scale(12),
+              }
+            ]}>
+              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+                Special Thanks
+              </Text>
+              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
                 Toronto Korean Developers, JA
               </Text>
             </View>
@@ -76,8 +138,21 @@ export default function CreditScreen() {
         </ScrollView>
 
         {/* Footer - Fixed at bottom */}
-        <View style={styles.footer}>
-          <View style={styles.footerLinks}>
+        <View style={[
+          styles.footer,
+          {
+            paddingTop: scale(20),
+            paddingBottom: scale(20),
+          }
+        ]}>
+          <View style={[
+            styles.footerLinks,
+            {
+              paddingHorizontal: scale(20),
+              gap: scale(12),
+              marginBottom: scale(12),
+            }
+          ]}>
             <TouchableOpacity
               onPress={() =>
                 openLink(
@@ -85,11 +160,13 @@ export default function CreditScreen() {
                 )
               }
             >
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
                 Terms of Service
               </Text>
             </TouchableOpacity>
-            <Text style={styles.separator}>|</Text>
+            <Text style={[styles.separator, { fontSize: scale(14) }]}>
+              |
+            </Text>
             <TouchableOpacity
               onPress={() =>
                 openLink(
@@ -97,14 +174,14 @@ export default function CreditScreen() {
                 )
               }
             >
-              <Text style={styles.linkText}>
+              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
                 Privacy Policy
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.versionContainer}>
-            <Text style={styles.versionText}>
+            <Text style={[styles.versionText, { fontSize: scale(13) }]}>
               Version 1.0.0
             </Text>
           </View>
@@ -127,42 +204,33 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: scaleHeight(20),
   },
   section: {
     flex: 1,
-    paddingHorizontal: scaleWidth(20),
-    paddingTop: scaleHeight(20),
   },
   creditRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingVertical: scaleHeight(16),
     borderBottomWidth: 1,
     borderBottomColor: '#2c2c2e',
-    gap: scaleWidth(12),
   },
   lastCreditRow: {
     borderBottomWidth: 0,
   },
   roleLabel: {
-    fontSize: moderateScale(16),
     color: '#999',
     fontWeight: '400',
     flex: 1,
-    minWidth: scaleWidth(100),
+    minWidth: 100,
   },
   nameValue: {
-    fontSize: moderateScale(16),
     color: '#fff',
     fontWeight: '500',
     flex: 1.5,
     textAlign: 'right',
   },
   footer: {
-    paddingTop: scaleHeight(20),
-    paddingBottom: scaleHeight(20),
     borderTopWidth: 1,
     borderTopColor: '#2c2c2e',
     backgroundColor: '#000',
@@ -171,25 +239,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: scaleWidth(20),
-    gap: scaleWidth(12),
     flexWrap: 'wrap',
-    marginBottom: scaleHeight(12),
   },
   linkText: {
-    fontSize: moderateScale(14),
     color: '#007AFF',
     fontWeight: '500',
   },
   separator: {
-    fontSize: moderateScale(14),
     color: '#666',
   },
   versionContainer: {
     alignItems: 'center',
   },
   versionText: {
-    fontSize: moderateScale(13),
     color: '#666',
   },
 });

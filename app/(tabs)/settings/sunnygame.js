@@ -34,7 +34,7 @@ export default function SunnyGame() {
         id: 5,
         name: 'Find Four',
         icon: require('../../../assets/images/findfour.png'),
-        url: 'https://apps.apple.com/app/find-four',
+        url: 'https://findfour.onelink.me/vurA/0tfteiuf',
     },
   ];
 
