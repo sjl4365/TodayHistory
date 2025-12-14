@@ -26,6 +26,7 @@ import {
   BackHandler,
   ToastAndroid,
   PanResponder,
+  Animated,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
@@ -1538,22 +1539,61 @@ function WikipediaBanner({
   const [imageFailed, setImageFailed] = useState(false);
   const [imageSize, setImageSize] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentImageUrl, setCurrentImageUrl] = useState(null); // 🔹 현재 표시 중인 이미지
+  const [nextImageUrl, setNextImageUrl] = useState(null); // 🔹 다음에 표시할 이미지
+  const fadeAnim = useRef(new Animated.Value(1)).current; // 🔹 페이드 애니메이션
+
+  // 🔹 imageUrl이 변경되면 다음 이미지로 설정
+  useEffect(() => {
+    if (imageUrl && imageUrl !== currentImageUrl) {
+      setNextImageUrl(imageUrl);
+      setLoading(true);
+      setImageFailed(false);
+    }
+  }, [imageUrl, currentImageUrl]);
+
+  // 🔹 다음 이미지가 로드되면 페이드 전환
+  const handleImageLoad = useCallback((e) => {
+    if (Platform.OS === 'android' && e?.source) {
+      const { width, height } = e.source;
+      if (width && height) {
+        setImageSize({ width, height });
+      }
+    }
+    
+    // 페이드 아웃 → 이미지 교체 → 페이드 인
+    Animated.sequence([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
+    setCurrentImageUrl(nextImageUrl);
+    setLoading(false);
+  }, [nextImageUrl, fadeAnim]);
 
   // 이미지 크기 가져오기 useEffect
   useEffect(() => {
-    if (!imageUrl) {
+    if (!nextImageUrl) {
       setLoading(false);
       setImageFailed(true);
       return;
     }
     
-    // iOS는 RNImage.getSize 사용
     if (Platform.OS === 'ios') {
       RNImage.getSize(
-        imageUrl,
+        nextImageUrl,
         (width, height) => {
           setImageSize({ width, height });
           setLoading(false);
+          setCurrentImageUrl(nextImageUrl);
         },
         (error) => {
           console.warn("Failed to get image size:", error);
@@ -1562,11 +1602,10 @@ function WikipediaBanner({
         }
       );
     } else {
-      // Android: ExpoImage의 onLoad에서 처리
-      setLoading(false);
+      // Android는 onLoad에서 처리
       setImageSize({ width: maxWidth, height: maxWidth * 0.6 });
     }
-  }, [imageUrl, maxWidth]);
+  }, [nextImageUrl, maxWidth]);
 
   const BG_MAP = {
     none: "#FFFFFF",
@@ -1613,6 +1652,8 @@ function WikipediaBanner({
           height: 200,
           alignItems: "center",
           justifyContent: "center",
+          backgroundColor: bgColor,
+          borderRadius: 12,
         }}
       >
         <ActivityIndicator size="small" color="#999" />
@@ -1620,11 +1661,12 @@ function WikipediaBanner({
     );
   }
 
-  
-
   const { width: imgWidth, height: imgHeight } = imageSize;
   const aspectRatio = imgWidth / imgHeight;
   const isLandscape = aspectRatio > 1;
+
+  // 🔹 표시할 이미지 URL (nextImageUrl이 있으면 그걸 사용)
+  const displayUrl = nextImageUrl || currentImageUrl;
 
   if (isLandscape) {
     const displayWidth = screenWidth;
@@ -1642,16 +1684,17 @@ function WikipediaBanner({
           alignItems: "center",
         }}
       >
-        <View
+        <Animated.View
           style={{
             width: displayWidth,
             height: displayHeight,
             backgroundColor: bgColor,
+            opacity: fadeAnim, // 🔹 페이드 애니메이션
           }}
         >
           <ExpoImage
             source={{
-              uri: imageUrl,
+              uri: displayUrl,
               headers: {
                 'User-Agent': 'Histree/1.0 (Educational History App)',
                 'Referer': 'https://en.wikipedia.org/',
@@ -1663,21 +1706,14 @@ function WikipediaBanner({
             }}
             contentFit="contain"
             cachePolicy="disk"
-            transition={150}
-            onLoad={(e) => {
-              if (Platform.OS === 'android' && e?.source) {
-                const { width, height } = e.source;
-                if (width && height) {
-                  setImageSize({ width, height });
-                }
-              }
-            }}
+            transition={200}
+            onLoad={handleImageLoad}
             onError={(e) => {
               console.warn("expo-image load error:", e?.nativeEvent);
               setImageFailed(true);
             }}
           />
-        </View>
+        </Animated.View>
       </ScrollView>
     );
   } else {
@@ -1697,18 +1733,19 @@ function WikipediaBanner({
           alignItems: "center",
         }}
       >
-        <View
+        <Animated.View
           style={{
             width: displayWidth,
             height: displayHeight,
             borderRadius: 12,
             backgroundColor: bgColor,
             overflow: "hidden",
+            opacity: fadeAnim, // 🔹 페이드 애니메이션
           }}
         >
           <ExpoImage
             source={{
-              uri: imageUrl,
+              uri: displayUrl,
               headers: {
                 'User-Agent': 'Histree/1.0 (Educational History App)',
                 'Referer': 'https://en.wikipedia.org/',
@@ -1720,21 +1757,14 @@ function WikipediaBanner({
             }}
             contentFit="contain"
             cachePolicy="disk"
-            transition={150}
-            onLoad={(e) => {
-              if (Platform.OS === 'android' && e?.source) {
-                const { width, height } = e.source;
-                if (width && height) {
-                  setImageSize({ width, height });
-                }
-              }
-            }}
+            transition={200}
+            onLoad={handleImageLoad}
             onError={(e) => {
               console.warn("expo-image load error:", e?.nativeEvent);
               setImageFailed(true);
             }}
           />
-        </View>
+        </Animated.View>
       </ScrollView>
     );
   }
