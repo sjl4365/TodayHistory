@@ -1538,74 +1538,99 @@ function WikipediaBanner({
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const [imageSize, setImageSize] = useState(null);
+  const [displayUrl, setDisplayUrl] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentImageUrl, setCurrentImageUrl] = useState(null); // 🔹 현재 표시 중인 이미지
-  const [nextImageUrl, setNextImageUrl] = useState(null); // 🔹 다음에 표시할 이미지
-  const fadeAnim = useRef(new Animated.Value(1)).current; // 🔹 페이드 애니메이션
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  
+  const prevImageUrlRef = useRef(null);
 
-  // 🔹 imageUrl이 변경되면 다음 이미지로 설정
+
+  // home.js (ImageBanner 컴포넌트 내부의 useEffect 훅)
+
   useEffect(() => {
-    if (imageUrl && imageUrl !== currentImageUrl) {
-      setNextImageUrl(imageUrl);
-      setLoading(true);
-      setImageFailed(false);
+    console.log('🖼️ [BANNER] Image URL changed:', { prev: prevImageUrlRef.current, new: imageUrl });
+    
+    if (!imageUrl) {
+      // 이미지가 없는 경우 처리
+      setDisplayUrl(null); 
+      setImageFailed(true);
+      setLoading(false);
+      prevImageUrlRef.current = null;
+      return;
     }
-  }, [imageUrl, currentImageUrl]);
+    
+    // 1. 기존 이미지 언마운트 및 로딩 인디케이터 즉시 표시
+    // 이전 이미지가 화면에 남아있는 현상을 해결하기 위해 displayUrl을 null로 즉시 설정합니다.
+    setDisplayUrl(null); // 👈 **기존 이미지를 뷰 계층에서 즉시 제거**
+    setLoading(true); // 👈 **로딩 인디케이터 즉시 표시**
+    setImageFailed(false);
+    
+    prevImageUrlRef.current = imageUrl;
+    const targetUrl = imageUrl;
 
-  // 🔹 다음 이미지가 로드되면 페이드 전환
+    // 2. 짧은 지연(50ms) 후 새 이미지 로드 프로세스 시작
+    // 이 지연은 React Native가 이전 이미지의 언마운트와 로딩 상태를 화면에 완전히 반영할 
+    // 시간을 주기 위함이며, InteractionManager의 예측 불가능한 긴 대기를 방지합니다.
+    const timer = setTimeout(() => {
+      // 대기 중에 URL이 다시 변경되었는지 확인하여 불필요한 작업 방지
+      if (targetUrl !== prevImageUrlRef.current) return;
+      
+      // 새 이미지가 로드될 때 Fade-in 애니메이션을 위해 투명도를 0으로 초기화
+      fadeAnim.setValue(0); 
+
+      // 기존 로직을 따라 RNImage.getSize 호출 및 displayUrl 설정
+      if (Platform.OS === 'ios') {
+        RNImage.getSize(
+          targetUrl,
+          (width, height) => {
+            if (targetUrl !== prevImageUrlRef.current) return;
+            setImageSize({ width, height });
+            setDisplayUrl(targetUrl); // 👈 새로운 이미지 로드 시작
+          },
+          (error) => {
+            if (targetUrl !== prevImageUrlRef.current) return;
+            console.warn("Failed to get image size:", error);
+            setImageFailed(true);
+            setLoading(false);
+          }
+        );
+      } else {
+        // Android/Fallback
+        setImageSize({ width: maxWidth, height: maxWidth * 0.6 });
+        setDisplayUrl(targetUrl); // 👈 새로운 이미지 로드 시작
+      }
+    }, 50); // 50ms 지연 설정
+
+    // 컴포넌트 정리(Cleanup) 함수: useEffect가 다시 실행되거나 컴포넌트가 언마운트될 때 setTimeout을 취소
+    return () => clearTimeout(timer);
+
+  }, [imageUrl, maxWidth, fadeAnim]);
+// ... (생략) ...
+
   const handleImageLoad = useCallback((e) => {
+    console.log('✅ [BANNER] Image loaded');
+    setLoading(false);
+    
+    // 🔹 이미지 로드 완료 후 페이드인
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    
     if (Platform.OS === 'android' && e?.source) {
       const { width, height } = e.source;
       if (width && height) {
         setImageSize({ width, height });
       }
     }
-    
-    // 페이드 아웃 → 이미지 교체 → 페이드 인
-    Animated.sequence([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
+  }, [fadeAnim]);
 
-    setCurrentImageUrl(nextImageUrl);
+  const handleImageError = useCallback((e) => {
+    console.warn("❌ [BANNER] Image load error:", e?.nativeEvent);
+    setImageFailed(true);
     setLoading(false);
-  }, [nextImageUrl, fadeAnim]);
-
-  // 이미지 크기 가져오기 useEffect
-  useEffect(() => {
-    if (!nextImageUrl) {
-      setLoading(false);
-      setImageFailed(true);
-      return;
-    }
-    
-    if (Platform.OS === 'ios') {
-      RNImage.getSize(
-        nextImageUrl,
-        (width, height) => {
-          setImageSize({ width, height });
-          setLoading(false);
-          setCurrentImageUrl(nextImageUrl);
-        },
-        (error) => {
-          console.warn("Failed to get image size:", error);
-          setImageFailed(true);
-          setLoading(false);
-        }
-      );
-    } else {
-      // Android는 onLoad에서 처리
-      setImageSize({ width: maxWidth, height: maxWidth * 0.6 });
-    }
-  }, [nextImageUrl, maxWidth]);
+  }, []);
 
   const BG_MAP = {
     none: "#FFFFFF",
@@ -1618,7 +1643,7 @@ function WikipediaBanner({
     ? customBgColor.trim()
     : BG_MAP[cardBg] ?? "#FFFFFF";
 
-  // 이미지가 없거나 실패했을 때 AdMob 광고 표시
+  // 이미지가 없거나 실패했을 때만 광고 표시
   if (!imageUrl || imageFailed) {
     return (
       <View
@@ -1644,12 +1669,13 @@ function WikipediaBanner({
     );
   }
 
-  if (loading || !imageSize) {
+  if (!imageSize || !displayUrl) {
     return (
       <View
         style={{
           width: maxWidth,
           height: 200,
+          alignSelf: "center",
           alignItems: "center",
           justifyContent: "center",
           backgroundColor: bgColor,
@@ -1665,107 +1691,145 @@ function WikipediaBanner({
   const aspectRatio = imgWidth / imgHeight;
   const isLandscape = aspectRatio > 1;
 
-  // 🔹 표시할 이미지 URL (nextImageUrl이 있으면 그걸 사용)
-  const displayUrl = nextImageUrl || currentImageUrl;
-
   if (isLandscape) {
     const displayWidth = screenWidth;
     const displayHeight = displayWidth / aspectRatio;
 
     return (
-      <ScrollView
-        horizontal={false}
-        showsVerticalScrollIndicator={true}
-        style={{
-          width: displayWidth,
-          maxHeight: screenWidth * 1.2,
-        }}
-        contentContainerStyle={{
-          alignItems: "center",
-        }}
-      >
-        <Animated.View
+      <View style={{ position: 'relative' }}>
+        {/* 🔹 로딩 인디케이터 오버레이 */}
+        {loading && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: bgColor,
+              zIndex: 10,
+            }}
+          >
+            <ActivityIndicator size="small" color="#999" />
+          </View>
+        )}
+        
+        {/* 🔹 이미지는 항상 렌더링 (opacity로 숨김) */}
+        <ScrollView
+          horizontal={false}
+          showsVerticalScrollIndicator={true}
           style={{
             width: displayWidth,
-            height: displayHeight,
-            backgroundColor: bgColor,
-            opacity: fadeAnim, // 🔹 페이드 애니메이션
+            maxHeight: screenWidth * 1.2,
+          }}
+          contentContainerStyle={{
+            alignItems: "center",
           }}
         >
-          <ExpoImage
-            source={{
-              uri: displayUrl,
-              headers: {
-                'User-Agent': 'Histree/1.0 (Educational History App)',
-                'Referer': 'https://en.wikipedia.org/',
-              }
-            }}
+          <Animated.View
             style={{
-              width: "100%",
-              height: "100%",
+              width: displayWidth,
+              height: displayHeight,
+              backgroundColor: bgColor,
+              opacity: fadeAnim, // 🔹 0에서 시작 → onLoad 후 1로
             }}
-            contentFit="contain"
-            cachePolicy="disk"
-            transition={200}
-            onLoad={handleImageLoad}
-            onError={(e) => {
-              console.warn("expo-image load error:", e?.nativeEvent);
-              setImageFailed(true);
-            }}
-          />
-        </Animated.View>
-      </ScrollView>
+          >
+            <ExpoImage
+              key={displayUrl}
+              source={{
+                uri: displayUrl,
+                headers: {
+                  'User-Agent': 'Histree/1.0 (Educational History App)',
+                  'Referer': 'https://en.wikipedia.org/',
+                }
+              }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              contentFit="contain"
+              cachePolicy="disk"
+              transition={0}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+          </Animated.View>
+        </ScrollView>
+      </View>
     );
   } else {
     const displayWidth = Math.min(maxWidth, imgWidth);
     const displayHeight = displayWidth / aspectRatio;
 
     return (
-      <ScrollView
-        horizontal={false}
-        showsVerticalScrollIndicator={true}
-        style={{
-          width: displayWidth,
-          maxHeight: maxWidth * 1.5,
-          alignSelf: "center",
-        }}
-        contentContainerStyle={{
-          alignItems: "center",
-        }}
-      >
-        <Animated.View
+      <View style={{ position: 'relative' }}>
+        {/* 🔹 로딩 인디케이터 오버레이 */}
+        {loading && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: bgColor,
+              zIndex: 10,
+              borderRadius: 12,
+            }}
+          >
+            <ActivityIndicator size="small" color="#999" />
+          </View>
+        )}
+        
+        {/* 🔹 이미지는 항상 렌더링 (opacity로 숨김) */}
+        <ScrollView
+          horizontal={false}
+          showsVerticalScrollIndicator={true}
           style={{
             width: displayWidth,
-            height: displayHeight,
-            borderRadius: 12,
-            backgroundColor: bgColor,
-            overflow: "hidden",
-            opacity: fadeAnim, // 🔹 페이드 애니메이션
+            maxHeight: maxWidth * 1.5,
+            alignSelf: "center",
+          }}
+          contentContainerStyle={{
+            alignItems: "center",
           }}
         >
-          <ExpoImage
-            source={{
-              uri: displayUrl,
-              headers: {
-                'User-Agent': 'Histree/1.0 (Educational History App)',
-                'Referer': 'https://en.wikipedia.org/',
-              }
-            }}
+          <Animated.View
             style={{
-              width: "100%",
-              height: "100%",
+              width: displayWidth,
+              height: displayHeight,
+              borderRadius: 12,
+              backgroundColor: bgColor,
+              overflow: "hidden",
+              opacity: fadeAnim, // 🔹 0에서 시작 → onLoad 후 1로
             }}
-            contentFit="contain"
-            cachePolicy="disk"
-            transition={200}
-            onLoad={handleImageLoad}
-            onError={(e) => {
-              console.warn("expo-image load error:", e?.nativeEvent);
-              setImageFailed(true);
-            }}
-          />
-        </Animated.View>
-      </ScrollView>
+          >
+            <ExpoImage
+              key={displayUrl}
+              source={{
+                uri: displayUrl,
+                headers: {
+                  'User-Agent': 'Histree/1.0 (Educational History App)',
+                  'Referer': 'https://en.wikipedia.org/',
+                }
+              }}
+              style={{
+                width: "100%",
+                height: "100%",
+              }}
+              contentFit="contain"
+              cachePolicy="disk"
+              transition={0}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+            />
+          </Animated.View>
+        </ScrollView>
+      </View>
     );
   }
 }
@@ -3222,9 +3286,43 @@ const handlePullToRefresh = useCallback(() => {
 
         if (!canceled) {
           if (pick) {
+            setHeaderImageUrl(null); 
+
             setOnePick([pick]);
-             lastPickKeyRef.current = pick.key;
-          } else {
+            lastPickKeyRef.current = pick.key;
+            
+            // 🔹 이 부분만 추가!
+            (async () => {
+              try {
+                const cacheKey = `${BANNER_KEY(isoDate, pick.cid)}:${pick.key}`;
+                
+                let cachedUrl = null;
+                try {
+                  cachedUrl = await AsyncStorage.getItem(cacheKey);
+                } catch {}
+                
+                if (cachedUrl) {
+                  console.log('📦 [PREFETCH] Using cached URL');
+                  if (cachedUrl.startsWith('http')) {
+                    ExpoImage.prefetch(cachedUrl).catch(() => {});
+                  }
+                } else {
+                  console.log('🆕 [PREFETCH] Computing new URL...');
+                  const url = await computeBannerUrlForPick(pick, uiLang);
+                  if (url) {
+                    console.log('✅ [PREFETCH] URL computed:', url);
+                    try {
+                      await AsyncStorage.setItem(cacheKey, url);
+                    } catch {}
+                    ExpoImage.prefetch(url).catch(() => {});
+                  }
+                }
+              } catch (e) {
+                console.warn('⚠️ [PREFETCH] Error:', e);
+              }
+            })();  
+          } 
+          else {
             setOnePick([]);
             setHeaderImageUrl(null);
           }
@@ -3868,21 +3966,22 @@ const ordered = getCountryOrderByUiLang(uiLang || "en");
                             fontSize={anchorFontSize}
                           />
                           <View
-                            style={{
-                              marginTop: 18,
-                              marginBottom: 8,
-                              alignItems: "center",
-                            }}
-                          >
-                            <WikipediaBanner
-                              key={onePick[0]?.key || 'empty'} 
-                              imageUrl={headerImageUrl} 
-                              maxWidth={CONTENT_W}
-                              screenWidth={screenW}
-                              cardBg={cardBg}
-                              customBgColor={customBgColor}
-                            />
-                          </View>
+  style={{
+    marginTop: 18,
+    marginBottom: 8,
+    alignItems: "center",
+  }}
+>
+  <WikipediaBanner
+    key={onePick[0]?.key || 'empty'} 
+    imageUrl={headerImageUrl} 
+    maxWidth={CONTENT_W}
+    screenWidth={screenW}
+    cardBg={cardBg}
+    customBgColor={customBgColor}
+    resetKey={onePick[0]?.key || 'empty'} // 🔹 추가
+  />
+</View>
                           
                         </View>
                       );
