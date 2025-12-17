@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   footerLink: {
-    color: '#007AFF',
+    color: '#999',
     fontWeight: '500',
   },
   footerSeparator: {
