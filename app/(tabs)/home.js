@@ -1199,37 +1199,44 @@ function SegmentedCountrySelector({
   ordered,
   value,        // Set<string>
   onChange,
-  fixedHeight = 39,
+  fixedHeight = 38,
 }) {
   const { scale } = useUIScale();
 
-  const W = scale(323);          // 전체 폭
-  const H = fixedHeight || 39;   // 전체 높이
-  const CONTAINER_RADIUS = 80;
-  const BTN_H = 37;
-  const ICON = Math.max(14, Math.min(22, scale(16)));
+  // Big button spec
+  const BIG_W = 323;
+  const BIG_H = 38;
+  const BIG_RADIUS = 80;
 
-  // 지금 선택된 나라 (단일 선택 전제)
-  const selectedId =
-    value && value.size ? [...value][0] : null;
+  // Small button spec
+  const BTN_W = 78;
+  const BTN_H = 38;
+  const BTN_RADIUS = 100;
+  const GAP = 4;
 
-  // ✅ 단일 선택: 누르면 해당 나라만 선택
+  const ICON = 16;
+
+  const selectedId = value && value.size ? [...value][0] : null;
+
   const handlePress = (id) => {
-    if (selectedId === id) return;     // 같은 거면 무시
-    const next = new Set([id]);        // 항상 1개만
-    onChange(next);
+    if (selectedId === id) return;
+    onChange(new Set([id])); // 단일 선택 유지
   };
+
+  const fontFamily = Platform.OS === "ios" ? "Arial" : "sans-serif";
 
   return (
     <View
       style={{
-        width: W,
-        height: H,
-        borderRadius: CONTAINER_RADIUS,
+        width: scale(BIG_W),
+        height: scale(BIG_H),
+        borderRadius: BIG_RADIUS,
         overflow: "hidden",
-        backgroundColor: "rgba(255,255,255,0.6)",
+        backgroundColor: "rgba(255,255,255,0.6)", // Fill FFFFFF 60%
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.5)",
+        borderColor: "rgba(255,255,255,0.5)",      // Stroke FFFFFF 50%
+
+        // Drop shadow (x 0 y 4 blur 4, color 000 25%)
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
@@ -1237,24 +1244,26 @@ function SegmentedCountrySelector({
         elevation: 4,
       }}
     >
-      {/* Background blur */}
+      {/* Background blur (15) */}
       <BlurView
         intensity={15}
         tint="light"
         style={StyleSheet.absoluteFillObject}
       />
 
+      {/* Small buttons row (가운데에 배치) */}
       <View
         style={{
           flex: 1,
           flexDirection: "row",
           alignItems: "center",
-          paddingHorizontal: 16, // 패딩 줄여서 4개 다 들어오게
+          justifyContent: "flex-start",  
+          gap: scale(GAP),
         }}
       >
-        {ordered.map((id, idx) => {
+        {ordered.slice(0, 4).map((id) => {
           const active = selectedId === id;
-          const iconId = id;
+
           const label =
             LABEL_BY_ID[id]?.[uiLang] ||
             LABEL_BY_ID[id]?.en ||
@@ -1263,53 +1272,49 @@ function SegmentedCountrySelector({
           return (
             <Pressable
               key={id}
-              onPress={() => handlePress(id)}   // ✅ 여기!
-              hitSlop={6}
-              style={[
-                {
-                  flex: 1,                    // 4개 균등 분배
-                  height: BTN_H,
-                  borderRadius: 100,
-                  justifyContent: "center",
-                  alignItems: "flex-start",   // ✅ 왼쪽 정렬
-                  paddingHorizontal: 10,
-                  marginLeft: idx === 0 ? 0 : 6,
-                  backgroundColor: active ? "#FFFFFF" : "transparent",
-                },
-                active && {
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowRadius: 3,
-                  shadowOpacity: 0.3,
-                  elevation: 3,
-                },
-              ]}
+              onPress={() => handlePress(id)}
+              hitSlop={8}
+              style={{
+                width: scale(BTN_W),
+                height: scale(BTN_H),
+                borderRadius: BTN_RADIUS,
+                justifyContent: "center",
+                paddingLeft: scale(12),
+
+                // 선택됐을 때만 "small button"이 떠야 함
+                backgroundColor: active ? "#FFFFFF" : "transparent",
+
+                // shadow / Elevation Level 3 (선택된 것만)
+                ...(active
+                  ? {
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowRadius: 3,
+                      shadowOpacity: 0.3,
+                      elevation: 3,
+                    }
+                  : null),
+              }}
             >
-              <View
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "flex-start",  // 왼쪽 정렬
-                }}
-              >
-                {!!iconId && !!FLAG_ICON[iconId] && (
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {!!FLAG_ICON[id] && (
                   <RNImage
-                    source={FLAG_ICON[iconId]}
+                    source={FLAG_ICON[id]}
                     style={{
-                      width: ICON,
-                      height: ICON,
-                      marginRight: 6,
-                      opacity: active ? 1 : 0.9,
+                      width: scale(ICON),
+                      height: scale(ICON),
+                      marginRight: scale(6),
                     }}
                     resizeMode="contain"
                   />
                 )}
+
                 <Text
                   style={{
-                    fontWeight: "700",
-                    fontSize: scale(13),
-                    color: "#000000",
-                    textAlign: "left",
+                    fontFamily,
+                    fontSize: 13, // Arial 13
+                    fontWeight: "600",
+                    color: "#000",
                   }}
                   numberOfLines={1}
                 >
