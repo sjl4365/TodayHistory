@@ -30,7 +30,24 @@ export default function OpenSourceScreen() {
   };
 
   const packages = [
-    { name: 'example', version: '9.0.0' },
+    { name: 'Wikipedia API', version: '1.0.0' },
+    {name:'Google Custom Search API',version:'1.0.0'},
+    {name:'amplitude/analytics-react-native',version:'1.5.16'},
+    {name:'react-native-async-storage/async-storage',version:'2.2.0'},
+    {name:'google-cloud/storage',version:'7.17.2'},
+    {name:'react-native-community/datetimepicker',version:'8.4.4'},
+    {name:'react-native-community/slider',version:'5.0.1'},
+    {name:'expo-blur',version:'15.0.7'},
+    {name:'expo-image',version:'3.0.10'},
+    {name:'expo-image-picker',version:'17.0.8'},
+    {name:'react-native-safe-area-context',version:'5.6.0'},
+    {name:'react-native-screens',version:'4.16.0'},
+    {name:'expo-navigation-bar',version:'5.0.8'},
+    {name:'expo-notifications',version:'0.32.13'},
+    {name:'expo-task-manager',version:'14.0.7'},
+    {name:'axios',version:'1.12.2'},
+    {name:'react-native-reanimated',version:'4.1.1'},
+
   ];
 
   return (
@@ -64,7 +81,7 @@ export default function OpenSourceScreen() {
               </View>
             ))}
           </View>
-
+          </ScrollView>
           {/* Footer with Logo */}
           <View style={[
             styles.footerContainer,
@@ -122,7 +139,6 @@ export default function OpenSourceScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
       </View>
     </SafeAreaView>
   );
