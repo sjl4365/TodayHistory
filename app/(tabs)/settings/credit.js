@@ -7,6 +7,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Image,
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,6 +21,7 @@ function useUIScale() {
 
 export default function CreditScreen() {
   const { scale } = useUIScale();
+  
   const openLink = (url) => {
     Linking.openURL(url).catch((err) =>
       console.error('Failed to open URL:', err)
@@ -31,10 +33,7 @@ export default function CreditScreen() {
       <View style={styles.contentWrapper}>
         <ScrollView 
           style={styles.scrollView}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingBottom: scale(20) }
-          ]}
+          contentContainerStyle={styles.scrollContent}
         >
           
           <View style={[
@@ -135,57 +134,81 @@ export default function CreditScreen() {
               </Text>
             </View>
           </View>
-        </ScrollView>
 
-        {/* Footer - Fixed at bottom */}
-        <View style={[
-          styles.footer,
-          {
-            paddingTop: scale(20),
-            paddingBottom: scale(20),
-          }
-        ]}>
+          {/* Spacer to push footer down */}
+          <View style={{ flex: 1, minHeight: scale(40) }} />
+
+          {/* Footer - Same as Settings page */}
           <View style={[
-            styles.footerLinks,
+            styles.footer,
             {
+              paddingTop: scale(32),
+              paddingBottom: scale(34),
               paddingHorizontal: scale(20),
-              gap: scale(12),
-              marginBottom: scale(12),
             }
           ]}>
-            <TouchableOpacity
-              onPress={() =>
-                openLink(
-                  'https://sunnyinnolab.notion.site/Terms-and-Conditions-0601612ffa404317a4ddaf5a094e5471'
-                )
-              }
-            >
-              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
-                Terms of Service
+            {/* Logo */}
+            <Image
+              source={require('../../../assets/images/logo_mini.png')}
+              style={{ 
+                width: scale(180),
+                height: scale(50),
+                marginBottom: scale(16),
+                tintColor: 'white',
+              }}
+              resizeMode="contain"
+            />
+            
+            {/* Footer Links */}
+            <View style={styles.footerLinks}>
+              <TouchableOpacity
+                onPress={() =>
+                  openLink(
+                    'https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74'
+                  )
+                }
+              >
+                <Text style={[
+                  styles.linkText, 
+                  { 
+                    fontSize: scale(14),
+                    paddingHorizontal: scale(4),
+                  }
+                ]}>
+                  Terms of Service
+                </Text>
+              </TouchableOpacity>
+              
+              <Text style={[
+                styles.separator, 
+                { 
+                  fontSize: scale(14),
+                  marginHorizontal: scale(8),
+                }
+              ]}>
+                |
               </Text>
-            </TouchableOpacity>
-            <Text style={[styles.separator, { fontSize: scale(14) }]}>
-              |
-            </Text>
-            <TouchableOpacity
-              onPress={() =>
-                openLink(
-                  'https://sunnyinnolab.notion.site/Privacy-Policy-2919720d6e7848669b9d5e1170c6cabc'
-                )
-              }
-            >
-              <Text style={[styles.linkText, { fontSize: scale(14) }]}>
-                Privacy Policy
-              </Text>
-            </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={() =>
+                  openLink(
+                    'https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b'
+                  )
+                }
+              >
+                <Text style={[
+                  styles.linkText, 
+                  { 
+                    fontSize: scale(14),
+                    paddingHorizontal: scale(4),
+                  }
+                ]}>
+                  Privacy Policy
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <View style={styles.versionContainer}>
-            <Text style={[styles.versionText, { fontSize: scale(13) }]}>
-              Version 1.0.0
-            </Text>
-          </View>
-        </View>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -231,27 +254,19 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   footer: {
-    borderTopWidth: 1,
-    borderTopColor: '#2c2c2e',
     backgroundColor: '#000',
+    alignItems: 'center',
   },
   footerLinks: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    flexWrap: 'wrap',
   },
   linkText: {
-    color: '#007AFF',
+    color: '#888',
     fontWeight: '500',
   },
   separator: {
-    color: '#666',
-  },
-  versionContainer: {
-    alignItems: 'center',
-  },
-  versionText: {
-    color: '#666',
+    color: '#888',
   },
 });

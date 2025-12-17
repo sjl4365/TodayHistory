@@ -1342,7 +1342,7 @@ function WebViewModal({ visible, url, onClose }) {
               requestNonPersonalizedAdsOnly: true,
               }}
             />
-            <Pressable
+            {/* <Pressable
               onPress={onClose}
               hitSlop={10}
               style={{
@@ -1358,8 +1358,25 @@ function WebViewModal({ visible, url, onClose }) {
               <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
                 ✕
               </Text>
-            </Pressable>
+            </Pressable> */}
           </View>
+          <Pressable
+              onPress={onClose}
+              hitSlop={10}
+              style={{
+                position: 'absolute',
+                top: scale(22),
+                right: scale(22),
+                padding: scale(8),
+                borderRadius: scale(8),
+                backgroundColor: "rgba(243, 244, 246, 0.9)",
+                zIndex: 10,
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
+                ✕
+              </Text>
+            </Pressable>
 
           <Text
             style={{

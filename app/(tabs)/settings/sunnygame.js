@@ -1,10 +1,17 @@
 // app/(tabs)/settings/sunnygame.js
 
 import React from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity,Image,Linking,Alert,
-} from 'react-native';
+import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Alert, useWindowDimensions} from 'react-native';
+
+function useUIScale() {
+  const { width } = useWindowDimensions();
+  const BASE = 393;
+  const scale = (n) => Math.round((width / BASE) * n);
+  return { scale, screenW: width };
+}
 
 export default function SunnyGame() {
+  const { scale } = useUIScale();
   const apps = [
     {
         id: 1,
@@ -29,7 +36,7 @@ export default function SunnyGame() {
         name: 'Decibella',
         icon: require('../../../assets/images/decibella.png'),
         url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
-      },
+    },
     {
         id: 5,
         name: 'Find Four',
@@ -38,66 +45,84 @@ export default function SunnyGame() {
     },
   ];
 
-  const openAppLink = async (url,appName) =>{
+  const openAppLink = async (url, appName) => {
     try {
         await Linking.openURL(url);
-      } catch (error) {
+    } catch (error) {
         console.error(`Error opening ${appName}:`, error);
         Alert.alert(
           'Unable to Open Link', 
           `Could not open ${appName}. Please check your internet connection.`,
           [{ text: 'OK' }]
         );
-      }
-  };
-
-  const openTwitter = async () => {
-    const twitterUsername = 'Sunnyinnolab';
-    const twitterUrl = `twitter://user?screen_name=${twitterUsername}`;
-    const webUrl = `https://x.com/Sunnyinnolab`;
-
-    try {
-      const canOpen = await Linking.canOpenURL(twitterUrl);
-      if (canOpen) {
-        await Linking.openURL(twitterUrl);
-      } else {
-        await Linking.openURL(webUrl);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Unable to open X (Twitter)');
-      console.error(error);
     }
   };
 
-  const AppCard = ({ app,isLast }) =>(
+  const openExternalLink = async (url) => {
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      console.error('Error opening link:', error);
+      Alert.alert(
+        'Unable to Open Link',
+        'Could not open the link. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const AppCard = ({ app, isLast }) => (
     <View>
       <TouchableOpacity
         style={styles.appCard}
         onPress={() => openAppLink(app.url, app.name)}
         activeOpacity={0.7}
       >
-        <View style={styles.appContent}>
-          <Image source={app.icon} style={styles.appIcon} resizeMode="cover" />
+        <View style={[styles.appContent, {
+          padding: scale(15),
+          paddingVertical: scale(16),
+        }]}>
+          <Image 
+            source={app.icon} 
+            style={{
+              width: scale(60),
+              height: scale(60),
+              borderRadius: scale(12),
+              marginRight: scale(15),
+            }} 
+            resizeMode="cover" 
+          />
           
-          <View style={styles.appInfo}>
-            <Text style={styles.appName}>{app.name}</Text>
+          <View style={{ flex: 1, marginRight: scale(10) }}>
+            <Text style={[styles.appName, { fontSize: scale(16) }]}>
+              {app.name}
+            </Text>
           </View>
 
-          <View style={styles.linkContainer}>
-            <Text style={styles.linkText}>Link</Text>
+          <View style={{ paddingHorizontal: scale(12) }}>
+            <Text style={[styles.linkText, { fontSize: scale(14) }]}>
+              Link
+            </Text>
           </View>
         </View>
       </TouchableOpacity>
 
-      {!isLast && <View style={styles.divider} />}
+      {!isLast && <View style={{ 
+        height: 1, 
+        backgroundColor: '#3a3a3a',
+        marginLeft: scale(15) 
+      }} />}
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+      >
         <View style={styles.appsContainer}>
-          {apps.map((app,index)=>(
+          {apps.map((app, index) => (
             <AppCard 
               key={app.id} 
               app={app} 
@@ -105,62 +130,112 @@ export default function SunnyGame() {
             />
           ))}
         </View>
-        <View style={styles.bottomSpacing} />
+
+        <View style={{ flex: 1 }} />
+
+        <View style={[
+          styles.footerContainer,
+          {
+            paddingTop: scale(32),
+            paddingBottom: scale(20),
+            paddingHorizontal: scale(20),
+          }
+        ]}>
+          <Image
+            source={require('../../../assets/images/logo_mini.png')}
+            style={{ 
+              width: scale(180),
+              height: scale(50),
+              marginBottom: scale(16),
+              tintColor: 'white',
+            }}
+            resizeMode="contain"
+          />
+          
+          <View style={styles.footerLinksContainer}>
+            <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
+              <Text style={[
+                styles.footerLink, 
+                { 
+                  fontSize: scale(14),
+                  paddingHorizontal: scale(4),
+                }
+              ]}>
+                Terms of Service
+              </Text>
+            </TouchableOpacity>
+            
+            <Text style={[
+              styles.footerSeparator, 
+              { 
+                fontSize: scale(14),
+                marginHorizontal: scale(8),
+              }
+            ]}>
+              |
+            </Text>
+            
+            <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
+              <Text style={[
+                styles.footerLink, 
+                { 
+                  fontSize: scale(14),
+                  paddingHorizontal: scale(4),
+                }
+              ]}>
+                Privacy Policy
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container:{
+  container: {
     flex: 1,
     backgroundColor: 'black',
   },
-  scrollView:{
+  scrollView: {
     flex: 1,
   },
-  appsContainer:{
+  scrollContent: {
+    flexGrow: 1,
+  },
+  appsContainer: {
     paddingHorizontal: 0,
     paddingTop: 0,
   },
-  appCard:{
+  appCard: {
     backgroundColor: 'black',
   },
-  appContent:{
+  appContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    paddingVertical: 16,
   },
-  appIcon:{
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    marginRight: 15,
-  },
-  appInfo:{
-    flex: 1,
-    marginRight: 10,
-  },
-  appName:{
-    fontSize: 16,
+  appName: {
     fontWeight: '600',
     color: 'white',
   },
-  linkContainer:{
-    paddingHorizontal: 12,
-  },
-  linkText:{
-    fontSize:14,
+  linkText: {
     color: 'grey',
     fontWeight: '500',
   },
-  divider:{
-    height: 1,
-    backgroundColor:'#3a3a3a',
-    marginLeft: 15,
+  footerContainer: {
+    alignItems: 'center',
+    backgroundColor: 'black',
   },
-  bottomSpacing:{
-    height: 50,
+  footerLinksContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerLink: {
+    color: '#888',
+  },
+  footerSeparator: {
+    color: '#888',
   },
 });

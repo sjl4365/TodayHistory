@@ -8,21 +8,21 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
-  Dimensions,
+  Image,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const BASE_WIDTH = 390;
-const BASE_HEIGHT = 844;
-const scaleWidth = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
-const scaleHeight = (size) => (SCREEN_HEIGHT / BASE_HEIGHT) * size;
-const resize = (size) => (SCREEN_WIDTH / BASE_WIDTH) * size;
-const moderateScale = (size, factor = 0.5) => {
-  return size + (resize(size) - size) * factor;
-};
+function useUIScale() {
+  const { width } = useWindowDimensions();
+  const BASE = 393;
+  const scale = (n) => Math.round((width / BASE) * n);
+  return { scale, screenW: width };
+}
 
 export default function OpenSourceScreen() {
+  const { scale } = useUIScale();
+
   const openLink = (url) => {
     Linking.openURL(url).catch((err) =>
       console.error('Failed to open URL:', err)
@@ -31,65 +31,98 @@ export default function OpenSourceScreen() {
 
   const packages = [
     { name: 'example', version: '9.0.0' },
-
   ];
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.contentWrapper}>
-        {/* <ScrollView  */}
-          {/* style={styles.scrollView}
+        <ScrollView  
+          style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
-        > */}
-          <View style={styles.section}>
+        >
+          <View style={[styles.section, {
+            paddingHorizontal: scale(20),
+            paddingTop: scale(20),
+          }]}>
             {packages.map((pkg, index) => (
               <View 
                 key={pkg.name} 
                 style={[
                   styles.packageRow,
-                  index === packages.length - 1 && styles.lastPackageRow
+                  {
+                    paddingVertical: scale(16),
+                    borderBottomWidth: index === packages.length - 1 ? 0 : 1,
+                  }
                 ]}
               >
-                <Text style={styles.packageName}>{pkg.name}</Text>
-                <Text style={styles.packageVersion}>{pkg.version}</Text>
+                <Text style={[styles.packageName, { fontSize: scale(16) }]}>
+                  {pkg.name}
+                </Text>
+                <Text style={[styles.packageVersion, { fontSize: scale(16) }]}>
+                  {pkg.version}
+                </Text>
               </View>
             ))}
           </View>
-        {/* </ScrollView> */}
 
-        <View style={styles.footer}>
-          <View style={styles.footerLinks}>
-            <TouchableOpacity
-              onPress={() =>
-                openLink(
-                  'https://sunnyinnolab.notion.site/Terms-and-Conditions-0601612ffa404317a4ddaf5a094e5471'
-                )
-              }
-            >
-              <Text style={styles.linkText}>
-                Terms of Service
+          {/* Footer with Logo */}
+          <View style={[
+            styles.footerContainer,
+            {
+              paddingTop: scale(12),
+              paddingBottom: scale(16),
+              paddingHorizontal: scale(20),
+              marginTop: scale(20),
+            }
+          ]}>
+            <Image
+              source={require('../../../assets/images/logo_mini.png')}
+              style={{ 
+                width: scale(180),
+                height: scale(50),
+                marginBottom: scale(8),
+                tintColor: 'white',
+              }}
+              resizeMode="contain"
+            />
+            
+            <View style={styles.footerLinksContainer}>
+              <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
+                <Text style={[
+                  styles.footerLink, 
+                  { 
+                    fontSize: scale(12),
+                    paddingHorizontal: scale(4),
+                  }
+                ]}>
+                  Terms of Service
+                </Text>
+              </TouchableOpacity>
+              
+              <Text style={[
+                styles.footerSeparator, 
+                { 
+                  fontSize: scale(12),
+                  marginHorizontal: scale(6),
+                }
+              ]}>
+                |
               </Text>
-            </TouchableOpacity>
-            <Text style={styles.separator}>|</Text>
-            <TouchableOpacity
-              onPress={() =>
-                openLink(
-                  'https://sunnyinnolab.notion.site/Privacy-Policy-2919720d6e7848669b9d5e1170c6cabc'
-                )
-              }
-            >
-              <Text style={styles.linkText}>
-                Privacy Policy
-              </Text>
-            </TouchableOpacity>
+              
+              <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
+                <Text style={[
+                  styles.footerLink, 
+                  { 
+                    fontSize: scale(12),
+                    paddingHorizontal: scale(4),
+                  }
+                ]}>
+                  Privacy Policy
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-
-          <View style={styles.versionContainer}>
-            <Text style={styles.versionText}>
-              Version 1.0.0
-            </Text>
-          </View>
-        </View>
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -108,66 +141,46 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: scaleHeight(20),
   },
   section: {
     flex: 1,
-    paddingHorizontal: scaleWidth(20),
-    paddingTop: scaleHeight(20),
   },
   packageRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: scaleHeight(16),
-    borderBottomWidth: 1,
     borderBottomColor: '#2c2c2e',
   },
-  lastPackageRow: {
-    borderBottomWidth: 0,
-  },
   packageName: {
-    fontSize: moderateScale(16),
     color: '#fff',
     fontWeight: '500',
     flex: 1,
   },
   packageVersion: {
-    fontSize: moderateScale(16),
     color: '#999',
     fontWeight: '400',
     textAlign: 'right',
   },
-  footer: {
-    paddingTop: scaleHeight(20),
-    paddingBottom: scaleHeight(20),
-    borderTopWidth: 1,
-    borderTopColor: '#2c2c2e',
+  footerContainer: {
+    alignItems: 'center',
     backgroundColor: '#000',
   },
-  footerLinks: {
+  footerLinksContainer: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: scaleWidth(20),
-    gap: scaleWidth(12),
-    flexWrap: 'wrap',
-    marginBottom: scaleHeight(12),
+    justifyContent: 'center',
   },
-  linkText: {
-    fontSize: moderateScale(14),
+  footerLink: {
     color: '#007AFF',
     fontWeight: '500',
   },
-  separator: {
-    fontSize: moderateScale(14),
+  footerSeparator: {
     color: '#666',
   },
   versionContainer: {
     alignItems: 'center',
   },
   versionText: {
-    fontSize: moderateScale(13),
     color: '#666',
   },
 });

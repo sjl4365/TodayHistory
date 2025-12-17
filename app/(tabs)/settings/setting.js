@@ -340,7 +340,7 @@ export default function SettingsIndex() {
         />
         
         <View style={styles.footerLinksContainer}>
-          <TouchableOpacity onPress={() => openExternalLink('https://example.com/terms')}>
+          <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
             <Text style={[
               styles.footerLink, 
               { 
@@ -362,7 +362,7 @@ export default function SettingsIndex() {
             |
           </Text>
           
-          <TouchableOpacity onPress={() => openExternalLink('https://example.com/privacy')}>
+          <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
             <Text style={[
               styles.footerLink, 
               { 
