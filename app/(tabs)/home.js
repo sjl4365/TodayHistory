@@ -207,30 +207,35 @@ const AD_MODAL_TEXT = {
   en: {
     description:
       'Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.',
-    badge: ' ✅ Free to use',
+    badge: 'Enjoy all features & No ads',
+    cta: '✅ Free to use',
   },
   ko: {
     description:
       '광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.',
-    badge: '✅ 무료 이용',
+    badge: '모든 기능 이용 · 광고 없음',
+    cta: '✅ 무료 이용',
   },
   ja: {
     description:
       '広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。',
-    badge: '✅ 無料利用',
+    badge: '全機能利用 · 広告なし',
+    cta: '✅ 無料利用',
   },
+  // (선택) 스페인어/이탈리아어도 동일하게
   es: {
     description:
       'Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.',
-    badge: '✅ Gratis',
+    badge: 'Disfruta todas las funciones · Sin anuncios',
+    cta: '✅ Gratis',
   },
   it: {
     description:
       'Guarda un annuncio per usare “Yesterday & Tomorrow History” senza annunci video per le prossime 12 ore.',
-    badge: '✅ Gratis',
+    badge: 'Tutte le funzioni · Niente annunci',
+    cta: '✅ Gratis',
   },
 };
-
 
 
 const SOURCE_LABEL = { ko: "출처", en: "Source", ja: "出典" };
@@ -4362,14 +4367,8 @@ if (p.cid === "world") {
             backgroundColor: "#111827",
           }}
         >
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              color: "#FFFFFF",
-            }}
-          >
-            광고 시청하러 가기
+          <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+            {tModal.cta}
           </Text>
         </Pressable>
       </View>
