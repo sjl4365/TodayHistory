@@ -2161,12 +2161,16 @@ async function apiFetchForMode(mode, todayParts, isoDate) {
 
 
 
-// 앵커 리스트 (폰트 사이즈 설정 연동)
+// 앵커 리스트 (pill 버튼 스타일)
 function AnchorList({ anchors, onLinkPress, fontSize }) {
   if (!anchors || !anchors.length) return null;
 
+  const FS = fontSize || 12; // 이미지: Arial bold 12
+  const H = 24;              // 이미지: H24
+  const R = 21;              // 이미지: Corner radius 21
+
   return (
-    <View style={{ marginTop: 6, flexDirection: "row", flexWrap: "wrap" }}>
+    <View style={{ marginTop: 10, flexDirection: "row", flexWrap: "wrap" }}>
       {anchors.map((a, idx) => {
         const text = String(a?.text || "").trim();
         const url = String(a?.url || "").trim();
@@ -2184,23 +2188,29 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
             accessibilityRole="link"
             hitSlop={6}
             style={{
-              marginRight: 12,
-              marginBottom: 4,
+              height: H,
+              borderRadius: R,
+              backgroundColor: "#242424",
+              borderWidth: 1,
+              borderColor: "#FFFFFF",
+              paddingHorizontal: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              marginRight: 10,
+              marginBottom: 10,
             }}
           >
             <Text
               style={{
-                fontSize: fontSize || 15,
-                color: "#000000ff",
-
+                fontSize: FS,
+                fontWeight: "700",
+                color: "#FFFFFF",
+                // iOS는 Arial, Android는 기본 sans-serif로 fallback
+                fontFamily: Platform.OS === "ios" ? "Arial" : "sans-serif",
               }}
               numberOfLines={1}
             >
-                [
-                  <Text style={{ textDecorationLine: "underline" }}>
-                    {text}
-                  </Text>
-                  ]
+              {text}
             </Text>
           </Pressable>
         );
@@ -2208,6 +2218,7 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
     </View>
   );
 }
+
 
 // 배너 URL 캐시 키
 const BANNER_KEY = (dateISO, cid) =>
