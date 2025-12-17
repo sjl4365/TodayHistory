@@ -254,6 +254,7 @@ const FLAG_ICON = {
   world: require("../../assets/flag/world.png"),
   korea: require("../../assets/flag/korea.png"),
   japan: require("../../assets/flag/japan.png"),
+  china : require("../../assets/flag/china.png"),
 };
 
 // 나라별 헤더 배경 이미지 (각 7장씩)
@@ -285,9 +286,32 @@ const HERO_BG_IMAGES = {
     require("../../assets/bg-images/uk-photo6.jpg"),
     require("../../assets/bg-images/uk-photo7.jpg"),
   ],
+    china: [
+    require("../../assets/bg-images/c-photo1.jpg"),
+    require("../../assets/bg-images/c-photo2.jpg"),
+    require("../../assets/bg-images/c-photo3.jpg"),
+    require("../../assets/bg-images/c-photo4.jpg"),
+    require("../../assets/bg-images/c-photo5.jpg"),
+    require("../../assets/bg-images/c-photo6.jpg"),
+    require("../../assets/bg-images/c-photo7.jpg"),
+  ],
 };
 
 const DEFAULT_HERO_BG = require("../../assets/bg-images/k-photo1.jpg");
+function getWeekdayIndexInTz(date, tz) {
+  try {
+    const wd = new Intl.DateTimeFormat("en-US", {
+      timeZone: safeTimeZone(tz),
+      weekday: "short",
+    }).format(date);
+
+    const map = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+    return map[wd] ?? date.getDay();
+  } catch {
+    return date.getDay(); // fallback
+  }
+}
+
 
 const AD_RATIO = 3.2;
 const AD_TARGET = { w: 320, h: 100 };
@@ -656,10 +680,10 @@ function equalSets(a, b) {
 }
 
 // 나라+날짜 기준 헤더 배경 선택 (7장 순환)
-function pickDailyHeroBg(cid, date) {
+function pickDailyHeroBg(cid, date, tz) {
   const list = HERO_BG_IMAGES[cid];
   if (!list || !list.length) return DEFAULT_HERO_BG;
-  const dayIndex = date.getDay(); // 0~6
+  const dayIndex = getWeekdayIndexInTz(date, tz); // 0~6
   return list[dayIndex % list.length];
 }
 
@@ -3752,7 +3776,7 @@ const ordered = getCountryOrderByUiLang(uiLang || "en");
       cid = "world";
     }
 
-    return pickDailyHeroBg(cid, today0);
+    return pickDailyHeroBg(cid, today0, tz);
   }, [selectedCountries, list, today0]);
 
   const SEGMENT_H = 38;
