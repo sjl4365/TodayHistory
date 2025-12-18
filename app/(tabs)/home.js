@@ -186,10 +186,22 @@ const UI_STR = {
       next: "明日の歴史",
     },
   },
-   yearTitle: {
-    ko: "연도별 역사",
-    en: "Year in History",
-    ja: "年の歴史",
+    yearTitle: {
+    ko: {
+      base: "연도별 역사",          // 기준 연도
+      prev: "지난해 연도별 역사",   // 기준보다 -1년
+      next: "다음해 연도별 역사",   // 기준보다 +1년
+    },
+    en: {
+      base: "Year in History",
+      prev: "Previous Year in History",
+      next: "Next Year in History",
+    },
+    ja: {
+      base: "年の歴史",
+      prev: "前年の歴史",
+      next: "翌年の歴史",
+    },
   },
   empty: {
     ko: "표시할 항목이 없습니다.",
@@ -1016,23 +1028,41 @@ function getOnlyCountryId(selectedSet) {
   return arr[0] || null;
 }
 
-function getHistoryTitle(uiLang, deltaDay, selectedCountries) {
+function getHistoryTitle(
+  uiLang,
+  deltaDay,
+  selectedCountries,
+  yearDeltaForTitle 
+) {
   const lang = uiLang || "en";
   const t = UI_STR.title[lang] || UI_STR.title.en;
-  const yearT = UI_STR.yearTitle?.[lang] || UI_STR.yearTitle.en;
+
+  // yearTitle은 문자열이던 예전형이랑, 지금처럼 객체형 둘 다 지원
+  const yearRaw = UI_STR.yearTitle?.[lang] || UI_STR.yearTitle.en;
+  const yearT =
+    typeof yearRaw === "string"
+      ? { base: yearRaw, prev: yearRaw, next: yearRaw }
+      : yearRaw;
 
   const cid = getOnlyCountryId(selectedCountries);
 
-  // 세계만 어제/오늘/내일 유지
+  // world 는 기존처럼 어제/오늘/내일
   if (cid === "world") {
     if (deltaDay < 0) return t.prev;
     if (deltaDay > 0) return t.next;
     return t.today;
   }
 
-  // 한국/중국/일본은 항상 Year in History
-  return yearT;
+  // 🇰🇷🇯🇵🇨🇳 연도 모드: 기준 연도/이전/다음
+  if (typeof yearDeltaForTitle === "number") {
+    if (yearDeltaForTitle < 0) return yearT.prev || yearT.base;
+    if (yearDeltaForTitle > 0) return yearT.next || yearT.base;
+  }
+
+  // 기본: Year in History
+  return yearT.base || yearRaw;
 }
+
 
 
 
@@ -2138,7 +2168,7 @@ function normalizeItemsToRows(items, iso, parts) {
         sc: it.sc || it.sc || "",
         tc: it.tc || it.tc || "",
 
-        // ✅ 여기!
+        // 여기!
         enAnchors: cleanAnchors(it.enAnchors),
         koAnchors: cleanAnchors(it.koAnchors),
         jaAnchors: cleanAnchors(it.jaAnchors),
@@ -2459,8 +2489,9 @@ function pickTargetYearFromUnion(poolsByCid, cids, seedKey) {
   }
   if (!union.length) return null;
 
-  // 랜덤(하지만 seedKey로 안정적) 연도 선택
-  const rnd = xorshift(hash32(`yearpick:${seedKey}`));
+  // ✅ 날짜 + 나라조합 + seedKey까지 같이 섞어서 더 다양하게
+  const today = new Date().toISOString().slice(0, 10); // "2025-12-18" 이런 형태
+  const rnd = xorshift(hash32(`year:${today}:${seedKey}`));
   const idx = Math.floor(rnd() * union.length);
   return union[idx];
 }
@@ -2610,6 +2641,7 @@ const yearCids = useMemo(() => {
   return [...selectedCountries].filter((c) => c !== "world");
 }, [isYearMode, selectedCountries]);
 
+
 const [yearCursor, setYearCursor] = useState(null); // number | null
 const [yearNav, setYearNav] = useState({ canPrev: false, canNext: false });
 
@@ -2617,21 +2649,32 @@ const [yearYears, setYearYears] = useState([]);
 
 const baseYearRef = useRef(null);
 
-const prevSelKeyRef = useRef("");
+const prevSelStateRef = useRef({
+  key: "",
+  isYearMode: false,
+});
 
 useEffect(() => {
   const selKey = [...selectedCountries].sort().join(",");
-  if (selKey !== prevSelKeyRef.current) {
-    prevSelKeyRef.current = selKey;
+  const isNowYearMode =
+    !selectedCountries.has("world") && selectedCountries.size > 0;
 
-    // ✅ 나라 조합 바뀌면 기준 연도도 초기화
-    baseYearRef.current = null;
+  const prev = prevSelStateRef.current;
 
-    if (!selectedCountries.has("world")) {
+  if (selKey !== prev.key || isNowYearMode !== prev.isYearMode) {
+    // World -> Year 처음 진입: 연도 새로 뽑기
+    if (!prev.isYearMode && isNowYearMode) {
       setYearCursor(null);
+      baseYearRef.current = null;
     }
+    prevSelStateRef.current = {
+      key: selKey,
+      isYearMode: isNowYearMode,
+    };
   }
 }, [selectedCountries]);
+
+
 
 
   const [onePick, setOnePick] = useState([]);
@@ -2923,13 +2966,29 @@ const panResponder = React.useMemo(
 
  
 
-  const buildSharePayload = useCallback(() => {
+ const buildSharePayload = useCallback(() => {
   const lang = uiLang || "en";
 
   const appName =
     APP_NAME_BY_LANG[lang] || APP_NAME_BY_LANG.en;
-const historyTitle = getHistoryTitle(lang, dayOffset, selectedCountries);
-// 오늘/어제/내일 제목 사용
+
+  // ✅ 연도 모드일 때만 기준 기준연도 대비 -1/0/+1 계산
+  let yearDeltaForTitle;
+  if (
+    isYearMode &&
+    yearCursor != null &&
+    baseYearRef.current != null
+  ) {
+    yearDeltaForTitle = yearCursor - baseYearRef.current;
+  }
+
+  const historyTitle = getHistoryTitle(
+    lang,
+    dayOffset,
+    selectedCountries,
+    yearDeltaForTitle // ✅ 추가
+  );
+
 
   // 최상단 헤더: 예) "Histree: 오늘의 역사"
   const header = `${appName}: ${historyTitle}`;
@@ -2995,7 +3054,14 @@ const historyTitle = getHistoryTitle(lang, dayOffset, selectedCountries);
   const payload = lines.join("\n");
 
   return { header, payload };
-}, [onePick, uiLang, dayOffset, todayParts, tz]);
+}, [onePick,
+  uiLang,
+  dayOffset,
+  todayParts,
+  tz,
+  selectedCountries,
+  isYearMode,  
+  yearCursor, ]);
 
 
   const onSystemSharePress = useCallback(async () => {
@@ -3597,6 +3663,7 @@ setYearNav({
 
 
 
+
       
 
       // 각 나라에서 가장 가까운 연도 이벤트 1개씩(중복 방지: refresh 시 다른 이벤트로 회전)
@@ -4030,7 +4097,13 @@ const ordered = getCountryOrderByUiLang(uiLang || "en");
 
   const modalLang = AD_MODAL_TEXT[uiLang] ? uiLang : 'en';
   const tModal = AD_MODAL_TEXT[modalLang];
-  
+  const yearDeltaForTitle =
+    isYearMode &&
+    yearCursor != null &&
+    baseYearRef.current != null
+      ? yearCursor - baseYearRef.current
+      : undefined;
+
   return (
     <SafeAreaView
       style={{
@@ -4131,10 +4204,12 @@ const ordered = getCountryOrderByUiLang(uiLang || "en");
                       textAlign: "center",
                     }}
                   >
+                  
                     {getHistoryTitle(
                       uiLang || "en",
                       dayOffset,
-                      selectedCountries   
+                      selectedCountries,
+                      yearDeltaForTitle      
                     )}
                   </Text>
                   <Text
@@ -4177,6 +4252,9 @@ const ordered = getCountryOrderByUiLang(uiLang || "en");
                       let dateLabel = "";
 if (p.cid === "world") {
   dateLabel = formatEventDateLabel(eventYear, todayParts, uiLang || "en", tz);
+  // 헤더 타이틀용 연도 델타 계산
+
+
 } else {
   // 한/중/일: 연도 + (몇년전)만
   const yNum = parseInt(String(eventYear || ""), 10);
