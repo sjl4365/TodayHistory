@@ -2537,7 +2537,7 @@ async function pickYearEventRotate(pool, targetYear, isoDate, cid) {
 
   if (!candidates.length) return null;
 
-  // ✅ 인덱스 회전: refresh마다 무조건 다음 이벤트로
+  // 인덱스 회전: refresh마다 무조건 다음 이벤트로
   const idxKey = `${STORAGE_KEY_YEAR_EVT_IDX}${cid}:${isoDate}:${targetYear}:${isExact ? "exact" : "closest"}`;
   let idx = 0;
   try {
@@ -2627,7 +2627,7 @@ async function pickYearEventRotate(pool, targetYear, isoDate, cid) {
   () => selectedCountries.has("world"),
   [selectedCountries]
 );
-// ✅ 모드 판단
+// 모드 판단
 const isWorldMode = useMemo(() => selectedCountries.has("world"), [selectedCountries]);
 
 // world가 아니고(=한/중/일 중 선택), 선택이 최소 1개면 Year 모드
@@ -2650,30 +2650,27 @@ const [yearYears, setYearYears] = useState([]);
 const baseYearRef = useRef(null);
 
 const prevSelStateRef = useRef({
-  key: "",
   isYearMode: false,
 });
 
 useEffect(() => {
-  const selKey = [...selectedCountries].sort().join(",");
   const isNowYearMode =
     !selectedCountries.has("world") && selectedCountries.size > 0;
 
   const prev = prevSelStateRef.current;
 
-  if (selKey !== prev.key || isNowYearMode !== prev.isYearMode) {
-    // ✅ Year 모드일 때 나라 조합이 바뀌면, 항상 기준 연도/커서 리셋
-    if (isNowYearMode) {
-      setYearCursor(null);
-      baseYearRef.current = null;
-    }
-
-    prevSelStateRef.current = {
-      key: selKey,
-      isYearMode: isNowYearMode,
-    };
+  // world(또는 아무 선택 없음) → 연도 모드로 "처음 진입"할 때만 seed 리셋
+  if (!prev.isYearMode && isNowYearMode) {
+    setYearCursor(null);
+    baseYearRef.current = null;
   }
+
+  // 연도 모드 안에서 나라만 바뀌는 경우에는 yearCursor 그대로 유지
+  prevSelStateRef.current = {
+    isYearMode: isNowYearMode,
+  };
 }, [selectedCountries]);
+
 
 
   const [onePick, setOnePick] = useState([]);
@@ -2756,13 +2753,13 @@ const goBy = useCallback(
     const step = delta < 0 ? -1 : delta > 0 ? 1 : 0;
     if (!step) return;
 
-    // ✅ World 모드: 기존 dayOffset 이동 (-1/0/+1)
+    //  World 모드: 기존 dayOffset 이동 (-1/0/+1)
     if (isWorldMode) {
       setDayOffset((prev) => Math.max(-1, Math.min(1, prev + step)));
       return;
     }
 
-    // ✅ Year 모드: "연도 +1/-1"만, 그리고 실제 존재하는 연도일 때만 이동
+    // Year 모드: "연도 +1/-1"만, 그리고 실제 존재하는 연도일 때만 이동
     if (isYearMode) {
       setYearCursor((prev) => {
         if (prev == null) return prev;
@@ -2985,7 +2982,7 @@ const panResponder = React.useMemo(
     lang,
     dayOffset,
     selectedCountries,
-    yearDeltaForTitle // ✅ 추가
+    yearDeltaForTitle // 
   );
 
 
@@ -4090,12 +4087,26 @@ const ordered = getCountryOrderByUiLang(uiLang || "en");
 
   const modalLang = AD_MODAL_TEXT[uiLang] ? uiLang : 'en';
   const tModal = AD_MODAL_TEXT[modalLang];
-  const yearDeltaForTitle =
-    isYearMode &&
-    yearCursor != null &&
-    baseYearRef.current != null
-      ? yearCursor - baseYearRef.current
-      : undefined;
+ // yearDeltaForTitle: 타이틀에서 쓸 연도 오프셋
+const yearDeltaForTitle = React.useMemo(() => {
+  // World 모드면 연도 타이틀 안 씀
+  if (!isYearMode) return undefined;
+
+  if (yearCursor == null || baseYearRef.current == null) return undefined;
+
+  // ❗ 이 나라에서 앞/뒤 해 네비가 하나도 없으면
+  //    "지난해/다음해" 개념도 없는 거니까 그냥 기본 타이틀 사용
+  if (!yearNav.canPrev && !yearNav.canNext) {
+    return undefined;
+  }
+
+  const diff = yearCursor - baseYearRef.current;
+
+  if (diff < 0) return -1;
+  if (diff > 0) return 1;
+  return 0;
+}, [isYearMode, yearCursor, yearNav]);
+
 
   return (
     <SafeAreaView
