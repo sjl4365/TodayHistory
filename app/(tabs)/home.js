@@ -2662,19 +2662,18 @@ useEffect(() => {
   const prev = prevSelStateRef.current;
 
   if (selKey !== prev.key || isNowYearMode !== prev.isYearMode) {
-    // World -> Year 처음 진입: 연도 새로 뽑기
-    if (!prev.isYearMode && isNowYearMode) {
+    // ✅ Year 모드일 때 나라 조합이 바뀌면, 항상 기준 연도/커서 리셋
+    if (isNowYearMode) {
       setYearCursor(null);
       baseYearRef.current = null;
     }
+
     prevSelStateRef.current = {
       key: selKey,
       isYearMode: isNowYearMode,
     };
   }
 }, [selectedCountries]);
-
-
 
 
   const [onePick, setOnePick] = useState([]);
@@ -3016,44 +3015,45 @@ const panResponder = React.useMemo(
   }
 
   const p = list[0]; // 어차피 1개만 보여주니까 첫 번째만 사용
-  const label =
-    COUNTRY_CFG[p.cid]?.label?.[lang] ||
-    COUNTRY_CFG[p.cid]?.label?.en ||
-    p.cid;
+const label =
+  COUNTRY_CFG[p.cid]?.label?.[lang] ||
+  COUNTRY_CFG[p.cid]?.label?.en ||
+  p.cid;
 
-  const fieldLabels =
-    FIELD_LABELS[lang] || FIELD_LABELS.en;
+const fieldLabels =
+  FIELD_LABELS[lang] || FIELD_LABELS.en;
 
-  const eventYear = getYearFromRow(p.row);
+const eventYear = getYearFromRow(p.row);
+const dateLabel = formatEventDateLabel(eventYear, todayParts, lang, tz);
 
+const downloadLabel =
+  lang === "ko"
+    ? "히스트리 앱 다운로드 링크"
+    : lang === "ja"
+    ? "Histreeアプリのダウンロードリンク"
+    : "Download Histree app";
 
-  const downloadLabel =
-    lang === "ko"
-      ? "히스트리 앱 다운로드 링크"
-      : lang === "ja"
-      ? "Histreeアプリのダウンロードリンク"
-      : "Download Histree app";
+const bodyText = (p.body || "").trim();
 
-  const bodyText = (p.body || "").trim();
+const lines = [
+  header,
+  "",
+  // 위치: 한국
+  `${fieldLabels.location}: ${label}`,
+  // 날짜: 2019년 11월 29일 (6년 전)
+  `${fieldLabels.date}: ${dateLabel}`,
+  "",
+  // 본문
+  bodyText,
+  "",
+  // *히스트리 앱 다운로드 링크 - https://.
+  `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
+];
 
-  const lines = [
-    header,
-    "",
-    // 위치: 한국
-    `${fieldLabels.location}: ${label}`,
-    // 날짜: 2019년 11월 29일 (6년 전)
-    `${fieldLabels.date}: ${dateLabel}`,
-    "",
-    // 본문
-    bodyText,
-    "",
-    // *히스트리 앱 다운로드 링크 - https://...
-    `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
-  ];
+const payload = lines.join("\n");
 
-  const payload = lines.join("\n");
+return { header, payload };
 
-  return { header, payload };
 }, [onePick,
   uiLang,
   dayOffset,
@@ -3063,37 +3063,30 @@ const panResponder = React.useMemo(
   isYearMode,  
   yearCursor, ]);
 
+// 공유 텍스트 만드는 함수는 그대로 사용 (buildSharePayload)
+const onSystemSharePress = useCallback(async () => {
+  try {
+    const { header, payload } = buildSharePayload();
+    // 제목 + 본문 합쳐서 하나의 메시지로
+    const text = [header, payload].filter(Boolean).join("\n\n").trim();
 
-  const onSystemSharePress = useCallback(async () => {
-    try {
-      const { header, payload } = buildSharePayload();
-      try {
-        await NativeShare.share({
-          message: payload,
-          title: header,
-        });
-        return;
-      } catch {}
+    const message =
+      text || "Histree - 오늘의 역사에서 오늘의 사건을 확인해 보세요.";
 
-      if (await Sharing.isAvailableAsync()) {
-        const uri =
-          FileSystem.cacheDirectory +
-          `history_${Date.now()}.txt`;
-        await FileSystem.writeAsStringAsync(uri, payload, {
-          encoding: FileSystem.EncodingType.UTF8,
-        });
-        await Sharing.shareAsync(uri, {
-          dialogTitle: header,
-          UTI: "public.plain-text",
-          mimeType: "text/plain",
-        });
-        return;
-      }
+    await NativeShare.share({
+      message,
+      title: header || "Histree",
+    });
+  } catch (e) {
+    console.warn("[SHARE] NativeShare.share failed:", e);
+    if (Platform.OS === "android") {
+      ToastAndroid.show("공유 창을 열 수 없어요.", ToastAndroid.SHORT);
+    } else {
+      alert("공유 창을 열 수 없어요.");
+    }
+  }
+}, [buildSharePayload]);
 
-      await Clipboard.setStringAsync(payload);
-      setCopyTick((t) => t + 1);
-    } catch {}
-  }, [buildSharePayload]);
 
 const fetchingRef = useRef(false);
 
