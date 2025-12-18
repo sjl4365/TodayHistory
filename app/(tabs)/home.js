@@ -2465,7 +2465,9 @@ function pickTargetYearFromUnion(poolsByCid, cids, seedKey) {
   return union[idx];
 }
 
-async function pickYearEventPreferExactNoDup(pool, targetYear, isoDate, cid) {
+const STORAGE_KEY_YEAR_EVT_IDX = "@year_evt_idx_v1:";
+
+async function pickYearEventRotate(pool, targetYear, isoDate, cid) {
   if (!pool || !pool.length || targetYear == null) return null;
 
   const getY = (it) => {
@@ -2473,45 +2475,50 @@ async function pickYearEventPreferExactNoDup(pool, targetYear, isoDate, cid) {
     return Number.isNaN(y) ? null : y;
   };
 
+  // exact 우선
   const exact = pool.filter((it) => getY(it) === targetYear);
 
-  // ✅ exact 있으면 exact 안에서만 회전
-  // ❗ exact가 없으면 closest 1개를 fallback (요구사항 #2)
   let candidates = exact;
+  let isExact = true;
 
+  // exact 없으면: 가장 가까운 연도 이벤트들 중 "가장 가까운 연도"만 묶어서 후보
   if (!candidates.length) {
-    const sortedClosest = [...pool].sort((a, b) => {
-      const ya = getY(a);
-      const yb = getY(b);
-      const da = ya == null ? 1e9 : Math.abs(ya - targetYear);
-      const db = yb == null ? 1e9 : Math.abs(yb - targetYear);
-      if (da !== db) return da - db;
-      return String(a.key).localeCompare(String(b.key));
-    });
-    candidates = sortedClosest.length ? [sortedClosest[0]] : [];
+    isExact = false;
+
+    // targetYear 기준으로 각 item의 거리 계산
+    const scored = pool
+      .map((it) => {
+        const y = getY(it);
+        const dist = y == null ? 1e9 : Math.abs(y - targetYear);
+        return { it, y, dist };
+      })
+      .sort((a, b) => a.dist - b.dist);
+
+    if (!scored.length) return null;
+
+    // 최소 거리의 "연도"를 하나 고르고, 그 연도의 것만 candidates로
+    const bestDist = scored[0].dist;
+    const bestYear = scored.find((x) => x.dist === bestDist)?.y ?? null;
+    if (bestYear == null) return scored[0].it;
+
+    candidates = pool.filter((it) => getY(it) === bestYear);
   }
 
   if (!candidates.length) return null;
 
-  const bucketKey = `${STORAGE_KEY_SEEN_YEAR_PREFIX}${cid}:${isoDate}:${targetYear}:exact1`;
-  let seen = new Set();
+  // ✅ 인덱스 회전: refresh마다 무조건 다음 이벤트로
+  const idxKey = `${STORAGE_KEY_YEAR_EVT_IDX}${cid}:${isoDate}:${targetYear}:${isExact ? "exact" : "closest"}`;
+  let idx = 0;
   try {
-    const raw = await AsyncStorage.getItem(bucketKey);
-    const arr = raw ? JSON.parse(raw) : [];
-    if (Array.isArray(arr)) seen = new Set(arr);
+    const raw = await AsyncStorage.getItem(idxKey);
+    const n = parseInt(raw || "0", 10);
+    if (!Number.isNaN(n) && n >= 0) idx = n;
   } catch {}
 
-  let pick = candidates.find((it) => !seen.has(it.key));
+  const pick = candidates[idx % candidates.length];
 
-  // exact 후보를 다 봤으면 리셋하고 다시
-  if (!pick) {
-    seen = new Set();
-    pick = candidates[0];
-  }
-
-  seen.add(pick.key);
   try {
-    await AsyncStorage.setItem(bucketKey, JSON.stringify([...seen]));
+    await AsyncStorage.setItem(idxKey, String(idx + 1));
   } catch {}
 
   return pick;
@@ -2606,17 +2613,26 @@ const yearCids = useMemo(() => {
 const [yearCursor, setYearCursor] = useState(null); // number | null
 const [yearNav, setYearNav] = useState({ canPrev: false, canNext: false });
 
+const [yearYears, setYearYears] = useState([]); 
+
+const baseYearRef = useRef(null);
+
 const prevSelKeyRef = useRef("");
 
 useEffect(() => {
   const selKey = [...selectedCountries].sort().join(",");
   if (selKey !== prevSelKeyRef.current) {
     prevSelKeyRef.current = selKey;
+
+    // ✅ 나라 조합 바뀌면 기준 연도도 초기화
+    baseYearRef.current = null;
+
     if (!selectedCountries.has("world")) {
-      setYearCursor(null);   //  다음 로딩에서 stableKey 기반 랜덤 연도 다시 선택
+      setYearCursor(null);
     }
   }
 }, [selectedCountries]);
+
 
   const [onePick, setOnePick] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2698,28 +2714,30 @@ const goBy = useCallback(
     const step = delta < 0 ? -1 : delta > 0 ? 1 : 0;
     if (!step) return;
 
-    // World 모드면 기존대로 dayOffset 이동
+    // ✅ World 모드: 기존 dayOffset 이동 (-1/0/+1)
     if (isWorldMode) {
       setDayOffset((prev) => Math.max(-1, Math.min(1, prev + step)));
       return;
     }
 
-    // Year 모드면 yearCursor 이동 (가능할 때만)
+    // ✅ Year 모드: "연도 +1/-1"만, 그리고 실제 존재하는 연도일 때만 이동
     if (isYearMode) {
       setYearCursor((prev) => {
         if (prev == null) return prev;
+
         const next = prev + step;
 
-        // 버튼 비활성 요구사항(2-3): 이동 불가면 그대로 유지
-        if (step < 0 && !yearNav.canPrev) return prev;
-        if (step > 0 && !yearNav.canNext) return prev;
+        // yearYears(union)에 next가 없으면 이동 금지
+        if (!yearYears || !yearYears.length) return prev;
+        if (!yearYears.includes(next)) return prev;
 
         return next;
       });
     }
   },
-  [isWorldMode, isYearMode, yearNav]
+  [isWorldMode, isYearMode, yearYears]
 );
+
 
 
 const handlePrevDay = useCallback(() => {
@@ -2769,10 +2787,12 @@ const handleNextDay = useCallback(() => {
 
 
 useEffect(() => {
-  console.log('[AD] setup rewarded listener');
+  let isMounted = true;
+
+  console.log("[AD] setup rewarded listener");
 
   const unsubscribe = rewardedAd.addAdEventsListener(({ type, payload }) => {
-    console.log('[AD] event =', type);
+    console.log("[AD] event =", type);
 
     // 광고 로드 완료
     if (type === RewardedAdEventType.LOADED) {
@@ -2781,9 +2801,8 @@ useEffect(() => {
 
     // 광고 끝까지 시청 → 날짜 이동 + 12시간 패스 부여
     if (type === RewardedAdEventType.EARNED_REWARD) {
-      console.log('[AD] earned reward:', payload);
+      console.log("[AD] earned reward:", payload);
 
-      // 12시간 패스 만료 시각 계산
       const until = Date.now() + REWARD_PASS_DURATION_MS;
       setRewardPassUntil(until);
       AsyncStorage.setItem(
@@ -2800,37 +2819,47 @@ useEffect(() => {
       setAdPromptVisible(false);
       setRewardedLoaded(false);
 
-      // 다음 광고 미리 로드
-      rewardedAd.load();
+      // ⚠️ 여기서는 더 이상 load() 호출하지 않음
+      // iOS에서 광고가 아직 안 닫혔는데 다시 load()를 걸면 이상한 상태로 갈 수 있음
     }
 
-    // 광고 닫힘 (중간에 닫아버린 경우)
+    // 광고 닫힘 (중간에 닫은 경우 포함)
     if (type === AdEventType.CLOSED) {
-      console.log('[AD] closed');
+      console.log("[AD] closed");
       setAdPromptVisible(false);
       pendingNavRef.current = null;
       setRewardedLoaded(false);
+
+      // 광고 완전히 닫힌 시점에서만 다음 광고 미리 로드
       rewardedAd.load();
     }
 
     // 에러
     if (type === AdEventType.ERROR) {
-      console.warn('[AD] error:', payload);
+      console.warn("[AD] error:", payload);
       setAdPromptVisible(false);
       pendingNavRef.current = null;
       setRewardedLoaded(false);
     }
   });
 
-  // 최초 로드
-  rewardedAd.load();
+  // ✅ iOS 포함 전체에서 SDK 먼저 초기화 후 로드
+  mobileAds()
+    .initialize()
+    .then(() => {
+      if (!isMounted) return;
+      console.log("[AD] mobileAds initialized, load rewarded");
+      rewardedAd.load();
+    });
 
   return () => {
-    console.log('[AD] cleanup rewarded listener');
+    isMounted = false;
+    console.log("[AD] cleanup rewarded listener");
     unsubscribe();
     rewardedAd.removeAllListeners();
   };
 }, [goBy]);
+
 
 
 const panResponder = React.useMemo(
@@ -3411,13 +3440,17 @@ useEffect(() => {
           for (const r of c) {
             const body = bodyOfRowByLang(r, uiLang, cid);
             if (!hasAnyText(body)) continue;
-            const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
-            arr.push({
-              cid,
-              row: r,
-              key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`,
-              body,
-            });
+            const y = String(r?.Year || r?.year || "");
+const d = String(r?.Date || r?.date || "");
+const unique = hash32(`${y}|${d}|${body}|${JSON.stringify(r)}`); // 충돌 거의 없음
+
+arr.push({
+  cid,
+  row: r,
+  key: `${cid}|${y}|${d}|h${unique}`,
+  body,
+});
+
           }
           if (arr.length) poolsByCid[cid] = arr;
         }
@@ -3433,13 +3466,17 @@ useEffect(() => {
           for (const r of rows) {
             const body = bodyOfRowByLang(r, uiLang, cid);
             if (!hasAnyText(body)) continue;
-            const tag = trimHtml(r?.["한국어"] || r?.English || r?.["日本語"] || "").slice(0, 50);
-            arr.push({
-              cid,
-              row: r,
-              key: `${cid}|${String(r?.Year || r?.year || "")}|${String(r?.Date || r?.date || "")}|${tag}`,
-              body,
-            });
+            const y = String(r?.Year || r?.year || "");
+const d = String(r?.Date || r?.date || "");
+const unique = hash32(`${y}|${d}|${body}|${JSON.stringify(r)}`); // 충돌 거의 없음
+
+arr.push({
+  cid,
+  row: r,
+  key: `${cid}|${y}|${d}|h${unique}`,
+  body,
+});
+
           }
           if (arr.length) poolsByCid[cid] = arr;
         } catch (e) {
@@ -3455,6 +3492,8 @@ useEffect(() => {
         setHeaderImageUrl(null);
         setYearCursor(null);
         setYearNav({ canPrev: false, canNext: false });
+        setYearYears([]);
+
         endLoading();
         return;
       }
@@ -3475,43 +3514,96 @@ useEffect(() => {
 
         setYearCursor(null);
         setYearNav({ canPrev: false, canNext: false });
+        setYearYears([]);
+
         endLoading();
+
         return;
       }
 
       // ✅ Year 모드: (선택된 한/중/일)에서 랜덤 연도 1개 선택 → 각 나라에서 그 연도(없으면 근처) 1개씩
       const cids = yearCids.length ? yearCids : chosen.filter((c) => c !== "world");
-      const poolYears = new Set();
-      for (const cid of cids) for (const y of getYearsFromPool(poolsByCid[cid] || [])) poolYears.add(y);
 
-      // yearCursor가 없으면 "처음만" 랜덤으로 잡고, refresh는 같은 yearCursor 유지
-      let targetYear = yearCursor;
-      if (targetYear == null) {
-        targetYear = pickTargetYearFromUnion(poolsByCid, cids, stableKey); // stableKey로 고정
-      }
+// 1) 각 나라 years set
+const yearsByCid = {};
+for (const cid of cids) {
+  yearsByCid[cid] = getYearsFromPool(poolsByCid[cid] || []);
+}
 
-      if (!targetYear || poolYears.size === 0) {
-        setOnePick([]);
-        setHeaderImageUrl(null);
-        setYearCursor(null);
-        setYearNav({ canPrev: false, canNext: false });
-        endLoading();
-        return;
-      }
+// 2) 교집합(common years) 우선
+let common = null;
+for (const cid of cids) {
+  const s = yearsByCid[cid];
+  if (!s || s.size === 0) continue;
+  if (common == null) common = new Set(s);
+  else {
+    for (const y of [...common]) {
+      if (!s.has(y)) common.delete(y);
+    }
+  }
+}
+const commonYearsArr = common ? [...common].sort((a, b) => a - b) : [];
 
-      // yearCursor 반영
-      setYearCursor(targetYear);
+// 3) 교집합이 비면(데이터 구조상 있을 수 있음) fallback: 합집합
+const union = new Set();
+for (const cid of cids) for (const y of yearsByCid[cid] || []) union.add(y);
+const unionYearsArr = [...union].sort((a, b) => a - b);
 
-      // prev/next 가능 여부 계산 (2-3)
-      const canPrev = poolYears.has(targetYear - 1);
-      const canNext = poolYears.has(targetYear + 1);
-      setYearNav({ canPrev, canNext });
+// ✅ Year navigation 기준 years (우선 common)
+const yearsArr = commonYearsArr.length ? commonYearsArr : unionYearsArr;
+setYearYears(yearsArr);
+
+if (!yearsArr.length) {
+  setOnePick([]);
+  setHeaderImageUrl(null);
+  setYearCursor(null);
+  setYearNav({ canPrev: false, canNext: false });
+  setYearYears([]);
+  endLoading();
+  return;
+}
+
+// yearCursor 없으면 처음만 뽑기 (common years 기준)
+let targetYear = yearCursor;
+if (targetYear == null) {
+  const rnd = xorshift(hash32(`year:${isoDate}:${stableKey}`));
+  const idx = Math.floor(rnd() * yearsArr.length);
+  targetYear = yearsArr[idx];
+
+  // ✅ 처음 들어왔을 때만 기준 연도 저장
+  baseYearRef.current = targetYear;
+} else if (baseYearRef.current == null) {
+  // 혹시 기존 유저 데이터 때문에 기준이 없으면 한 번 세팅
+  baseYearRef.current = targetYear;
+}
+
+setYearYears(yearsArr);
+setYearCursor(targetYear);
+
+// ✅ 기준 연도 ±1 범위까지만 네비게이션 허용
+const yearsSet = new Set(yearsArr);
+const baseYear = baseYearRef.current ?? targetYear;
+const prevCandidate = targetYear - 1;
+const nextCandidate = targetYear + 1;
+
+setYearNav({
+  canPrev:
+    yearsSet.has(prevCandidate) &&
+    Math.abs(prevCandidate - baseYear) <= 1,
+  canNext:
+    yearsSet.has(nextCandidate) &&
+    Math.abs(nextCandidate - baseYear) <= 1,
+});
+
+
+
+      
 
       // 각 나라에서 가장 가까운 연도 이벤트 1개씩(중복 방지: refresh 시 다른 이벤트로 회전)
       const picks = [];
       for (const cid of cids) {
         const pool = poolsByCid[cid] || [];
-        const it = await pickYearEventPreferExactNoDup(pool, targetYear, isoDate, cid);
+const it = await pickYearEventRotate(pool, targetYear, isoDate, cid);
         if (it) picks.push(it);
       }
 
@@ -4344,33 +4436,46 @@ if (p.cid === "world") {
 
         {/* 광고 시청하러 가기 버튼 */}
         <Pressable
-          onPress={() => {
-            console.log(
-              "[AD] button pressed, rewardedLoaded =",
-              rewardedLoaded
-            );
+  onPress={async () => {
+    console.log("[AD] button pressed, rewardedLoaded =", rewardedLoaded);
 
-            if (rewardedLoaded) {
-              console.log("[AD] calling rewardedAd.show()");
-              rewardedAd.show();
-            } else {
-              console.log(
-                "[AD] not loaded yet → load() 호출"
-              );
-              rewardedAd.load();
-            }
-          }}
-          style={{
-            paddingHorizontal: 12,
-            paddingVertical: 8,
-            borderRadius: 999,
-            backgroundColor: "#111827",
-          }}
-        >
-          <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
-            {tModal.cta}
-          </Text>
-        </Pressable>
+    // 아직 안 로드됐으면 그냥 다시 로드만 하고 리턴
+    if (!rewardedLoaded) {
+      console.log("[AD] not loaded yet, calling load()");
+      rewardedAd.load();
+
+      if (Platform.OS === "android") {
+        ToastAndroid.show(
+          "광고를 준비하고 있어요. 잠시 후 다시 눌러주세요.",
+          ToastAndroid.SHORT
+        );
+      }
+      return;
+    }
+
+    try {
+      console.log("[AD] calling rewardedAd.show()");
+      await rewardedAd.show();
+    } catch (e) {
+      console.warn("[AD] show error", e);
+      // show() 자체가 실패하면 모달/상태 정리
+      setAdPromptVisible(false);
+      pendingNavRef.current = null;
+      setRewardedLoaded(false);
+    }
+  }}
+  style={{
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#111827",
+  }}
+>
+  <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+    {tModal.cta}
+  </Text>
+</Pressable>
+
       </View>
     </View>
   </View>
