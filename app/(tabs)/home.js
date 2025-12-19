@@ -1306,6 +1306,7 @@ function SegmentedCountrySelector({
 // WebView Modal Component
 function WebViewModal({ visible, url, onClose }) {
   const { scale } = useUIScale();
+  const insets = useSafeAreaInsets();
   const [showAd,setShowAd] =useState(true);
   useEffect(() => {
     if (visible && url) {

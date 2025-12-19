@@ -12,6 +12,14 @@ import {
   Image,
   useWindowDimensions,
 } from 'react-native';
+import mobileAds, {
+  BannerAd,
+  BannerAdSize,
+  TestIds,
+  RewardedAd,
+  RewardedAdEventType,
+  AdEventType,
+} from "react-native-google-mobile-ads";
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -55,6 +63,7 @@ export default function SettingsIndex() {
     { name: 'English', code: 'en' },
     { name: '한국어', code: 'ko' },
     { name: '日本語', code: 'ja' },
+    {name: '中国', code:'zh'},
   ];
 
   useEffect(() => {
@@ -289,7 +298,7 @@ export default function SettingsIndex() {
       {/* Credit */}
       <View style={styles.section}>
         <SettingItem
-          title="Credit"
+          title="Credits"
           onPress={() => router.push('/settings/credit')}
         />
       </View>
@@ -309,7 +318,7 @@ export default function SettingsIndex() {
                 styles.selectedLanguageText, 
                 { fontSize: scale(16) }
               ]}>
-                v 0.0.11
+                v 0.0.12
               </Text>
             }
             showArrow={false}
@@ -317,62 +326,88 @@ export default function SettingsIndex() {
         </View>
       </ScrollView>
 
-      {/* Footer */}
-      <View style={[
+{/* Footer */}
+<View style={[
         styles.footerContainer,
         {
           paddingTop: scale(12),
           paddingBottom: scale(16),
-          paddingHorizontal: scale(20),
+          paddingHorizontal: scale(4),          
         }
       ]}>
-        <Image
-          source={require('../../../assets/images/logo_mini.png')}
-          style={[
-            styles.footerLogo, 
-            { 
-              width: scale(180),
-              height: scale(50),
-              marginBottom: scale(8),
-            }
-          ]}
-          resizeMode="contain"
-        />
+        {/* Logo and Links Row */}
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: scale(12),
+          width: '100%',
+          paddingHorizontal: scale(4),
+        }}>
+          <Image
+            source={require('../../../assets/images/logo_mini.png')}
+            style={[
+              styles.footerLogo, 
+              { 
+                width: scale(120),
+                height: scale(35),
+              }
+            ]}
+            resizeMode="contain"
+          />
+          
+          <View style={styles.footerLinksContainer}>
+            <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
+              <Text style={[
+                styles.footerLink, 
+                { 
+                  fontSize: scale(13),
+                  paddingHorizontal: scale(4),
+                }
+              ]}>
+                Terms of Service
+              </Text>
+            </TouchableOpacity>
+            
+            <Text style={[
+              styles.footerSeparator, 
+              { 
+                fontSize: scale(13),
+                marginHorizontal: scale(4),
+              }
+            ]}>
+              |
+            </Text>
+            
+            <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
+              <Text style={[
+                styles.footerLink, 
+                { 
+                  fontSize: scale(13),
+                  paddingHorizontal: scale(4),
+                }
+              ]}>
+                Privacy Policy
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
         
-        <View style={styles.footerLinksContainer}>
-          <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
-            <Text style={[
-              styles.footerLink, 
-              { 
-                fontSize: scale(12),
-                paddingHorizontal: scale(4),
-              }
-            ]}>
-              Terms of Service
-            </Text>
-          </TouchableOpacity>
-          
-          <Text style={[
-            styles.footerSeparator, 
-            { 
-              fontSize: scale(12),
-              marginHorizontal: scale(6),
-            }
-          ]}>
-            |
-          </Text>
-          
-          <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
-            <Text style={[
-              styles.footerLink, 
-              { 
-                fontSize: scale(12),
-                paddingHorizontal: scale(4),
-              }
-            ]}>
-              Privacy Policy
-            </Text>
-          </TouchableOpacity>
+        {/* Ad Banner - Full Width */}
+        <View
+          style={{
+            width: '100%',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <BannerAd
+            unitId={TestIds.BANNER}
+            size={BannerAdSize.FULL_BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+          />
         </View>
       </View>
     </View>
