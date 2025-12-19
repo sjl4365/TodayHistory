@@ -13,8 +13,8 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "image": "./assets/splash.png",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "ios": {
@@ -31,7 +31,7 @@
         
       },
       "splash": {
-        "image": "./assets/splash-icon.png",
+        "image": "./assets/splash.png",
         "resizeMode": "contain",
         "backgroundColor": "#111827"
       }
