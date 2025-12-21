@@ -4570,3 +4570,151 @@ if (p.cid === "world") {
     </SafeAreaView>
   );
 } 
+// home.js 맨 아래
+export async function refreshTodayFeed() {
+  try {
+    const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
+    const today = new Date();
+    
+    const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || 'UTC';
+    const safeTimezone = safeTimeZone(tz);
+    
+    const parts = safeFormatParts(today, safeTimezone);
+    const month = parseInt(parts.month, 10);
+    const day = parseInt(parts.day, 10);
+    
+    console.log('🔄 [REFRESH FEED] Starting for:', currentLanguage, `${month}/${day}`);
+    
+    const storedCountries = await AsyncStorage.getItem(STORAGE_KEY_SELECTED);
+    let selectedCountries = new Set();
+    try {
+      const arr = storedCountries ? JSON.parse(storedCountries) : [];
+      selectedCountries = ensureNonEmptySelection(new Set(arr), currentLanguage);
+    } catch {
+      selectedCountries = ensureNonEmptySelection(new Set(), currentLanguage);
+    }
+    
+    const chosen = [...selectedCountries];
+    if (!chosen.length) {
+      console.error('❌ [REFRESH FEED] No countries selected');
+      return null;
+    }
+    
+    const poolsByCid = {};
+    for (const cid of chosen) {
+      try {
+        let rows = await loadCache(cid, parts);
+        
+        if (!Array.isArray(rows) || !rows.length) {
+          const isoDate = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+          rows = await apiFetchForMode(cid, parts, isoDate);
+          
+          if (rows && rows.length) {
+            await saveCache(cid, parts, rows);
+          }
+        }
+        
+        if (Array.isArray(rows) && rows.length) {
+          const arr = [];
+          for (const r of rows) {
+            const body = bodyOfRowByLang(r, currentLanguage, cid);
+            if (!hasAnyText(body)) continue;
+            
+            const y = String(r?.Year || r?.year || '');
+            const d = String(r?.Date || r?.date || '');
+            const unique = hash32(`${y}|${d}|${body}|${JSON.stringify(r)}`);
+            
+            arr.push({
+              cid,
+              row: r,
+              key: `${cid}|${y}|${d}|h${unique}`,
+              body,
+            });
+          }
+          if (arr.length) poolsByCid[cid] = arr;
+        }
+      } catch (e) {
+        console.warn(`[REFRESH FEED] Failed to fetch ${cid}:`, e);
+      }
+    }
+    
+    const hasAny = Object.values(poolsByCid).some(arr => arr && arr.length);
+    if (!hasAny) {
+      console.error('❌ [REFRESH FEED] No data available');
+      return null;
+    }
+    
+    const isoDate = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+    const seedKey = `${isoDate}__${chosen.sort().join(',')}__refresh`;
+    
+    const pick = await pickOneWithSeenRotation(
+      poolsByCid,
+      chosen,
+      isoDate,
+      seedKey
+    );
+    
+    if (!pick) {
+      console.error('❌ [REFRESH FEED] Failed to pick event');
+      return null;
+    }
+    
+    // ⭐ 여기서 형식을 만들어야 해요!
+    const label = COUNTRY_CFG[pick.cid]?.label?.[currentLanguage] || 
+                  COUNTRY_CFG[pick.cid]?.label?.en || 
+                  pick.cid;
+    
+    const eventYear = getYearFromRow(pick.row);
+    const yearNum = parseInt(String(eventYear || ''), 10);
+    const baseYear = parseInt(String(parts.year), 10);
+    const mNum = parseInt(String(parts.month), 10) || 1;
+    const dNum = parseInt(String(parts.day), 10) || 1;
+    
+    // 날짜 형식 만들기
+    let dateLabel = '';
+    if (!Number.isNaN(yearNum) && yearNum > 0) {
+      if (currentLanguage === 'ko') {
+        dateLabel = `${yearNum}년 ${mNum}월 ${dNum}일`;
+      } else if (currentLanguage === 'ja') {
+        dateLabel = `${yearNum}年${mNum}月${dNum}日`;
+      } else {
+        const monthNames = [
+          "January", "February", "March", "April", "May", "June",
+          "July", "August", "September", "October", "November", "December"
+        ];
+        const monthName = monthNames[mNum - 1] || String(mNum);
+        dateLabel = `${monthName} ${dNum}, ${yearNum}`;
+      }
+    }
+    
+    // 본문 텍스트 (길이 제한)
+    const maxBodyLen = currentLanguage === 'ko' || currentLanguage === 'ja' ? 50 : 80;
+    const bodyText = pick.body || '';
+    const truncatedBody = bodyText.length > maxBodyLen 
+      ? `${bodyText.slice(0, maxBodyLen)}...` 
+      : bodyText;
+    
+    // ⭐ 최종 알림 본문 조합
+    let finalBody = '';
+    if (currentLanguage === 'ko') {
+      finalBody = `${dateLabel}, ${label}: ${truncatedBody}`;
+    } else if (currentLanguage === 'ja') {
+      finalBody = `${dateLabel}、${label}: ${truncatedBody}`;
+    } else {
+      finalBody = `${dateLabel}, ${label}: ${truncatedBody}`;
+    }
+    
+    // 알림 캐시에 저장
+    await AsyncStorage.multiSet([
+      ['@notification_body', finalBody],  
+      ['@notification_language', currentLanguage],
+    ]);
+    
+    console.log('✅ [REFRESH FEED] Success:', finalBody.substring(0, 50));
+    return finalBody;
+    
+  } catch (error) {
+    console.error('❌ [REFRESH FEED] Error:', error);
+    return null;
+  }
+}
