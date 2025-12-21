@@ -3883,114 +3883,56 @@ const it = await pickYearEventRotate(pool, targetYear, isoDate, cid);
     [selectedCountries, uiLang]
   );
 
-  const buildNotificationTitleNow =
-    useCallback(() => {
-      const appName =
-        APP_NAME_BY_LANG[uiLang || "en"] ||
-        APP_NAME_BY_LANG.en;
-      const t =
-        UI_STR.title[uiLang || "en"] ||
-        UI_STR.title.en;
-      const todayTitle =
-        t.today || "Today in History";
-      return `${appName} · ${todayTitle}`;
-    }, [uiLang]);
+const buildNotificationTitleNow = useCallback(() => {
+  const appName = APP_NAME_BY_LANG[uiLang || "en"] || APP_NAME_BY_LANG.en;
+  const t = UI_STR.title[uiLang || "en"] || UI_STR.title.en;
+  const todayTitle = t.today || "Today in History";
+  return `${appName} · ${todayTitle}`;
+}, [uiLang]);
 
-  const buildNotificationBodyNow = useCallback(() => {
-    const list = Array.isArray(onePick)
-      ? onePick
-      : onePick
-      ? [onePick]
-      : [];
+const buildNotificationBodyNow = useCallback(() => {
+  const list = Array.isArray(onePick) ? onePick : onePick ? [onePick] : [];
 
-    const currentDate = startOfDayInTz(
-      new Date(),
-      tz
-    );
-    const parts = getDayPartsFrom(
-      currentDate,
-      tz
-    );
+  const currentDate = startOfDayInTz(new Date(), tz);
+  const parts = getDayPartsFrom(currentDate, tz);
 
-    const maxBodyLen =
-      uiLang === "ko" || uiLang === "ja"
-        ? 20
-        : 40;
+  const maxBodyLen = uiLang === "ko" || uiLang === "ja" ? 50 : 80;
 
-    const body = list.length
-      ? list
-          .map((p) => {
-            const label =
-              COUNTRY_CFG[p.cid]?.label?.[
-                uiLang || "en"
-              ] || p.cid;
-            const yr = getYearFromRow(
-              p.row
-            );
-            const txt = p.body || "";
-            const trunc =
-              txt.length > maxBodyLen
-                ? `${txt.slice(
-                    0,
-                    maxBodyLen
-                  )}...`
-                : txt;
+  const body = list.length
+    ? list
+        .map((p) => {
+          const label = COUNTRY_CFG[p.cid]?.label?.[uiLang || "en"] || p.cid;
+          const yr = getYearFromRow(p.row);
+          const txt = p.body || "";
+          const trunc = txt.length > maxBodyLen ? `${txt.slice(0, maxBodyLen)}...` : txt;
 
-            let eventDateStr = "";
-            if (uiLang === "ko") {
-              eventDateStr = `${yr}년 ${parseInt(
-                parts.m,
-                10
-              )}월 ${parseInt(
-                parts.d,
-                10
-              )}일`;
-            } else if (uiLang === "ja") {
-              eventDateStr = `${yr}年${parseInt(
-                parts.m,
-                10
-              )}月${parseInt(
-                parts.d,
-                10
-              )}日`;
-            } else {
-              const monthNames = [
-                "January",
-                "February",
-                "March",
-                "April",
-                "May",
-                "June",
-                "July",
-                "August",
-                "September",
-                "October",
-                "November",
-                "December",
-              ];
-              const monthName =
-                monthNames[
-                  parseInt(parts.m, 10) - 1
-                ];
-              eventDateStr = `${monthName} ${parseInt(
-                parts.d,
-                10
-              )}, ${yr}`;
-            }
+          let eventDateStr = "";
+          if (uiLang === "ko") {
+            eventDateStr = `${yr}년 ${parseInt(parts.m, 10)}월 ${parseInt(parts.d, 10)}일`;
+          } else if (uiLang === "ja") {
+            eventDateStr = `${yr}年${parseInt(parts.m, 10)}月${parseInt(parts.d, 10)}日`;
+          } else {
+            const monthNames = [
+              "January", "February", "March", "April", "May", "June",
+              "July", "August", "September", "October", "November", "December",
+            ];
+            const monthName = monthNames[parseInt(parts.m, 10) - 1];
+            eventDateStr = `${monthName} ${parseInt(parts.d, 10)}, ${yr}`;
+          }
 
-            if (uiLang === "ko") {
-              return `${eventDateStr}, ${label}: ${trunc}`;
-            } else if (uiLang === "ja") {
-              return `${eventDateStr}、${label}: ${trunc}`;
-            } else {
-              return `${eventDateStr}, ${label}: ${trunc}`;
-            }
-          })
-          .join(" • ")
-      : "";
+          if (uiLang === "ko") {
+            return `${eventDateStr}, ${label}: ${trunc}`;
+          } else if (uiLang === "ja") {
+            return `${eventDateStr}、${label}: ${trunc}`;
+          } else {
+            return `${eventDateStr}, ${label}: ${trunc}`;
+          }
+        })
+        .join(" • ")
+    : "";
 
-    return body;
-  }, [onePick, uiLang, tz]);
+  return body;
+}, [onePick, uiLang, tz]);
 
   // 알림 타이틀/본문 업데이트 + 재스케줄
   useEffect(() => {

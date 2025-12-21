@@ -57,68 +57,86 @@ export default function Notification() {
     };
   }, []);
 
-  async function init() {
-    console.log('Checking notification permissions...');
+async function init() {
+  console.log('Checking notification permissions...');
+  
+  const { granted } = await Notifications.getPermissionsAsync();
+  console.log('Permission status:', { granted });
+  
+  if (granted) {
+    console.log('Permissions already granted');
+    setHasPermission(true);
     
-    const { granted } = await Notifications.getPermissionsAsync();
-    console.log('Permission status:', { granted });
-    
-    if (granted) {
-      console.log('Permissions already granted');
-      setHasPermission(true);
-      
-      try {
-        const { data } = await Notifications.getExpoPushTokenAsync();
-        console.log('Push token:', data);
-      } catch (error) {
-        console.log('Push token error (can ignore):', error);
-      }
-    } else {
-      console.log('Permissions not granted yet');
-      setHasPermission(false);
-    }
-
-    if (Platform.OS === 'android') {
-      try {
-        console.log('Creating Android notification channel...');
-        const channel = await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-          name: 'Daily Reminders',
-          importance: Notifications.AndroidImportance.HIGH,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-          sound: 'default',
-          enableVibrate: true,
-        });
-        console.log('Notification channel created:', channel);
-      } catch (error) {
-        console.error('Failed to create notification channel:', error);
-      }
-    }
-
     try {
-      console.log('Checking for existing scheduled notifications...');
-      const all = await Notifications.getAllScheduledNotificationsAsync();
-      console.log('All scheduled notifications:', all.length);
-      
-      const mine = all.find(n => n?.content?.data?.__tag === TAG);
-      if (mine) {
-        console.log('Found existing notification:', mine);
-        scheduledIdRef.current = mine.identifier || null;
-        setIsNotificationOn(true);
-        if (mine.trigger && mine.trigger.hour !== undefined) {
-          const savedDate = new Date();
-          savedDate.setHours(mine.trigger.hour, mine.trigger.minute, 0, 0);
-          setDate(savedDate);
-          setSavedTime(savedDate);
-          console.log('Restored saved time:', savedDate.toLocaleTimeString());
-        }
-      } else {
-        console.log('No existing notifications found');
-      }
+      const { data } = await Notifications.getExpoPushTokenAsync();
+      console.log('Push token:', data);
     } catch (error) {
-      console.error('Failed to get scheduled notifications:', error);
+      console.log('Push token error (can ignore):', error);
+    }
+  } else {
+    console.log('Permissions not granted yet');
+    setHasPermission(false);
+  }
+
+  if (Platform.OS === 'android') {
+    try {
+      console.log('Creating Android notification channel...');
+      const channel = await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+        name: 'Daily Reminders',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+        sound: 'default',
+        enableVibrate: true,
+      });
+      console.log('Notification channel created:', channel);
+    } catch (error) {
+      console.error('Failed to create notification channel:', error);
     }
   }
+
+  try {
+    console.log('Checking for existing scheduled notifications...');
+    const all = await Notifications.getAllScheduledNotificationsAsync();
+    console.log('All scheduled notifications:', all.length);
+    
+    const mine = all.find(n => n?.content?.data?.__tag === TAG);
+    if (mine) {
+      console.log('Found existing notification:', mine);
+      scheduledIdRef.current = mine.identifier || null;
+      setIsNotificationOn(true);
+      
+      // ⭐ 저장된 시간 복원
+      if (mine.trigger && mine.trigger.hour !== undefined) {
+        const savedDate = new Date();
+        savedDate.setHours(mine.trigger.hour, mine.trigger.minute, 0, 0);
+        setDate(savedDate);
+        setSavedTime(savedDate);
+        console.log('Restored saved time:', savedDate.toLocaleTimeString());
+      }
+    } else {
+      console.log('No existing notifications found');
+      
+      // ⭐ AsyncStorage에서 마지막 설정 시간 불러오기
+      try {
+        const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
+        if (savedTimeStr) {
+          const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
+          if (!isNaN(hour) && !isNaN(minute)) {
+            const restoredDate = new Date();
+            restoredDate.setHours(hour, minute, 0, 0);
+            setDate(restoredDate);
+            console.log('Restored time from storage:', savedTimeStr);
+          }
+        }
+      } catch (error) {
+        console.log('Failed to restore saved time:', error);
+      }
+    }
+  } catch (error) {
+    console.error('Failed to get scheduled notifications:', error);
+  }
+}
 
   async function scheduleDailyAt(time) {
     console.log('Starting scheduleDailyAt with time:', time);
@@ -274,7 +292,16 @@ const handleSaveTime = async () => {
   
   console.log('💾 Saving time:', date.toLocaleTimeString());
   
-  // ⭐ Done 버튼 누르면 피드 refresh
+  // ⭐ AsyncStorage에 시간 저장
+  try {
+    const timeString = `${date.getHours()}:${date.getMinutes()}`;
+    await AsyncStorage.setItem('@last_notification_time', timeString);
+    console.log('Saved time to storage:', timeString);
+  } catch (error) {
+    console.error('Failed to save time:', error);
+  }
+  
+  // Done 버튼 누르면 피드 refresh
   const refreshedBody = await refreshTodayFeed();
   
   if (!refreshedBody) {
@@ -356,7 +383,7 @@ const handleSaveTime = async () => {
       const messages = {
         ko: { title: '설정 실패', message: '알림을 예약할 수 없습니다.' },
         en: { title: 'Schedule Failed', message: 'Could not schedule the reminder.' },
-        ja: { title: '設定失敗', message: 'リマインダーをスケジュールできませんでした。' }
+        ja: { title: '設정失敗', message: 'リマインダーをスケジュールできませんでした。' }
       };
       
       const message = messages[currentLanguage] || messages.en;
@@ -371,9 +398,34 @@ const handleToggleNotification = async (value) => {
   console.log('Toggle notification:', value);
   
   if (value) {
-    const defaultTime = new Date();
-    defaultTime.setHours(15, 0, 0, 0);
-    setDate(defaultTime);
+    // ⭐ 저장된 시간이 있으면 그걸 사용, 없으면 기본값(15:00)
+    try {
+      const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
+      if (savedTimeStr) {
+        const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
+        if (!isNaN(hour) && !isNaN(minute)) {
+          const restoredDate = new Date();
+          restoredDate.setHours(hour, minute, 0, 0);
+          setDate(restoredDate);
+          console.log('Using saved time:', savedTimeStr);
+        } else {
+          // 저장된 값이 이상하면 기본값
+          const defaultTime = new Date();
+          defaultTime.setHours(15, 0, 0, 0);
+          setDate(defaultTime);
+        }
+      } else {
+        // 저장된 시간이 없으면 기본값
+        const defaultTime = new Date();
+        defaultTime.setHours(15, 0, 0, 0);
+        setDate(defaultTime);
+      }
+    } catch (error) {
+      console.error('Failed to load saved time:', error);
+      const defaultTime = new Date();
+      defaultTime.setHours(15, 0, 0, 0);
+      setDate(defaultTime);
+    }
     
     const { granted } = await Notifications.getPermissionsAsync();
     console.log('Current permission status:', { granted });
@@ -409,18 +461,20 @@ const handleToggleNotification = async (value) => {
     await cancelDaily();
     setSavedTime(null);
     
+    // ⭐ 알림 끄더라도 시간 설정은 유지 (삭제하지 않음)
+    
     // 다국어 처리
     try {
       const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
       
       const messages = {
-        ko: {message: '일일 알림이 꺼졌습니다.' },
-        en: {message: 'Notifications are off' },
-        ja: {message: '通知はオフです。' }
+        ko: { message: '일일 알림이 꺼졌습니다.' },
+        en: { message: 'Notifications are off' },
+        ja: { message: '通知はオフです。' }
       };
       
       const message = messages[currentLanguage] || messages.ko;
-      Alert.alert(message.title, message.message);
+      Alert.alert(message.message);
     } catch (error) {
       Alert.alert('Notifications are off');
     }
