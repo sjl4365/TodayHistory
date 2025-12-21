@@ -1,8 +1,7 @@
 // api/history.ts
 const APP_SCRIPT_URL =
-"https://script.google.com/macros/s/AKfycbwSfPg9XT9Xx4cnnc5Wz41LvLoAPUuoNna2qZRH5gzz8UkhwV9LP0UsJfzwLBbPICg33w/exec"
-
-type Mode = "world" | "korea" | "japan";
+"https://script.google.com/macros/s/AKfycbwspao6juQxqP5p-5GIqH_Pr9CYDW5L3FgSnO6ILQSnCDaIUS6g-wqGyPmemz325vQW/exec"
+type Mode = "world" | "korea" | "japan" | "china";
 
 function abortAfter(ms: number) {
   const ctrl = new AbortController();

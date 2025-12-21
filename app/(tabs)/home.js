@@ -118,25 +118,26 @@ const REWARD_PASS_DURATION_MS = 12 * 60 * 60 * 1000; // 12시간
 const COUNTRY_CFG = {
   korea: {
     id: "korea",
-    label: { ko: "한국", en: "Korea", ja: "韓国" },
+    label: { ko: "한국", en: "Korea", ja: "韓国", zh: "韩国" },
     lang: "ko",
   },
   japan: {
     id: "japan",
-    label: { ko: "일본", en: "Japan", ja: "日本" },
+    label: { ko: "일본", en: "Japan", ja: "日本", zh: "日本" },
     lang: "ja",
   },
   world: {
     id: "world",
-    label: { ko: "세계", en: "World", ja: "世界" },
+    label: { ko: "세계", en: "World", ja: "世界", zh: "世界" },
     lang: "en",
   },
   china: {
     id: "china",
-    label: { ko: "중국", en: "China", ja: "中国" },
+    label: { ko: "중국", en: "China", ja: "中国", zh: "中国" },
     lang: "sc",
   },
 };
+
 
 const DEFAULT_COUNTRIES_BY_LANG = {
   en: ["world"],
@@ -149,6 +150,7 @@ const APP_NAME_BY_LANG = {
   ko: "Histree",
   en: "Histree",
   ja: "Histree",
+  zh: "Histree",
 };
 
 const FIELD_LABELS = {
@@ -163,6 +165,10 @@ const FIELD_LABELS = {
   ja: {
     location: "場所",
     date: "日付",
+  },
+  zh: {
+    location: "位置",
+    date: "日期",
   },
 };
 
@@ -185,12 +191,17 @@ const UI_STR = {
       today: "今日の歴史",
       next: "明日の歴史",
     },
+    zh: {
+      prev: "历史上的昨天",
+      today: "历史上的今天",
+      next: "历史上的明天",
+    },
   },
-    yearTitle: {
+  yearTitle: {
     ko: {
-      base: "연도별 역사",          // 기준 연도
-      prev: "지난해 연도별 역사",   // 기준보다 -1년
-      next: "다음해 연도별 역사",   // 기준보다 +1년
+      base: "연도별 역사",
+      prev: "지난해 연도별 역사",
+      next: "다음해 연도별 역사",
     },
     en: {
       base: "Year in History",
@@ -202,18 +213,26 @@ const UI_STR = {
       prev: "前年の歴史",
       next: "翌年の歴史",
     },
+    zh: {
+      base: "历史上的这一年",
+      prev: "历史上的上一年",
+      next: "历史上的下一年",
+    },
   },
   empty: {
     ko: "표시할 항목이 없습니다.",
     en: "No items to display.",
     ja: "表示する項目がありません。",
+    zh: "没有可显示的内容。",
   },
   imageLoading: {
     ko: "사진을 불러오는 중입니다…",
     en: "Loading image…",
     ja: "画像を読み込み中…",
+    zh: "正在加载图片…",
   },
 };
+
 
 const AD_MODAL_TEXT = {
   en: {
@@ -251,13 +270,13 @@ const AD_MODAL_TEXT = {
 
 
 const SOURCE_LABEL = { ko: "출처", en: "Source", ja: "出典" };
-const LOCALE_BY_LANG = { ko: "ko", en: "en", ja: "ja" };
-const UI_COL = { ko: "한국어", en: "English", ja: "日本語" };
+const LOCALE_BY_LANG = { ko: "ko", en: "en", ja: "ja", zh: "zh-Hans" };
+const UI_COL = { ko: "한국어", en: "English", ja: "日本語", zh: "中文" };
 const NATIVE_COL_BY_COUNTRY = {
   korea: "한국어",
   japan: "日本語",
   world: "English",
-  china: "중국어", 
+  china: ["sc", "tc"], 
 };
 
 const LABEL_BY_ID = {
@@ -357,7 +376,7 @@ function safeTimeZone(tzCandidate) {
   }
 }
 
-const SUPPORTED_LOCALES = new Set(["en", "ko", "ja"]);
+const SUPPORTED_LOCALES = new Set(["en", "ko", "ja", "zh"]);
 
 function safeLocale(localeCandidate) {
   const lc = String(localeCandidate || "en");
@@ -465,6 +484,7 @@ function normalizeUiLang(value, fallback = "en") {
   if (code === "ko") return "ko";
   if (code === "ja") return "ja";
   if (code === "en") return "en";
+    if (code === "zh") return "zh";
 
   return fallback;
 }
@@ -517,16 +537,19 @@ function bodyOfRowByLang(raw, uiLang, cid) {
 
   let order;
 
-  if (base === "ko") {
-    // 한국어 UI: 한국어가 있으면 무조건 한국어, 없으면 영어
+if (base === "zh") {
+    order = ["sc", "tc", "English", "한국어", "日本語"];
+}
+else if (base === "ko") {
     order = ["한국어", "English"];
-  } else if (base === "ja") {
-    // 일본어 UI: 일본어 → 영어 → 한국어
+}
+else if (base === "ja") {
     order = ["日本語", "English", "한국어"];
-  } else {
-    // 그 외(영어) UI: 영어 → 한국어 → 일본어
+}
+else {
     order = ["English", "한국어", "日本語"];
-  }
+}
+
 
   // 디버그용 (원하면 잠깐 켜놓기)
   // console.log("[BODY PICK]", { base, order, rowSample: {
@@ -553,6 +576,10 @@ function getAnchorsForLang(row, lang) {
       { t: "Anchor_text1_japanese", u: "URL1_japanese" },
       { t: "Anchor_text2_japanese", u: "URL2_japanese" },
     ],
+      zh: [
+    { t: "Anchor_text1_chinese", u: "URL1_chinese" },
+    { t: "Anchor_text2_chinese", u: "URL2_chinese" },
+  ],
   };
 
   const out = [];
@@ -1972,6 +1999,7 @@ function formatYearOnly(year, uiLang) {
   if (!y) return "";
   if (uiLang === "ko") return `${y}년`;
   if (uiLang === "ja") return `${y}年`;
+  if (uiLang === "zh") return `${y}年`;
   return y;
 }
 
@@ -1979,9 +2007,11 @@ function formatYearsAgo(diff, uiLang) {
   if (!diff || diff <= 0) return "";
   if (uiLang === "ko") return `(${diff}년 전)`;
   if (uiLang === "ja") return `(${diff}年前)`;
+  if (uiLang === "zh") return `（${diff}年前）`;
   if (diff === 1) return "1 year ago";
   return `(${diff} yrs ago)`;
 }
+
 
 function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
   const yStr = String(eventYearRaw || "").trim();
@@ -1991,7 +2021,7 @@ function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
   const mNum = parseInt(String(todayParts.m), 10) || 1;
   const dNum = parseInt(String(todayParts.d), 10) || 1;
 
-  // 연도가 없으면: "오늘 날짜" 그대로, 이럴 때만 Date + toLocale 사용
+  // 연도 없으면: 그냥 오늘 날짜를 locale 기반으로 표시
   if (!yearNum || Number.isNaN(yearNum)) {
     const baseDate = new Date(
       `${todayParts.y}-${todayParts.m}-${todayParts.d}T00:00:00`
@@ -2015,20 +2045,12 @@ function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
     dateStr = `${yearNum}년 ${mNum}월 ${dNum}일`;
   } else if (uiLang === "ja") {
     dateStr = `${yearNum}年${mNum}月${dNum}日`;
+  } else if (uiLang === "zh") {
+    dateStr = `${yearNum}年${mNum}月${dNum}日`;
   } else {
     const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
+      "January","February","March","April","May","June",
+      "July","August","September","October","November","December",
     ];
     const monthName = monthNames[mNum - 1] || String(mNum);
     dateStr = `${monthName} ${dNum}, ${yearNum}`;
