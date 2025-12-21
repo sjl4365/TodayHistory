@@ -6,6 +6,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
+import { refreshTodayFeed } from '../home';
 import { PICK_RESULT_CACHE } from '../home';
 
 Notifications.setNotificationHandler({
@@ -273,6 +274,34 @@ const handleSaveTime = async () => {
   
   console.log('💾 Saving time:', date.toLocaleTimeString());
   
+  // ⭐ Done 버튼 누르면 피드 refresh
+  const refreshedBody = await refreshTodayFeed();
+  
+  if (!refreshedBody) {
+    // refresh 실패하면 Home 방문 유도
+    const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
+    const messages = {
+      ko: {
+        title: '콘텐츠 로드 실패',
+        message: 'Home 화면을 먼저 방문해주세요.'
+      },
+      en: {
+        title: 'Content Loading Failed',
+        message: 'Please visit the Home screen first.'
+      },
+      ja: {
+        title: 'コンテンツの読み込みに失敗しました',
+        message: 'まずホーム画面にアクセスしてください。'
+      }
+    };
+    
+    const message = messages[currentLanguage] || messages.en;
+    Alert.alert(message.title, message.message);
+    return;
+  }
+  
+  console.log('✅ Using refreshed content for notification');
+  
   const ok = await scheduleDailyAt(date);
   console.log('Schedule result:', ok);
   
@@ -308,12 +337,11 @@ const handleSaveTime = async () => {
         }
       };
       
-      const message = messages[currentLanguage] || messages.ko;
+      const message = messages[currentLanguage] || messages.en;
       
       Alert.alert(message.title, message.message);
     } catch (error) {
       console.error('Failed to get language setting:', error);
-      // 기본값으로 영어사용
       Alert.alert(
         'Notifications are on.', 
         `You will receive the latest history update daily at ${timeString}.`
@@ -322,7 +350,6 @@ const handleSaveTime = async () => {
   } else {
     console.log('Failed to save time');
     
-    // 다국어 처리
     try {
       const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
       
@@ -332,7 +359,7 @@ const handleSaveTime = async () => {
         ja: { title: '設定失敗', message: 'リマインダーをスケジュールできませんでした。' }
       };
       
-      const message = messages[currentLanguage] || messages.ko;
+      const message = messages[currentLanguage] || messages.en;
       Alert.alert(message.title, message.message);
     } catch (error) {
       Alert.alert('Schedule Failed', 'Could not schedule the reminder.');
