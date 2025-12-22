@@ -73,7 +73,7 @@ export default function SettingsLayout(){
       <Stack.Screen
         name="sunnygame"
         options={{
-          title: 'Sunny Games and Apps',
+          title: 'Sunny\'s Games and Apps',
           presentation: 'card',
         }}
       />
