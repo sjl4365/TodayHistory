@@ -290,7 +290,7 @@ export default function SettingsIndex() {
           
         <View style={styles.section}>
           <SettingItem
-            title="Sunny's Game and Apps"
+            title="Sunny's Games and Apps"
             onPress={() => router.push('/settings/sunnygame')}
           />
         </View>
@@ -318,7 +318,7 @@ export default function SettingsIndex() {
                 styles.selectedLanguageText, 
                 { fontSize: scale(16) }
               ]}>
-                v 0.0.12
+                v 0.0.13
               </Text>
             }
             showArrow={false}
