@@ -1502,14 +1502,16 @@ function WebViewModal({ visible, url, onClose }) {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["top"]}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["bottom"]}>
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
+            paddingTop: insets.top + 12,
             paddingHorizontal: 16,
             paddingVertical: 12,
+            paddingBottom: 12,
             borderBottomWidth: 1,
             borderBottomColor: "#E5E7EB",
             backgroundColor: "#FFFFFF",
@@ -1523,30 +1525,15 @@ function WebViewModal({ visible, url, onClose }) {
               requestNonPersonalizedAdsOnly: true,
               }}
             />
-            {/* <Pressable
-              onPress={onClose}
-              hitSlop={10}
-              style={{
-              position: 'absolute',
-              top: 4,
-              right: 4,
-              padding: 8,
-              borderRadius: 8,
-              backgroundColor: "rgba(243, 244, 246, 0.9)", // Semi-transparent background
-              zIndex: 10,
-              }}
-            >
-              <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
-                ✕
-              </Text>
-            </Pressable> */}
+
           </View>
           <Pressable
               onPress={onClose}
               hitSlop={10}
               style={{
                 position: 'absolute',
-                top: scale(22),
+                top: scale(22) + insets.top,
+                // top: scale(22),
                 right: scale(22),
                 padding: scale(8),
                 borderRadius: scale(8),
@@ -1557,45 +1544,8 @@ function WebViewModal({ visible, url, onClose }) {
               <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
                 ✕
               </Text>
-            </Pressable>
-
-          <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              flex: 1,
-              color: "#111827",
-            marginTop: 8,
-            }}
-          numberOfLines={1}
-          >
-            {url}
-          </Text>
-          {/* <Text
-            style={{
-              fontSize: 14,
-              fontWeight: "600",
-              flex: 1,
-              color: "#111827",
-            }}
-            numberOfLines={1}
-          >
-            {url}
-          </Text> */}
-          {/* <Pressable
-            onPress={onClose}
-            hitSlop={10}
-            style={{
-              marginLeft: 12,
-              padding: 8,
-              borderRadius: 8,
-              backgroundColor: "#F3F4F6",
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
-              ✕
-            </Text>
-          </Pressable> */}
+          </Pressable>
+          
         </View>
 
         <WebView
@@ -1619,44 +1569,6 @@ function WebViewModal({ visible, url, onClose }) {
             </View>
           )}
         />
-
-        {showAd &&
-          (<View
-            style={{
-              borderTopWidth: 1,
-              borderTopColor: "#E5E7EB",
-              backgroundColor: "#FFFFFF",
-              alignItems: "center",
-              paddingVertical: 8,
-              position: "relative",
-            }}
-            >
-            {/* <BannerAd
-              unitId={TestIds.BANNER}
-              size={BannerAdSize.BANNER}
-              requestOptions={{
-                requestNonPersonalizedAdsOnly: true,
-              }}
-            /> */}
-            <Pressable
-              onPress={() => setShowAd(false)}
-              hitSlop={10}
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                padding: 6,
-                borderRadius: 6,
-                backgroundColor: "rgba(0, 0, 0, 0.6)",
-                zIndex: 10,
-              }}
-            >
-              <Text style={{ fontSize: 14, fontWeight: "700", color: "#FFFFFF" }}>
-                ✕
-              </Text>
-            </Pressable>
-          </View>
-        )}
       </SafeAreaView>
     </Modal>
   );
