@@ -150,26 +150,16 @@ const APP_NAME_BY_LANG = {
   ko: "Histree",
   en: "Histree",
   ja: "Histree",
-  zh: "Histree",
+  sc: "Histree",
+  tc: "Histree",
 };
 
 const FIELD_LABELS = {
-  ko: {
-    location: "위치",
-    date: "날짜",
-  },
-  en: {
-    location: "Location",
-    date: "Date",
-  },
-  ja: {
-    location: "場所",
-    date: "日付",
-  },
-  zh: {
-    location: "位置",
-    date: "日期",
-  },
+  ko: { location: "위치", date: "날짜" },
+  en: { location: "Location", date: "Date" },
+  ja: { location: "場所", date: "日付" },
+  sc: { location: "位置", date: "日期" },
+  tc: { location: "位置", date: "日期" },
 };
 
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
@@ -191,10 +181,15 @@ const UI_STR = {
       today: "今日の歴史",
       next: "明日の歴史",
     },
-    zh: {
+    sc: {
       prev: "历史上的昨天",
       today: "历史上的今天",
       next: "历史上的明天",
+    },
+    tc: {
+      prev: "歷史上的昨天",
+      today: "歷史上的今天",
+      next: "歷史上的明天",
     },
   },
   yearTitle: {
@@ -213,64 +208,157 @@ const UI_STR = {
       prev: "前年の歴史",
       next: "翌年の歴史",
     },
-    zh: {
-      base: "历史上的这一年",
-      prev: "历史上的上一年",
-      next: "历史上的下一年",
+    sc: {
+      base: "这一年的历史",
+      prev: "上一年的历史",
+      next: "下一年的历史",
+    },
+    tc: {
+      base: "這一年的歷史",
+      prev: "上一年的歷史",
+      next: "下一年的歷史",
     },
   },
   empty: {
     ko: "표시할 항목이 없습니다.",
     en: "No items to display.",
     ja: "表示する項目がありません。",
-    zh: "没有可显示的内容。",
+    sc: "没有可显示的内容。",
+    tc: "沒有可顯示的內容。",
   },
   imageLoading: {
     ko: "사진을 불러오는 중입니다…",
     en: "Loading image…",
     ja: "画像を読み込み中…",
-    zh: "正在加载图片…",
+    sc: "正在加载图片…",
+    tc: "正在載入圖片…",
+  },
+  yearLimitDone: {
+    ko: "오늘 볼 수 있는 역사 이벤트를 모두 보셨습니다.\n지금까지 본 12개를 순서대로 다시 볼 수 있어요.",
+    en: "You’ve seen all history events available for today.\nYou can now browse again through the 12 events you’ve already viewed.",
+    ja: "本日見られる歴史イベントはすべて見ました。\nこれまでに見た12件を順番にもう一度見ることができます。",
+    sc: "今天可以查看的历史事件都已经看完了。\n现在可以按顺序再次浏览这 12 条内容。",
+    tc: "今天可以查看的歷史事件都已經看完了。\n現在可以依序再次瀏覽這 12 則內容。",
   },
 };
+
 
 
 const AD_MODAL_TEXT = {
   en: {
+    title: "Use the history of yesterday and tomorrow",
     description:
-      'Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.',
-    badge: 'Enjoy all features & No ads',
-    cta: '✅ Free to use',
+      "Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.",
+    badge: "Enjoy all features · No ads",
+    cta: "Watch Ad for Free Access",
   },
   ko: {
+    title: "어제와 내일의 역사 사용",
     description:
-      '광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.',
-    badge: '모든 기능 이용 · 광고 없음',
-    cta: '✅ 무료 이용',
+      "광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.",
+    badge: "모든 기능 이용 · 광고 없음",
+    cta: "광고 보고 무료 이용",
   },
   ja: {
+    title: "昨日と明日の歴史を利用",
     description:
-      '広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。',
-    badge: '全機能利用 · 広告なし',
-    cta: '✅ 無料利用',
+      "広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。",
+    badge: "全機能利用 · 広告なし",
+    cta: "広告視聴で無料利用",
   },
-  // (선택) 스페인어/이탈리아어도 동일하게
+  sc: {
+    title: "使用“昨日与明日的历史”",
+    description:
+      "观看一则广告，即可在接下来的12小时内无视频广告地使用“Yesterday & Tomorrow History”功能。",
+    badge: "全部功能 · 无广告",
+    cta: "看广告免费使用",
+  },
+  tc: {
+    title: "使用「昨日與明日的歷史」",
+    description:
+      "觀看一則廣告，即可在接下來的12小時內無視訊廣告地使用「Yesterday & Tomorrow History」功能。",
+    badge: "全部功能 · 無廣告",
+    cta: "看廣告免費使用",
+  },
   es: {
+    title: "Usar la historia de ayer y de mañana.",
     description:
-      'Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.',
-    badge: 'Disfruta todas las funciones · Sin anuncios',
-    cta: '✅ Gratis',
+      "Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.",
+    badge: "Todas las funciones · Sin anuncios",
+    cta: "Uso gratuito al ver un anuncio",
   },
-  it: {
+  fr: {
+    title: "Utiliser l’histoire d’hier et de demain.",
     description:
-      'Guarda un annuncio per usare “Yesterday & Tomorrow History” senza annunci video per le prossime 12 ore.',
-    badge: 'Tutte le funzioni · Niente annunci',
-    cta: '✅ Gratis',
+      "Regardez une annonce pour utiliser « Yesterday & Tomorrow History » sans publicité vidéo pendant les 12 prochaines heures.",
+    badge: "Toutes les fonctions · Sans pub",
+    cta: "Usage gratuit après publicité",
+  },
+};
+
+const AD_YEAR_MODAL_TEXT = {
+  en: {
+    title: "See more history events",
+    description:
+      "Watch an ad to see more history events, without video ads, for the next 12 hours.",
+    badge: "More events · Fewer ads",
+    cta: "Watch Ad for Free Access",
+  },
+  ko: {
+    title: "더 많은 역사 이벤트 보기",
+    description:
+      "광고를 시청하면 다음 12시간 동안 동영상 광고 없이 더 많은 역사 이벤트를 볼 수 있습니다.",
+    badge: "더 많은 이벤트 · 광고 없음",
+    cta: "광고 보고 무료 이용",
+  },
+  ja: {
+    title: "より多くの歴史イベントを見る",
+    description:
+      "広告を視聴すると、次の12時間は動画広告なしで、より多くの歴史イベントを見ることができます。",
+    badge: "イベント追加 · 広告なし",
+    cta: "広告視聴で無料利用",
+  },
+  sc: {
+    title: "查看更多历史事件",
+    description:
+      "观看广告后，接下来的12小时内即可在无视频广告的情况下查看更多历史事件。",
+    badge: "更多事件 · 无广告",
+    cta: "看广告免费使用",
+  },
+  tc: {
+    title: "查看更多歷史事件",
+    description:
+      "觀看廣告後，接下來的12小時內即可在無影片廣告的情況下查看更多歷史事件。",
+    badge: "更多事件 · 無廣告",
+    cta: "看廣告免費使用",
+  },
+  es: {
+    title: "Ver más eventos históricos",
+    description:
+      "Al ver un anuncio, podrás ver más eventos históricos sin anuncios de video durante las próximas 12 horas.",
+    badge: "Más eventos · Sin anuncios",
+    cta: "Uso gratuito al ver un anuncio",
+  },
+  fr: {
+    title: "Voir plus d’événements historiques",
+    description:
+      "En regardant une publicité, vous pouvez consulter davantage d’événements historiques sans publicités vidéo pendant les 12 prochaines heures.",
+    badge: "Plus d’événements · Sans pub",
+    cta: "Usage gratuit après publicité",
   },
 };
 
 
+
+
 const SOURCE_LABEL = { ko: "출처", en: "Source", ja: "出典" };
-const LOCALE_BY_LANG = { ko: "ko", en: "en", ja: "ja", zh: "zh-Hans" };
+const LOCALE_BY_LANG = {
+  ko: "ko",
+  en: "en",
+  ja: "ja",
+  sc: "zh-Hans",
+  tc: "zh-Hant",
+};
 const UI_COL = { ko: "한국어", en: "English", ja: "日本語", zh: "中文" };
 const NATIVE_COL_BY_COUNTRY = {
   korea: "한국어",
@@ -376,7 +464,7 @@ function safeTimeZone(tzCandidate) {
   }
 }
 
-const SUPPORTED_LOCALES = new Set(["en", "ko", "ja", "zh"]);
+const SUPPORTED_LOCALES = new Set(["en", "ko", "ja", "zh-Hans", "zh-Hant"]);
 
 function safeLocale(localeCandidate) {
   const lc = String(localeCandidate || "en");
@@ -449,7 +537,6 @@ function safeFormatParts(date, tz) {
 
 // 유틸
 function resolveUiLangFromDevice() {
-  // 1. getLocales() 우선 사용 (Expo 권장 방식)
   try {
     const locales = Localization.getLocales?.();
     if (Array.isArray(locales) && locales.length > 0) {
@@ -457,13 +544,13 @@ function resolveUiLangFromDevice() {
       if (code === "ko") return "ko";
       if (code === "ja") return "ja";
       if (code === "en") return "en";
-      return "en"; // 그 외 언어는 전부 영어로
+      if (code === "zh") return "sc"; // 기본은 간체
+      return "en";
     }
   } catch (e) {
     console.log("[LOCALIZATION] getLocales error:", e);
   }
 
-  // fallback: Localization.locale 문자열 파싱
   const raw = Localization.locale || "en";
   const tag = String(raw).toLowerCase();
   const base = tag.split(/[-_]/)[0];
@@ -471,8 +558,10 @@ function resolveUiLangFromDevice() {
   if (base === "ko") return "ko";
   if (base === "ja") return "ja";
   if (base === "en") return "en";
+  if (base === "zh") return "sc";
   return "en";
 }
+
 
 
 function normalizeUiLang(value, fallback = "en") {
@@ -484,10 +573,15 @@ function normalizeUiLang(value, fallback = "en") {
   if (code === "ko") return "ko";
   if (code === "ja") return "ja";
   if (code === "en") return "en";
-    if (code === "zh") return "zh";
+
+  // 중국어: 기본은 간체(sc), 사용자가 tc 저장하면 그대로 tc 유지
+  if (code === "sc") return "sc";
+  if (code === "tc") return "tc";
+  if (code === "zh") return "sc"; // 장치 언어 zh → 간체로 매핑
 
   return fallback;
 }
+
 
 
 function startOfDayInTz(base = new Date(), tz = "UTC") {
@@ -532,34 +626,25 @@ function pickFirstNonEmpty(raw, keys) {
 }
 
 function bodyOfRowByLang(raw, uiLang, cid) {
-  // 혹시 "ko-KR", "ja-JP" 같은 값이 들어와도 앞부분만 사용
   const base = String(uiLang || "en").split(/[-_]/)[0];
 
   let order;
 
-if (base === "zh") {
+  if (base === "sc" || base === "tc" || base === "zh") {
+    // 중국어 UI → 간체/번체 우선, 없으면 영어 → 한 → 일
     order = ["sc", "tc", "English", "한국어", "日本語"];
-}
-else if (base === "ko") {
-    order = ["한국어", "English"];
-}
-else if (base === "ja") {
-    order = ["日本語", "English", "한국어"];
-}
-else {
-    order = ["English", "한국어", "日本語"];
-}
-
-
-  // 디버그용 (원하면 잠깐 켜놓기)
-  // console.log("[BODY PICK]", { base, order, rowSample: {
-  //   ko: raw?.["한국어"],
-  //   en: raw?.["English"],
-  //   ja: raw?.["日本語"],
-  // }});
+  } else if (base === "ko") {
+    order = ["한국어", "English", "日本語", "sc", "tc"];
+  } else if (base === "ja") {
+    order = ["日本語", "English", "한국어", "sc", "tc"];
+  } else {
+    // 기본 영어
+    order = ["English", "한국어", "日本語", "sc", "tc"];
+  }
 
   return pickFirstNonEmpty(raw, order);
 }
+
 
 // 앵커(언어별, URL 없으면 제외)
 function getAnchorsForLang(row, lang) {
@@ -576,15 +661,20 @@ function getAnchorsForLang(row, lang) {
       { t: "Anchor_text1_japanese", u: "URL1_japanese" },
       { t: "Anchor_text2_japanese", u: "URL2_japanese" },
     ],
-      zh: [
-    { t: "Anchor_text1_chinese", u: "URL1_chinese" },
-    { t: "Anchor_text2_chinese", u: "URL2_chinese" },
-  ],
+    sc: [
+      { t: "Anchor_text1_sc", u: "URL1_sc" },
+      { t: "Anchor_text2_sc", u: "URL2_sc" },
+    ],
+    tc: [
+      { t: "Anchor_text1_tc", u: "URL1_tc" },
+      { t: "Anchor_text2_tc", u: "URL2_tc" },
+    ],
   };
 
   const out = [];
   const seen = new Set();
 
+  // 1) row.scAnchors / row.tcAnchors / row.enAnchors 등 우선 사용
   const byArr = (row?.[`${lang}Anchors`] || [])
     .map((a) => ({
       text: String(a?.text || "").trim(),
@@ -600,6 +690,7 @@ function getAnchorsForLang(row, lang) {
     }
   }
 
+  // 2) 시트의 Anchor_text1_sc / URL1_sc ... 보강
   for (const { t, u } of colMap[lang] || []) {
     const a = {
       text: String(row?.[t] || "").trim(),
@@ -1221,24 +1312,22 @@ function useUIScale() {
 function getCountryOrderByUiLang(uiLang) {
   const base = String(uiLang || "en").split(/[-_]/)[0];
 
-  // 영어 / 한국어 UI
   if (base === "en" || base === "ko") {
     return ["world", "korea", "china", "japan"];
   }
 
-  // 일본어 UI
   if (base === "ja") {
     return ["world", "japan", "korea", "china"];
   }
 
-  // 중국어 UI (기본 코드 zh 가정)
-  if (base === "zh") {
+  // 중국어 UI (sc/tc/zh 모두 포함)
+  if (base === "sc" || base === "tc" || base === "zh") {
     return ["world", "china", "korea", "japan"];
   }
 
-  // 그 외: 기본은 영어와 동일
   return ["world", "korea", "china", "japan"];
 }
+
 
 // 색상 유효성 검사
 function isValidColorString(s) {
@@ -1994,12 +2083,11 @@ function FullBleedCard({
   );
 }
 
-function formatYearOnly(year, uiLang) {
-  const y = String(year || "").trim();
+function formatOnlyYearLabel(y, uiLang) {
   if (!y) return "";
   if (uiLang === "ko") return `${y}년`;
   if (uiLang === "ja") return `${y}年`;
-  if (uiLang === "zh") return `${y}年`;
+  if (uiLang === "sc" || uiLang === "tc") return `${y}年`;
   return y;
 }
 
@@ -2007,7 +2095,7 @@ function formatYearsAgo(diff, uiLang) {
   if (!diff || diff <= 0) return "";
   if (uiLang === "ko") return `(${diff}년 전)`;
   if (uiLang === "ja") return `(${diff}年前)`;
-  if (uiLang === "zh") return `（${diff}年前）`;
+  if (uiLang === "sc" || uiLang === "tc") return `（${diff}年前）`;
   if (diff === 1) return "1 year ago";
   return `(${diff} yrs ago)`;
 }
@@ -2488,6 +2576,208 @@ function scheduleMidnightWarmup({
 // 홈 화면
 export default function Home() {
 
+const YEAR_MAX_EVENTS_PER_COUNTRY = 12;     // 한 나라당 오늘 최대 12개
+
+
+  // 연도 모드 시청 카운트 & 패스
+const [yearSeenGroups, setYearSeenGroups] = useState(0);
+const [yearAdUnlockedUntil, setYearAdUnlockedUntil] = useState(0);
+const [yearAdPromptVisible, setYearAdPromptVisible] = useState(false);
+
+// [수정] 초기 데이터 복원 (패스, 본 횟수, +보고 있던 연도)
+  useEffect(() => {
+    // 오늘 날짜 기준 isoDate
+    const today = startOfDayInTz(new Date(), tz);
+    const { y, m, d } = getDayPartsFrom(today, tz);
+    const isoDate = `${y}-${m}-${d}`;
+
+    (async () => {
+      try {
+        const [passRaw, seenRaw, cursorRaw] = await AsyncStorage.multiGet([
+          STORAGE_KEY_YEAR_PASS_UNTIL,
+          STORAGE_KEY_YEAR_SEEN_GROUPS,
+          STORAGE_KEY_YEAR_CURSOR_SAVED, // [추가]
+        ]);
+
+        if (passRaw?.[1]) {
+          const n = parseInt(passRaw[1], 10);
+          if (!Number.isNaN(n)) setYearAdUnlockedUntil(n);
+        }
+
+        if (seenRaw?.[1]) {
+          const obj = JSON.parse(seenRaw[1]);
+          if (obj?.isoDate === isoDate && typeof obj.count === "number") {
+            setYearSeenGroups(obj.count);
+          }
+        }
+
+        // [추가] 보고 있던 연도 복원 (날짜가 같을 때만)
+        if (cursorRaw?.[1]) {
+          const obj = JSON.parse(cursorRaw[1]);
+          if (obj?.isoDate === isoDate && obj.year) {
+            setYearCursor(obj.year);
+            // 네비게이션 기준점도 같이 잡아줘야 함
+            baseYearRef.current = obj.year;
+          }
+        }
+      } catch (e) {
+        console.warn("[YEAR] restore failed", e);
+      }
+    })();
+  }, [tz]);
+
+
+function canSeeMoreYearEvents() {
+  const now = Date.now();
+  const hasPass = now < yearAdUnlockedUntil;
+
+  if (!hasPass) {
+    // 패스 없으면 무료 2개까지만 허용
+    return yearSeenGroups < YEAR_FREE_REFRESH_LIMIT;
+  }
+
+  // 패스가 있으면 총 12개까지만 허용
+  return yearSeenGroups < YEAR_MAX_EVENTS_PER_COUNTRY;
+}
+
+// [추가] 연도가 바뀔 때마다 저장 (앱 강제종료 대비)
+useEffect(() => {
+  if (!yearCursor) return;
+  
+  const today = startOfDayInTz(new Date(), tz);
+  const { y, m, d } = getDayPartsFrom(today, tz);
+  const isoDate = `${y}-${m}-${d}`;
+
+  AsyncStorage.setItem(
+    STORAGE_KEY_YEAR_CURSOR_SAVED,
+    JSON.stringify({ isoDate, year: yearCursor })
+  ).catch(() => {});
+}, [yearCursor, tz]);
+
+// [수정] 상수 확인 (반드시 1이어야 2개까지 무료)
+const YEAR_FREE_REFRESH_LIMIT = 1; 
+
+// [수정] 더 보기 버튼 핸들러
+// [수정] 더 보기 버튼 핸들러 (변수 불일치 해결)
+const handlePressYearMore = useCallback(async () => {
+  if (!isYearMode) return;
+  
+  const now = Date.now();
+  // yearAdUnlockedUntil 변수 사용 (기존 yearPassUntil 대신)
+  const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > now;
+
+  // 1. 무료 구간 (0개 -> 1개)
+  if (yearSeenGroups < YEAR_FREE_REFRESH_LIMIT) {
+    await showNextYearGroup();
+    await updateYearSeenCount(yearSeenGroups + 1);
+    return;
+  }
+
+  // 2. 유료 구간 (이미 2개 봄 -> 3번째 보려 함 -> 광고)
+  if (!hasPass) {
+    setYearAdPromptVisible(true);
+    return;
+  }
+
+  // 3. 패스 보유 중 (12개까지 추가)
+  // YEAR_MAX_EVENTS_PER_COUNTRY(12) 상수를 사용
+  if (yearSeenGroups < YEAR_MAX_EVENTS_PER_COUNTRY - 1) { 
+    await showNextYearGroup();
+    await updateYearSeenCount(yearSeenGroups + 1);
+  } else {
+    // 4. 12개 다 봄 (리스트만 갱신)
+    await showNextYearGroup(); 
+    // 카운트는 늘리지 않음
+  }
+}, [isYearMode, yearAdUnlockedUntil, yearSeenGroups, showNextYearGroup]);
+
+function showNextYearGroup() {
+  // Year 모드에서 "한 번 더 보기" = refreshTick 올려서 로딩 useEffect 다시 돌리기
+  setIsRefreshing(true);
+  setRefreshTick((t) => t + 1);
+}
+
+
+async function updateYearSeenCount(nextCount) {
+  setYearSeenGroups(nextCount);
+
+  const today = startOfDayInTz(new Date(), tz);
+  const { y, m, d } = getDayPartsFrom(today, tz);
+  const isoDate = `${y}-${m}-${d}`;
+
+  try {
+    await AsyncStorage.setItem(
+      STORAGE_KEY_YEAR_SEEN_GROUPS,
+      JSON.stringify({ isoDate, count: nextCount })
+    );
+  } catch (e) {
+    console.warn("[YEAR] save count failed", e);
+  }
+}
+
+
+
+// [수정] 광고 보상 처리 (화면 갱신 변수 업데이트)
+async function onRewardedForYear() {
+  const now = Date.now();
+  const until = now + REWARD_PASS_DURATION_MS; // 12시간
+
+  // 1. 패스 저장
+  setYearAdUnlockedUntil(until);
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until));
+  } catch (e) {
+    console.warn("[YEAR] save pass failed", e);
+  }
+
+  // 2. 모달 닫기
+  setYearAdPromptVisible(false);
+
+  // 3. [중요] 카운트 증가시키고 화면 갱신
+  // 패스를 얻었으니 바로 다음 것(3번째)을 보여줍니다.
+  if (yearSeenGroups < YEAR_MAX_EVENTS_PER_COUNTRY - 1) {
+    await updateYearSeenCount(yearSeenGroups + 1);
+    await showNextYearGroup();
+  } else {
+    await showNextYearGroup();
+  }
+
+}
+
+function showRewardedAdForYear() {
+  if (!rewardedAd.loaded) {
+    rewardedAd.load();
+  }
+
+  const subscription = rewardedAd.addAdEventListener(
+    RewardedAdEventType.EARNED_REWARD,
+    async () => {
+      await onRewardedForYear();
+      subscription(); // 리스너 해제
+    }
+  );
+
+  rewardedAd.show().catch((e) => {
+    console.warn("[AD] showRewardedAdForYear failed", e);
+    subscription();
+  });
+}
+
+// [추가] 월드 모드용 광고 보여주기 함수
+function showRewardedAdForWorld() {
+  if (!rewardedAd.loaded) {
+    rewardedAd.load();
+  }
+  // 리스너는 useEffect에서 이미 등록되어 있으므로 show만 호출
+  rewardedAd.show().catch((e) => {
+    console.warn("[AD] showWorld failed", e);
+    // 에러 시 강제로라도 모달 닫기
+    setAdPromptVisible(false);
+  });
+}
+
+
+
   const STORAGE_KEY_SEEN_YEAR_PREFIX = "@seen_year_v1:";
 
 function getYearsFromPool(pool) {
@@ -2512,7 +2802,7 @@ function pickTargetYearFromUnion(poolsByCid, cids, seedKey) {
   }
   if (!union.length) return null;
 
-  // ✅ 날짜 + 나라조합 + seedKey까지 같이 섞어서 더 다양하게
+  // 날짜 + 나라조합 + seedKey까지 같이 섞어서 더 다양하게
   const today = new Date().toISOString().slice(0, 10); // "2025-12-18" 이런 형태
   const rnd = xorshift(hash32(`year:${today}:${seedKey}`));
   const idx = Math.floor(rnd() * union.length);
@@ -2595,6 +2885,34 @@ async function pickYearEventRotate(pool, targetYear, isoDate, cid) {
   const [hydrated, setHydrated] = useState(false);
   // 오늘 기준 offset (-1: 어제, 0: 오늘, +1: 내일)
   const [dayOffset, setDayOffset] = useState(0);
+const [ytPassUntil, setYtPassUntil] = useState(null); // number | null (ms)
+
+const STORAGE_KEY_YT_PASS_UNTIL = "@histree:yt_pass_until";
+const YT_PASS_DURATION_MS = 12 * 60 * 60 * 1000;
+
+
+useEffect(() => {
+  (async () => {
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY_YT_PASS_UNTIL);
+      if (raw) {
+        const n = Number(raw);
+        if (!Number.isNaN(n) && n > Date.now()) {
+          setYtPassUntil(n);
+        } else {
+          setYtPassUntil(null);
+        }
+      }
+    } catch (e) {
+      console.warn("[YT PASS] load fail", e);
+    }
+  })();
+}, []);
+
+
+const canUseYesterdayTomorrowHistory = !!(
+  ytPassUntil && ytPassUntil > Date.now()
+);
 
   // 현재 화면 날짜 (어제/오늘/내일)
   const screenDate = useMemo(() => {
@@ -2651,7 +2969,36 @@ async function pickYearEventRotate(pool, targetYear, isoDate, cid) {
   [selectedCountries]
 );
 // 모드 판단
-const isWorldMode = useMemo(() => selectedCountries.has("world"), [selectedCountries]);
+const isWorldMode = selectedCountries.size === 1 && selectedCountries.has("world");
+
+const handlePressWorldPrev = () => {
+  if (!isWorldMode) return;
+
+  // 오늘(0)에서 어제로 가려면 패스 필요
+  if (dayOffset <= -1 && !canUseYesterdayTomorrowHistory) {
+    pendingNavRef.current = "prev";
+    setAdPromptKind("world");
+    setAdPromptVisible(true);
+    return;
+  }
+
+  // 하루만 어제로 제한
+  setDayOffset((v) => Math.max(-1, v - 1));
+};
+
+const handlePressWorldNext = () => {
+  if (!isWorldMode) return;
+
+  if (dayOffset >= 1 && !canUseYesterdayTomorrowHistory) {
+    pendingNavRef.current = "next";
+    setAdPromptKind("world");
+    setAdPromptVisible(true);
+    return;
+  }
+
+  setDayOffset((v) => Math.min(1, v + 1));
+};
+
 
 // world가 아니고(=한/중/일 중 선택), 선택이 최소 1개면 Year 모드
 const isYearMode = useMemo(() => !isWorldMode && selectedCountries.size > 0, [
@@ -2659,10 +3006,7 @@ const isYearMode = useMemo(() => !isWorldMode && selectedCountries.size > 0, [
   selectedCountries,
 ]);
 
-const yearCids = useMemo(() => {
-  if (!isYearMode) return [];
-  return [...selectedCountries].filter((c) => c !== "world");
-}, [isYearMode, selectedCountries]);
+
 
 
 const [yearCursor, setYearCursor] = useState(null); // number | null
@@ -2672,28 +3016,18 @@ const [yearYears, setYearYears] = useState([]);
 
 const baseYearRef = useRef(null);
 
-const prevSelStateRef = useRef({
-  isYearMode: false,
-});
 
-useEffect(() => {
-  const isNowYearMode =
-    !selectedCountries.has("world") && selectedCountries.size > 0;
 
-  const prev = prevSelStateRef.current;
 
-  // world(또는 아무 선택 없음) → 연도 모드로 "처음 진입"할 때만 seed 리셋
-  if (!prev.isYearMode && isNowYearMode) {
-    setYearCursor(null);
-    baseYearRef.current = null;
-  }
 
-  // 연도 모드 안에서 나라만 바뀌는 경우에는 yearCursor 그대로 유지
-  prevSelStateRef.current = {
-    isYearMode: isNowYearMode,
-  };
-}, [selectedCountries]);
+const STORAGE_KEY_YEAR_PASS_UNTIL = "@year_pass_until_v1";
+const STORAGE_KEY_YEAR_SEEN_GROUPS = "@year_seen_groups_v2"; // { isoDate, count }
 
+const STORAGE_KEY_YEAR_CURSOR_SAVED = "@year_cursor_saved_v1";
+
+
+// (선택) 날짜가 바뀌면 연도 모드도 새로 시작하고 싶으면 isoDate까지 넣어줘도 됨
+// }, [selectedCountries, isoDate]);
 
 
   const [onePick, setOnePick] = useState([]);
@@ -2776,24 +3110,25 @@ const goBy = useCallback(
     const step = delta < 0 ? -1 : delta > 0 ? 1 : 0;
     if (!step) return;
 
-    //  World 모드: 기존 dayOffset 이동 (-1/0/+1)
+    // World 모드: 오늘(0) / 어제(-1) / 내일(+1)
     if (isWorldMode) {
-      setDayOffset((prev) => Math.max(-1, Math.min(1, prev + step)));
+      setDayOffset((prev) => {
+        const next = prev + step;
+        if (next < -1) return -1;
+        if (next > 1) return 1;
+        return next;
+      });
       return;
     }
 
-    // Year 모드: "연도 +1/-1"만, 그리고 실제 존재하는 연도일 때만 이동
+    // Year 모드: 존재하는 연도에서만 커서 이동
     if (isYearMode) {
       setYearCursor((prev) => {
         if (prev == null) return prev;
+        if (!yearYears || !yearYears.length) return prev;
 
         const next = prev + step;
-
-        // yearYears(union)에 next가 없으면 이동 금지
-        if (!yearYears || !yearYears.length) return prev;
-        if (!yearYears.includes(next)) return prev;
-
-        return next;
+        return yearYears.includes(next) ? next : prev;
       });
     }
   },
@@ -2802,52 +3137,33 @@ const goBy = useCallback(
 
 
 
+// [확인/교체] 어제 보기
 const handlePrevDay = useCallback(() => {
-  // ✅ World면 dayOffset, Year면 yearCursor 이동을 광고로 게이트
-  if (amplitudeReadyRef.current) {
-    trackEvent(AMPLITUDE_EVENTS.YESTERDAY_CLICKED, {
-      language: uiLang,
-      countries: [...selectedCountries],
-      mode: isWorldMode ? "world" : "year",
-    });
-  }
-
-  // Year 모드인데 prev 불가면 아무것도 안 함
-  if (isYearMode && !yearNav.canPrev) return;
+  if (isYearMode) return; 
 
   const now = Date.now();
   if (rewardPassUntil && rewardPassUntil > now) {
     goBy(-1);
     return;
   }
-
+  // 패스 없으면 광고 모달 띄우기
   pendingNavRef.current = -1;
   setAdPromptVisible(true);
-}, [uiLang, selectedCountries, rewardPassUntil, goBy, isWorldMode, isYearMode, yearNav]);
+}, [rewardPassUntil, goBy, isYearMode]);
 
+// [확인/교체] 내일 보기
 const handleNextDay = useCallback(() => {
-  if (amplitudeReadyRef.current) {
-    trackEvent(AMPLITUDE_EVENTS.TOMORROW_CLICKED, {
-      language: uiLang,
-      countries: [...selectedCountries],
-      mode: isWorldMode ? "world" : "year",
-    });
-  }
-
-  // Year 모드인데 next 불가면 아무것도 안 함
-  if (isYearMode && !yearNav.canNext) return;
+  if (isYearMode) return; 
 
   const now = Date.now();
   if (rewardPassUntil && rewardPassUntil > now) {
     goBy(+1);
     return;
   }
-
+  // 패스 없으면 광고 모달 띄우기
   pendingNavRef.current = +1;
   setAdPromptVisible(true);
-}, [uiLang, selectedCountries, rewardPassUntil, goBy, isWorldMode, isYearMode, yearNav]);
-
-
+}, [rewardPassUntil, goBy, isYearMode]);
 useEffect(() => {
   let isMounted = true;
 
@@ -2862,28 +3178,30 @@ useEffect(() => {
     }
 
     // 광고 끝까지 시청 → 날짜 이동 + 12시간 패스 부여
+// [수정] 광고 시청 완료 시 보상 처리 로직 통합
     if (type === RewardedAdEventType.EARNED_REWARD) {
-      console.log("[AD] earned reward:", payload);
+      const pending = pendingNavRef.current;
 
-      const until = Date.now() + REWARD_PASS_DURATION_MS;
-      setRewardPassUntil(until);
-      AsyncStorage.setItem(
-        STORAGE_KEY_REWARD_PASS_UNTIL,
-        String(until)
-      ).catch(() => {});
-
-      // 대기 중이던 방향(-1 or +1)으로 이동
-      const dir = pendingNavRef.current;
-      if (dir === -1 || dir === 1) {
-        goBy(dir);
+      // 1. 월드 모드: 어제(-1) 또는 내일(+1) 이동 예약인 경우
+      if (pending === -1 || pending === 1) {
+        const until = Date.now() + REWARD_PASS_DURATION_MS; // 12시간 패스 부여
+        setRewardPassUntil(until);
+        AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => {});
+        goBy(pending); // 예약된 방향으로 자동 이동
+      } 
+      
+      // 2. 한중일(연도) 모드: 더보기 예약인 경우
+      else if (pending === "year_refresh") {
+        // 연도 패스 부여는 onRewardedForYear()에서 별도 처리되지만, 여기서 확실히 리프레시
+        setRefreshTick((t) => t + 1);
       }
-      pendingNavRef.current = null;
-      setAdPromptVisible(false);
-      setRewardedLoaded(false);
 
-      // ⚠️ 여기서는 더 이상 load() 호출하지 않음
-      // iOS에서 광고가 아직 안 닫혔는데 다시 load()를 걸면 이상한 상태로 갈 수 있음
-    }
+      // 공통 정리
+      pendingNavRef.current = null;
+      setAdPromptVisible(false); // 월드 모달 닫기
+      setRewardedLoaded(false);
+    
+}
 
     // 광고 닫힘 (중간에 닫은 경우 포함)
     if (type === AdEventType.CLOSED) {
@@ -3109,11 +3427,20 @@ const onSystemSharePress = useCallback(async () => {
 
 
 const fetchingRef = useRef(false);
-
+                                                                              
 const handlePullToRefresh = useCallback(() => {
-  setIsRefreshing(true);
-  setRefreshTick((t) => t + 1);
-}, []);
+  // World 모드: 예전처럼 무제한 새로고침
+  if (!isYearMode) {
+    setIsRefreshing(true);
+    setRefreshTick((t) => t + 1);
+    return;
+  }
+
+  // 🇰🇷🇨🇳🇯🇵 연도 모드: "더 보기" 버튼과 동일한 동작
+  handlePressYearMore();
+}, [isYearMode, handlePressYearMore]);
+
+
 
 
   useEffect(() => {
@@ -3155,127 +3482,124 @@ const handlePullToRefresh = useCallback(() => {
 
  
    // 초기 설정/복원
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const pairs = await AsyncStorage.multiGet([
-          STORAGE_KEY_UI_LANG,
-          STORAGE_KEY_SELECTED,
-          STORAGE_KEY_NOTIFY_ENABLED,
-          STORAGE_KEY_NOTIFY_TIME,
-          STORAGE_KEY_CARD_BG,
-          STORAGE_KEY_BG_COLOR,
-          STORAGE_KEY_BG_IMAGE,
-          STORAGE_KEY_FONT,
-          STORAGE_KEY_FONT_SIZE,
-          STORAGE_KEY_FONT_COLOR,
-          STORAGE_KEY_REWARD_PASS_UNTIL,
-        ]).catch(() => []);
-        const dict = Object.fromEntries(pairs || []);
-        if (!alive) return;
+ // [수정] 초기 설정/복원 (연도 데이터 포함 통합)
+useEffect(() => {
+  let alive = true;
+  (async () => {
+    try {
+      // 1. 저장된 모든 키를 한 번에 가져옴
+      const pairs = await AsyncStorage.multiGet([
+        STORAGE_KEY_UI_LANG,
+        STORAGE_KEY_SELECTED,
+        STORAGE_KEY_NOTIFY_ENABLED,
+        STORAGE_KEY_NOTIFY_TIME,
+        STORAGE_KEY_CARD_BG,
+        STORAGE_KEY_BG_COLOR,
+        STORAGE_KEY_BG_IMAGE,
+        STORAGE_KEY_FONT,
+        STORAGE_KEY_FONT_SIZE,
+        STORAGE_KEY_FONT_COLOR,
+        STORAGE_KEY_REWARD_PASS_UNTIL,
+        // [추가] 연도 모드 관련 키들도 여기서 같이 로드
+        STORAGE_KEY_YEAR_PASS_UNTIL,
+        STORAGE_KEY_YEAR_SEEN_GROUPS,
+        STORAGE_KEY_YEAR_CURSOR_SAVED, 
+      ]).catch(() => []);
+      
+      const dict = Object.fromEntries(pairs || []);
+      if (!alive) return;
 
-         if (dict[STORAGE_KEY_REWARD_PASS_UNTIL]) {
-        const ts = parseInt(
-          dict[STORAGE_KEY_REWARD_PASS_UNTIL],
-          10
-        );
-        if (!Number.isNaN(ts) && ts > 0) {
+      // 2. 월드 모드 패스 복원
+      if (dict[STORAGE_KEY_REWARD_PASS_UNTIL]) {
+        const ts = parseInt(dict[STORAGE_KEY_REWARD_PASS_UNTIL], 10);
+        if (!Number.isNaN(ts) && ts > Date.now()) {
           setRewardPassUntil(ts);
         }
       }
 
-        // 언어 결정
-        const storedLangRaw = dict[STORAGE_KEY_UI_LANG] || null;
-        let lang;
+      // 3. [추가] 연도 모드 데이터 복원 (이 부분이 핵심)
+      const today = startOfDayInTz(new Date(), tz);
+      const { y, m, d } = getDayPartsFrom(today, tz);
+      const isoDate = `${y}-${m}-${d}`;
 
-        if (storedLangRaw) {
-          // 유저가 이미 선택해 둔 언어가 있으면 그것 우선
-          lang = normalizeUiLang(storedLangRaw, deviceLang);
-        } else {
-          // 처음 실행 등: 저장된 값이 없으면 폰 언어(deviceLang)로 결정 + 저장
-          lang = deviceLang;
-          try {
-            await AsyncStorage.setItem(STORAGE_KEY_UI_LANG, lang);
-          } catch {}
+      // 3-1. 연도 패스
+      if (dict[STORAGE_KEY_YEAR_PASS_UNTIL]) {
+        const n = parseInt(dict[STORAGE_KEY_YEAR_PASS_UNTIL], 10);
+        if (!Number.isNaN(n) && n > Date.now()) {
+          setYearAdUnlockedUntil(n);
         }
-
-        setUiLang(lang);
-
-        if (amplitudeReadyRef.current) {
-          setUserProperties({
-            language: lang,
-            device_language: deviceLang,
-          });
-        }
-
-        // 이하 selectedCountries, notify, bg, font 복원 로직
-        let nextSet;
-        if (dict[STORAGE_KEY_SELECTED]) {
-          let arr = [];
-          try {
-            arr = JSON.parse(dict[STORAGE_KEY_SELECTED]);
-          } catch {}
-          nextSet = ensureNonEmptySelection(
-            new Set(Array.isArray(arr) ? arr : []),
-            lang
-          );
-        } else {
-          nextSet = ensureNonEmptySelection(new Set(), lang);
-        }
-        setSelectedCountries(nextSet);
-        try {
-          await AsyncStorage.setItem(
-            STORAGE_KEY_SELECTED,
-            JSON.stringify([...nextSet])
-          );
-        } catch {}
-
-        setNotifyEnabled(dict[STORAGE_KEY_NOTIFY_ENABLED] === "1");
-
-        if (dict[STORAGE_KEY_NOTIFY_TIME]) {
-          setNotifyTime(dict[STORAGE_KEY_NOTIFY_TIME]);
-        }
-
-        if (dict[STORAGE_KEY_CARD_BG]) {
-          setCardBg(dict[STORAGE_KEY_CARD_BG]);
-        }
-
-        const rawBg = dict[STORAGE_KEY_BG_COLOR];
-        setCustomBgColor(
-          isValidColorString(rawBg) ? rawBg : null
-        );
-        if (dict[STORAGE_KEY_BG_IMAGE]) {
-          setCustomBgImage(dict[STORAGE_KEY_BG_IMAGE]);
-        }
-
-        if (dict[STORAGE_KEY_FONT]) {
-          setCustomFont(dict[STORAGE_KEY_FONT]);
-        }
-
-        if (dict[STORAGE_KEY_FONT_SIZE]) {
-          const v = parseInt(
-            dict[STORAGE_KEY_FONT_SIZE],
-            10
-          );
-          if (!Number.isNaN(v) && v > 8) {
-            setCustomFontSize(v);
-          }
-        }
-
-        if (dict[STORAGE_KEY_FONT_COLOR]) {
-          setCustomFontColor(dict[STORAGE_KEY_FONT_COLOR]);
-        }
-      } catch (e) {
-        console.warn("Init restore failed:", e);
-      } finally {
-        setHydrated(true);
       }
-    })();
-    return () => {
-      alive = false;
-    };
-  }, [deviceLang]);
+      // 3-2. 본 횟수 (날짜가 같을 때만 복원)
+      if (dict[STORAGE_KEY_YEAR_SEEN_GROUPS]) {
+        try {
+          const obj = JSON.parse(dict[STORAGE_KEY_YEAR_SEEN_GROUPS]);
+          if (obj?.isoDate === isoDate && typeof obj.count === "number") {
+            setYearSeenGroups(obj.count);
+          }
+        } catch {}
+      }
+      // 3-3. 보고 있던 연도 (날짜가 같을 때만 복원)
+      if (dict[STORAGE_KEY_YEAR_CURSOR_SAVED]) {
+        try {
+          const obj = JSON.parse(dict[STORAGE_KEY_YEAR_CURSOR_SAVED]);
+          if (obj?.isoDate === isoDate && obj.year) {
+            setYearCursor(obj.year);
+            baseYearRef.current = obj.year; // 기준점도 복원
+          }
+        } catch {}
+      }
+
+      // 4. 언어 설정
+      const storedLangRaw = dict[STORAGE_KEY_UI_LANG] || null;
+      let lang;
+      if (storedLangRaw) {
+        lang = normalizeUiLang(storedLangRaw, deviceLang);
+      } else {
+        lang = deviceLang;
+        AsyncStorage.setItem(STORAGE_KEY_UI_LANG, lang).catch(() => {});
+      }
+      setUiLang(lang);
+      
+      if (amplitudeReadyRef.current) {
+        setUserProperties({ language: lang, device_language: deviceLang });
+      }
+
+      // 5. 국가 선택 및 기타 설정 복원
+      let nextSet;
+      if (dict[STORAGE_KEY_SELECTED]) {
+        let arr = [];
+        try { arr = JSON.parse(dict[STORAGE_KEY_SELECTED]); } catch {}
+        nextSet = ensureNonEmptySelection(new Set(Array.isArray(arr) ? arr : []), lang);
+      } else {
+        nextSet = ensureNonEmptySelection(new Set(), lang);
+      }
+      setSelectedCountries(nextSet);
+
+      setNotifyEnabled(dict[STORAGE_KEY_NOTIFY_ENABLED] === "1");
+      if (dict[STORAGE_KEY_NOTIFY_TIME]) setNotifyTime(dict[STORAGE_KEY_NOTIFY_TIME]);
+      if (dict[STORAGE_KEY_CARD_BG]) setCardBg(dict[STORAGE_KEY_CARD_BG]);
+      
+      const rawBg = dict[STORAGE_KEY_BG_COLOR];
+      setCustomBgColor(isValidColorString(rawBg) ? rawBg : null);
+      if (dict[STORAGE_KEY_BG_IMAGE]) setCustomBgImage(dict[STORAGE_KEY_BG_IMAGE]);
+      if (dict[STORAGE_KEY_FONT]) setCustomFont(dict[STORAGE_KEY_FONT]);
+      
+      if (dict[STORAGE_KEY_FONT_SIZE]) {
+        const v = parseInt(dict[STORAGE_KEY_FONT_SIZE], 10);
+        if (!Number.isNaN(v) && v > 8) setCustomFontSize(v);
+      }
+      if (dict[STORAGE_KEY_FONT_COLOR]) setCustomFontColor(dict[STORAGE_KEY_FONT_COLOR]);
+
+    } catch (e) {
+      console.warn("Init restore failed:", e);
+    } finally {
+      // 모든 복원이 끝난 후 렌더링 시작 -> 랜덤 연도 발생 방지
+      setHydrated(true);
+    }
+  })();
+
+  return () => { alive = false; };
+}, [deviceLang]); // tz는 내부에서 계산
 
 
   // 포커스될 때 설정 재동기화
@@ -3577,124 +3901,225 @@ arr.push({
         return;
       }
 
-      // ✅ World 모드: 기존 로직 유지
-      if (isWorldMode) {
-        const pick = await pickOneWithSeenRotation(poolsByCid, chosen, isoDate, seedKey);
-        if (canceled) return;
+          // ✅ World 모드: 오늘/어제/내일은 기존 world 로직 유지
+    if (isWorldMode) {
+      const pick = await pickOneWithSeenRotation(
+        poolsByCid,
+        chosen,
+        isoDate,
+        seedKey
+      );
 
+      if (!canceled) {
         if (pick) {
           setHeaderImageUrl(null);
-          setOnePick([pick]);
+          setOnePick([pick]);      // 세계도 항상 1개만
+          setYearYears([]);        // 연도 타이틀은 world에서 안 씀
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
           lastPickKeyRef.current = pick.key;
         } else {
-          setOnePick([]);
           setHeaderImageUrl(null);
+          setOnePick([]);
+          setYearYears([]);
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
         }
+      }
 
-        setYearCursor(null);
-        setYearNav({ canPrev: false, canNext: false });
-        setYearYears([]);
+      endLoading();
+      return;
+    }
 
+    // ✅ Year 모드: 한/중/일에서 world처럼 1개 이벤트만 보여주기
+    if (isYearMode) {
+      // world는 연도 모드에서 제외
+      const yearCids = chosen.filter((cid) => cid !== "world");
+
+      if (!yearCids.length) {
+        if (!canceled) {
+          setHeaderImageUrl(null);
+          setOnePick([]);
+          setYearYears([]);
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
+        }
         endLoading();
-
         return;
       }
 
-      // ✅ Year 모드: (선택된 한/중/일)에서 랜덤 연도 1개 선택 → 각 나라에서 그 연도(없으면 근처) 1개씩
-      const cids = yearCids.length ? yearCids : chosen.filter((c) => c !== "world");
+      const pick = await pickByYearRotation(poolsByCid, yearCids, isoDate);
 
-// 1) 각 나라 years set
-const yearsByCid = {};
-for (const cid of cids) {
-  yearsByCid[cid] = getYearsFromPool(poolsByCid[cid] || []);
-}
-
-// 2) 교집합(common years) 우선
-let common = null;
-for (const cid of cids) {
-  const s = yearsByCid[cid];
-  if (!s || s.size === 0) continue;
-  if (common == null) common = new Set(s);
-  else {
-    for (const y of [...common]) {
-      if (!s.has(y)) common.delete(y);
-    }
-  }
-}
-const commonYearsArr = common ? [...common].sort((a, b) => a - b) : [];
-
-// 3) 교집합이 비면(데이터 구조상 있을 수 있음) fallback: 합집합
-const union = new Set();
-for (const cid of cids) for (const y of yearsByCid[cid] || []) union.add(y);
-const unionYearsArr = [...union].sort((a, b) => a - b);
-
-// ✅ Year navigation 기준 years (우선 common)
-const yearsArr = commonYearsArr.length ? commonYearsArr : unionYearsArr;
-setYearYears(yearsArr);
-
-if (!yearsArr.length) {
-  setOnePick([]);
-  setHeaderImageUrl(null);
-  setYearCursor(null);
-  setYearNav({ canPrev: false, canNext: false });
-  setYearYears([]);
-  endLoading();
-  return;
-}
-
-// yearCursor 없으면 처음만 뽑기 (common years 기준)
-let targetYear = yearCursor;
-if (targetYear == null) {
-  const rnd = xorshift(hash32(`year:${isoDate}:${stableKey}`));
-  const idx = Math.floor(rnd() * yearsArr.length);
-  targetYear = yearsArr[idx];
-
-  // ✅ 처음 들어왔을 때만 기준 연도 저장
-  baseYearRef.current = targetYear;
-} else if (baseYearRef.current == null) {
-  // 혹시 기존 유저 데이터 때문에 기준이 없으면 한 번 세팅
-  baseYearRef.current = targetYear;
-}
-
-setYearYears(yearsArr);
-setYearCursor(targetYear);
-
-// ✅ 기준 연도 ±1 범위까지만 네비게이션 허용
-const yearsSet = new Set(yearsArr);
-const baseYear = baseYearRef.current ?? targetYear;
-const prevCandidate = targetYear - 1;
-const nextCandidate = targetYear + 1;
-
-setYearNav({
-  canPrev:
-    yearsSet.has(prevCandidate) &&
-    Math.abs(prevCandidate - baseYear) <= 1,
-  canNext:
-    yearsSet.has(nextCandidate) &&
-    Math.abs(nextCandidate - baseYear) <= 1,
-});
-
-
-
-
-      
-
-      // 각 나라에서 가장 가까운 연도 이벤트 1개씩(중복 방지: refresh 시 다른 이벤트로 회전)
-      const picks = [];
-      for (const cid of cids) {
-        const pool = poolsByCid[cid] || [];
-const it = await pickYearEventRotate(pool, targetYear, isoDate, cid);
-        if (it) picks.push(it);
+      if (!canceled) {
+        if (pick) {
+          setHeaderImageUrl(null);
+          setOnePick([pick]);      // 연도 모드도 1개만
+          const y = getYearFromRow(pick.row);
+          setYearYears(y ? [y] : []);
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
+        } else {
+          setHeaderImageUrl(null);
+          setOnePick([]);
+          setYearYears([]);
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
+        }
       }
 
+      endLoading();
+      return;
+    }
+
+    // ✅ 혼합 모드 (world + 다른 나라 같이 선택된 경우)
+    {
+      const pick = await pickOneWithSeenRotation(
+        poolsByCid,
+        chosen,
+        isoDate,
+        seedKey
+      );
+
+      if (!canceled) {
+        if (pick) {
+          setHeaderImageUrl(null);
+          setOnePick([pick]);
+          setYearYears([]);
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
+          lastPickKeyRef.current = pick.key;
+        } else {
+          setHeaderImageUrl(null);
+          setOnePick([]);
+          setYearYears([]);
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
+        }
+      }
+
+      endLoading();
+      return;
+    }
+
+
+
+
+      // 2) 교집합(common years) 우선
+         //Year 모드: 한/중/일에서 하루에 1개의 연도를 공유해서 사용
+      const cids = chosen.filter((cid) => cid !== "world");
+
+      // 나라별 연도 집합 만들기
+      const yearsByCid = {};
+      for (const cid of cids) {
+        yearsByCid[cid] = getYearsFromPool(poolsByCid[cid] || []);
+      }
+
+      // 1) 교집합(common years) 우선
+      let common = null;
+      for (const cid of cids) {
+        const s = yearsByCid[cid];
+        if (!s || s.size === 0) continue;
+        if (common == null) common = new Set(s);
+        else {
+          for (const y of [...common]) {
+            if (!s.has(y)) common.delete(y);
+          }
+        }
+      }
+      const commonYearsArr = common ? [...common].sort((a, b) => a - b) : [];
+
+      // 2) 교집합이 없으면 합집합(union) 사용
+      const union = new Set();
+      for (const cid of cids) {
+        for (const y of yearsByCid[cid] || []) union.add(y);
+      }
+      const unionYearsArr = [...union].sort((a, b) => a - b);
+      // 최종 사용할 연도 리스트
+      const yearsArr = commonYearsArr.length ? commonYearsArr : unionYearsArr;
+      setYearYears(yearsArr);
+
+      if (!yearsArr.length) {
+        setOnePick([]);
+        setHeaderImageUrl(null);
+        setYearCursor(null);
+        setYearNav({ canPrev: false, canNext: false });
+        setYearYears([]);
+        endLoading();
+        return;
+      }
+
+      // 하루에 1개의 기준 연도 고정 (isoDate + stableKey 기반)
+      let targetYear = yearCursor;
+      if (targetYear == null) {
+        const rnd = xorshift(hash32(`year:${isoDate}:${stableKey}`));
+        const idx = Math.floor(rnd() * yearsArr.length);
+        targetYear = yearsArr[idx];
+
+        baseYearRef.current = targetYear;
+      } else if (baseYearRef.current == null) {
+        baseYearRef.current = targetYear;
+      }
+
+      setYearYears(yearsArr);
+      setYearCursor(targetYear);
+
+      // 연도 네비게이션은 사용 안 함 (항상 false)
+      setYearNav({ canPrev: false, canNext: false });
+
+      // 각 나라에서 targetYear에 가장 가까운 이벤트 1개씩 (refresh마다 rotate)
+ // [수정] 각 나라에서 (본 횟수 + 1)개만큼 누적해서 가져오기
+      const picks = [];
+      // yearSeenGroups: 0 -> 1개 가져옴, 1 -> 2개 가져옴 ...
+      const countToFetch = yearSeenGroups + 1;
+
+      for (const cid of cids) {
+        const pool = poolsByCid[cid] || [];
+        
+        // 1. 해당 연도(targetYear) 데이터 필터링
+        const getY = (it) => {
+            const y = parseInt(getYearFromRow(it.row), 10);
+            return Number.isNaN(y) ? null : y;
+        };
+
+        let candidates = pool.filter((it) => getY(it) === targetYear);
+
+        // 2. 데이터가 없으면 근접 연도로 대체 (Fallback)
+        if (!candidates.length && pool.length > 0) {
+             const scored = pool
+              .map((it) => {
+                const y = getY(it);
+                const dist = y == null ? 1e9 : Math.abs(y - targetYear);
+                return { it, y, dist };
+              })
+              .sort((a, b) => a.dist - b.dist);
+             
+             if (scored.length) {
+                const bestDist = scored[0].dist;
+                const bestYear = scored.find((x) => x.dist === bestDist)?.y;
+                if (bestYear != null) {
+                    candidates = pool.filter((it) => getY(it) === bestYear);
+                }
+             }
+        }
+if (candidates.length > 0) {
+            // [중요] 순서 고정
+            candidates.sort((a, b) => String(a.key).localeCompare(String(b.key)));
+
+            // [중요] 개수만큼 잘라서 가져오기 (1개 -> 2개 -> 3개 ...)
+            const selected = candidates.slice(0, countToFetch);
+            picks.push(...selected);
+        }
+      }
       if (canceled) return;
 
       setHeaderImageUrl(null);
       setOnePick(picks);
       lastPickKeyRef.current = picks?.[0]?.key || null;
 
+      // 여기서는 "몇 개 봤는지" 카운트하지 않음 (버튼 함수에서 처리함)
       endLoading();
-    } catch (e) {
+
+        } catch (e) {
       if (!canceled) {
         setErr(String(e?.message || e));
         endLoading();
@@ -3704,24 +4129,25 @@ const it = await pickYearEventRotate(pool, targetYear, isoDate, cid);
     }
   })();
 
-  return () => {
-    canceled = true;
-    fetchingRef.current = false;
-  };
-}, [
-  hydrated,
-  todayParts,
-  uiLang,
-  selectedCountries,
-  stableKey,
-  seedKey,
-  isoDate,
-  endLoading,
-  isWorldMode,
-  isYearMode,
-  yearCids,
-  yearCursor,
-]);
+// [수정] useEffect의 마지막 의존성 배열 부분을 아래와 같이 바꾸세요.
+    return () => {
+      canceled = true;
+      fetchingRef.current = false;
+    };
+  }, [
+    hydrated,
+    todayParts,
+    uiLang,
+    selectedCountries,
+    stableKey,
+    seedKey,
+    isoDate,
+    endLoading,
+    isWorldMode,
+    isYearMode,
+    yearCursor,
+    yearSeenGroups, 
+  ]);
 
 
   // 헤더 배너 이미지 로딩/캐시
@@ -3904,6 +4330,8 @@ const it = await pickYearEventRotate(pool, targetYear, isoDate, cid);
     },
     [selectedCountries, uiLang]
   );
+
+  
 
 const buildNotificationTitleNow = useCallback(() => {
   const appName = APP_NAME_BY_LANG[uiLang || "en"] || APP_NAME_BY_LANG.en;
@@ -4228,13 +4656,13 @@ if (p.cid === "world") {
   // 한/중/일: 연도 + (몇년전)만
   const yNum = parseInt(String(eventYear || ""), 10);
   const baseYear = parseInt(String(todayParts.y), 10);
-  const diff = (!Number.isNaN(yNum) && !Number.isNaN(baseYear)) ? (baseYear - yNum) : 0;
+ const diff = (!Number.isNaN(yNum) && !Number.isNaN(baseYear)) ? (baseYear - yNum) : 0;
 
-  if (!Number.isNaN(yNum) && yNum > 0) {
-    const yOnly = formatYearOnly(yNum, uiLang || "en");
-    const ago = formatYearsAgo(diff, uiLang || "en");
-    dateLabel = ago ? `${yOnly} ${ago}` : yOnly;
-  } else {
+if (!Number.isNaN(yNum) && yNum > 0) {
+  const yOnly = formatOnlyYearLabel(yNum, uiLang || "en");
+  const ago = formatYearsAgo(diff, uiLang || "en");
+  dateLabel = ago ? `${yOnly} ${ago}` : yOnly;
+} else {
     dateLabel = ""; // 연도 없으면 숨김
   }
 }
@@ -4381,153 +4809,79 @@ if (p.cid === "world") {
             </View>
           )}
 
-   <Modal
-  visible={adPromptVisible}
-  transparent
-  animationType="fade"
-  onRequestClose={() => {
-    setAdPromptVisible(false);
-    pendingNavRef.current = null;
-  }}
->
-  <View
-    style={{
-      flex: 1,
-      backgroundColor: "rgba(0,0,0,0.35)",
-      alignItems: "center",
-      justifyContent: "center",
-    }}
-  >
-    <View
-      style={{
-        width: 280,
-        borderRadius: 16,
-        paddingHorizontal: 20,
-        paddingVertical: 18,
-        backgroundColor: "#FFFFFF",
-      }}
-    >
-      {/* 🔹 상단 X 버튼 + 뱃지 */}
-      <View
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 8,
-        }}
+  {/* 연도 모드용 광고 모달 */}
+<Modal
+        visible={adPromptVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAdPromptVisible(false)}
       >
-        <Text
-          style={{
-            fontSize: 12,
-            fontWeight: "600",
-            color: "#10B981",
-          }}
-        >
-          {tModal.badge}
-        </Text>
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
+            <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+              <Pressable onPress={() => setAdPromptVisible(false)} hitSlop={10}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
+              </Pressable>
+            </View>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: "#10B981", marginBottom: 4 }}>
+              {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).badge}
+            </Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: "#111827", marginBottom: 8 }}>
+              {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
+            </Text>
+            <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
+              {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).description}
+            </Text>
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <Pressable
+                onPress={showRewardedAdForWorld}
+                style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
-        <Pressable
-          onPress={() => {
-            setAdPromptVisible(false);
-            pendingNavRef.current = null;
-          }}
-          hitSlop={8}
-          style={{
-            paddingHorizontal: 4,
-            paddingVertical: 2,
-          }}
-        >
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: "700",
-              color: "#9CA3AF",
-            }}
-          >
-            ✕
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* 설명 텍스트 */}
-      <Text
-        style={{
-          fontSize: 14,
-          color: "#4b5563",
-        }}
+      {/* 2. 연도 모드용 광고 모달 */}
+      <Modal
+        visible={yearAdPromptVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setYearAdPromptVisible(false)}
       >
-        {tModal.description}
-      </Text>
-
-      {/* 하단 버튼 영역 */}
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "flex-end",
-          marginTop: 18,
-          gap: 12,
-        }}
-      >
-        {/* 취소 버튼 (텍스트 넣어서 살리거나 지워도 됨) */}
-        <Pressable
-          onPress={() => {
-            setAdPromptVisible(false);
-            pendingNavRef.current = null;
-          }}
-          style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-          }}
-        >
-        </Pressable>
-
-        {/* 광고 시청하러 가기 버튼 */}
-        <Pressable
-  onPress={async () => {
-    console.log("[AD] button pressed, rewardedLoaded =", rewardedLoaded);
-
-    // 아직 안 로드됐으면 그냥 다시 로드만 하고 리턴
-    if (!rewardedLoaded) {
-      console.log("[AD] not loaded yet, calling load()");
-      rewardedAd.load();
-
-      if (Platform.OS === "android") {
-        ToastAndroid.show(
-          "광고를 준비하고 있어요. 잠시 후 다시 눌러주세요.",
-          ToastAndroid.SHORT
-        );
-      }
-      return;
-    }
-
-    try {
-      console.log("[AD] calling rewardedAd.show()");
-      await rewardedAd.show();
-    } catch (e) {
-      console.warn("[AD] show error", e);
-      // show() 자체가 실패하면 모달/상태 정리
-      setAdPromptVisible(false);
-      pendingNavRef.current = null;
-      setRewardedLoaded(false);
-    }
-  }}
-  style={{
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: "#111827",
-  }}
->
-  <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
-    {tModal.cta}
-  </Text>
-</Pressable>
-
-      </View>
-    </View>
-  </View>
-</Modal>
-
+        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
+            <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+              <Pressable onPress={() => setYearAdPromptVisible(false)} hitSlop={10}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
+              </Pressable>
+            </View>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: "#10B981", marginBottom: 4 }}>
+              {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).badge}
+            </Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: "#111827", marginBottom: 8 }}>
+              {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).title}
+            </Text>
+            <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
+              {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).description}
+            </Text>
+            <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+              <Pressable
+                onPress={showRewardedAdForYear}
+                style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
+                  {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).cta}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
         </>
       )}
