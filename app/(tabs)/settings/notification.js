@@ -95,6 +95,23 @@ async function init() {
     }
   }
 
+  // ⭐ 먼저 AsyncStorage에서 저장된 시간을 불러옴
+  try {
+    const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
+    if (savedTimeStr) {
+      const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
+      if (!isNaN(hour) && !isNaN(minute)) {
+        const restoredDate = new Date();
+        restoredDate.setHours(hour, minute, 0, 0);
+        setDate(restoredDate);
+        console.log('✅ Restored time from storage:', savedTimeStr);
+      }
+    }
+  } catch (error) {
+    console.log('Failed to restore saved time:', error);
+  }
+
+  // ⭐ 그 다음 예약된 알림 확인
   try {
     console.log('Checking for existing scheduled notifications...');
     const all = await Notifications.getAllScheduledNotificationsAsync();
@@ -106,32 +123,16 @@ async function init() {
       scheduledIdRef.current = mine.identifier || null;
       setIsNotificationOn(true);
       
-      // ⭐ 저장된 시간 복원
+      // 예약된 알림이 있으면 그 시간으로 덮어씀
       if (mine.trigger && mine.trigger.hour !== undefined) {
         const savedDate = new Date();
         savedDate.setHours(mine.trigger.hour, mine.trigger.minute, 0, 0);
         setDate(savedDate);
         setSavedTime(savedDate);
-        console.log('Restored saved time:', savedDate.toLocaleTimeString());
+        console.log('✅ Overridden with scheduled notification time:', savedDate.toLocaleTimeString());
       }
     } else {
       console.log('No existing notifications found');
-      
-      // ⭐ AsyncStorage에서 마지막 설정 시간 불러오기
-      try {
-        const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
-        if (savedTimeStr) {
-          const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
-          if (!isNaN(hour) && !isNaN(minute)) {
-            const restoredDate = new Date();
-            restoredDate.setHours(hour, minute, 0, 0);
-            setDate(restoredDate);
-            console.log('Restored time from storage:', savedTimeStr);
-          }
-        }
-      } catch (error) {
-        console.log('Failed to restore saved time:', error);
-      }
     }
   } catch (error) {
     console.error('Failed to get scheduled notifications:', error);
