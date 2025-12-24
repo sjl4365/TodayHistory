@@ -71,6 +71,7 @@ import mobileAds, {
   AdEventType,
 } from "react-native-google-mobile-ads";
 import { BlurView } from "expo-blur";
+import * as Notifications from 'expo-notifications';
 
 // mobileAds()
 //   .initialize()
@@ -2496,6 +2497,7 @@ export default function Home() {
   const [yearSeenGroups, setYearSeenGroups] = useState(0);
   const [yearAdUnlockedUntil, setYearAdUnlockedUntil] = useState(0);
   const [yearAdPromptVisible, setYearAdPromptVisible] = useState(false);
+  const [notificationEventKey, setNotificationEventKey] = useState(null);
 
   // [수정] 초기 데이터 복원 (패스, 본 횟수, +보고 있던 연도)
   useEffect(() => {
@@ -2885,6 +2887,39 @@ export default function Home() {
   );
 
   const [uiLang, setUiLang] = useState(resolveUiLangFromDevice());
+
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      async (response) => {
+        console.log('📱 [NOTIFICATION] App opened from notification');
+        
+        try {
+          const [eventKey, eventDate] = await AsyncStorage.multiGet([
+            '@notification_event_key',
+            '@notification_event_date',
+          ]);
+          
+          const key = eventKey[1];
+          const date = eventDate[1];
+          
+          console.log('🔍 [NOTIFICATION] Event key:', key);
+          console.log('🔍 [NOTIFICATION] Event date:', date);
+          
+          // 오늘 날짜와 같은지 확인
+          const todayIso = isoDate;
+          if (date === todayIso && key) {
+            setNotificationEventKey(key);
+            console.log('✅ [NOTIFICATION] Will show event:', key);
+          }
+        } catch (e) {
+          console.error('❌ [NOTIFICATION] Failed to load event key:', e);
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, [isoDate]);
 
   useEffect(() => {
     console.log("[LANG DEBUG] deviceLang =", deviceLang);
@@ -3832,7 +3867,46 @@ export default function Home() {
         }
 
         //  World 모드: 오늘/어제/내일은 기존 world 로직 유지
+        // 데이터 로딩 useEffect 내부 - World 모드 부분만 수정
+
         if (isWorldMode) {
+          if (notificationEventKey) {
+            console.log('🔍 [PICK] Looking for notification event:', notificationEventKey);
+            
+            // 모든 pool에서 해당 키를 가진 이벤트 찾기
+            let foundPick = null;
+            for (const cid of chosen) {
+              const pool = poolsByCid[cid];
+              if (pool) {
+                foundPick = pool.find(p => p.key === notificationEventKey);
+                if (foundPick) {
+                  console.log('✅ [PICK] Found notification event in', cid);
+                  break;
+                }
+              }
+            }
+            
+            if (foundPick && !canceled) {
+              setHeaderImageUrl(null);
+              setOnePick([foundPick]);
+              setYearYears([]);
+              setYearCursor(null);
+              setYearNav({ canPrev: false, canNext: false });
+              lastPickKeyRef.current = foundPick.key;
+              
+              // 키 초기화 (한 번만 사용)
+              setNotificationEventKey(null);
+              await AsyncStorage.removeItem('@notification_event_key');
+              
+              endLoading();
+              return;
+            } else {
+              console.warn('⚠️ [PICK] Notification event not found, using random');
+              setNotificationEventKey(null);
+            }
+          }
+          
+          // 기존 랜덤 선택 로직
           const pick = await pickOneWithSeenRotation(
             poolsByCid,
             chosen,
@@ -3843,8 +3917,8 @@ export default function Home() {
           if (!canceled) {
             if (pick) {
               setHeaderImageUrl(null);
-              setOnePick([pick]);      // 세계도 항상 1개만
-              setYearYears([]);        // 연도 타이틀은 world에서 안 씀
+              setOnePick([pick]);
+              setYearYears([]);
               setYearCursor(null);
               setYearNav({ canPrev: false, canNext: false });
               lastPickKeyRef.current = pick.key;
@@ -3859,7 +3933,7 @@ export default function Home() {
 
           endLoading();
           return;
-        }
+}
 
         // Year 모드: 한/중/일에서 world처럼 1개 이벤트만 보여주기
         // Year 모드: 한/중/일에서 하루에 1개의 연도를 공유해서 사용
@@ -4049,6 +4123,7 @@ export default function Home() {
     isYearMode,
     yearCursor,
     yearSeenGroups,
+    notificationEventKey
   ]);
 
 
@@ -4792,7 +4867,7 @@ export default function Home() {
 }
 
 
-// home.js의 refreshTodayFeed 함수 수정
+// home.js의 refreshTodayFeed 함수 (파일 맨 아래)
 
 export async function refreshTodayFeed() {
   try {
@@ -4828,7 +4903,7 @@ export async function refreshTodayFeed() {
       const defaultMessages = {
         ko: '오늘의 역사를 확인하세요',
         en: 'Check today in history',
-        ja: '今日の歴史を確인してください'
+        ja: '今日の歴史を確認してください'
       };
       return defaultMessages[currentLanguage] || defaultMessages.en;
     }
@@ -4888,7 +4963,7 @@ export async function refreshTodayFeed() {
       const defaultMessages = {
         ko: '오늘의 역사를 확인하세요',
         en: 'Check today in history',
-        ja: '今日の歴史を確인してください'
+        ja: '今日の歴史를 확인してください'
       };
       return defaultMessages[currentLanguage] || defaultMessages.en;
     }
@@ -4909,14 +4984,13 @@ export async function refreshTodayFeed() {
       const defaultMessages = {
         ko: '오늘의 역사를 확인하세요',
         en: 'Check today in history',
-        ja: '今日の歴史を確인してください'
+        ja: '今日の歴史를 확인してください'
       };
       return defaultMessages[currentLanguage] || defaultMessages.en;
     }
 
     console.log('✅ [REFRESH FEED] Picked event from:', pick.cid);
 
-    // 나머지 코드는 동일...
     const label = COUNTRY_CFG[pick.cid]?.label?.[currentLanguage] ||
       COUNTRY_CFG[pick.cid]?.label?.en ||
       pick.cid;
@@ -4958,9 +5032,12 @@ export async function refreshTodayFeed() {
       finalBody = `${dateLabel}, ${label}: ${truncatedBody}`;
     }
 
+    // ⭐ 알림에 사용된 이벤트 키 저장
     await AsyncStorage.multiSet([
       ['@notification_body', finalBody],
       ['@notification_language', currentLanguage],
+      ['@notification_event_key', pick.key],  // ⭐ 추가
+      ['@notification_event_date', isoDate],  // ⭐ 추가
     ]);
 
     console.log('✅ [REFRESH FEED] Success:', finalBody.substring(0, 50) + '...');
@@ -4973,7 +5050,7 @@ export async function refreshTodayFeed() {
       const defaultMessages = {
         ko: '오늘의 역사를 확인하세요',
         en: 'Check today in history',
-        ja: '今日の歴史を확認してください'
+        ja: '今日の歴史를 확인してください'
       };
       return defaultMessages[currentLanguage] || defaultMessages.en;
     } catch {
