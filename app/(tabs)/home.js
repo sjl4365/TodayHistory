@@ -71,6 +71,7 @@ import mobileAds, {
   AdEventType,
 } from "react-native-google-mobile-ads";
 import { BlurView } from "expo-blur";
+import * as Notifications from 'expo-notifications';
 
 // mobileAds()
 //   .initialize()
@@ -606,8 +607,11 @@ function getDayPartsFrom(date, tz) {
     md: `${parts.month}-${parts.day}`,
     dcode: `D${parts.month}${parts.day}`,
     y: parts.year,
-    m: parts.month,
-    d: parts.day,
+    year: parts.year,    // ⭐ 추가
+    m: parts.month,      // ⭐ 추가
+    month: parts.month,  // ⭐ 기존 유지
+    d: parts.day,        // ⭐ 추가
+    day: parts.day,      // ⭐ 기존 유지
   };
 }
 
@@ -2493,6 +2497,7 @@ export default function Home() {
   const [yearSeenGroups, setYearSeenGroups] = useState(0);
   const [yearAdUnlockedUntil, setYearAdUnlockedUntil] = useState(0);
   const [yearAdPromptVisible, setYearAdPromptVisible] = useState(false);
+  const [notificationEventKey, setNotificationEventKey] = useState(null);
 
   // [수정] 초기 데이터 복원 (패스, 본 횟수, +보고 있던 연도)
   useEffect(() => {
@@ -2882,6 +2887,39 @@ export default function Home() {
   );
 
   const [uiLang, setUiLang] = useState(resolveUiLangFromDevice());
+
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      async (response) => {
+        console.log('📱 [NOTIFICATION] App opened from notification');
+        
+        try {
+          const [eventKey, eventDate] = await AsyncStorage.multiGet([
+            '@notification_event_key',
+            '@notification_event_date',
+          ]);
+          
+          const key = eventKey[1];
+          const date = eventDate[1];
+          
+          console.log('🔍 [NOTIFICATION] Event key:', key);
+          console.log('🔍 [NOTIFICATION] Event date:', date);
+          
+          // 오늘 날짜와 같은지 확인
+          const todayIso = isoDate;
+          if (date === todayIso && key) {
+            setNotificationEventKey(key);
+            console.log('✅ [NOTIFICATION] Will show event:', key);
+          }
+        } catch (e) {
+          console.error('❌ [NOTIFICATION] Failed to load event key:', e);
+        }
+      }
+    );
+
+    return () => subscription.remove();
+  }, [isoDate]);
 
   useEffect(() => {
     console.log("[LANG DEBUG] deviceLang =", deviceLang);
@@ -3829,7 +3867,46 @@ export default function Home() {
         }
 
         //  World 모드: 오늘/어제/내일은 기존 world 로직 유지
+        // 데이터 로딩 useEffect 내부 - World 모드 부분만 수정
+
         if (isWorldMode) {
+          if (notificationEventKey) {
+            console.log('🔍 [PICK] Looking for notification event:', notificationEventKey);
+            
+            // 모든 pool에서 해당 키를 가진 이벤트 찾기
+            let foundPick = null;
+            for (const cid of chosen) {
+              const pool = poolsByCid[cid];
+              if (pool) {
+                foundPick = pool.find(p => p.key === notificationEventKey);
+                if (foundPick) {
+                  console.log('✅ [PICK] Found notification event in', cid);
+                  break;
+                }
+              }
+            }
+            
+            if (foundPick && !canceled) {
+              setHeaderImageUrl(null);
+              setOnePick([foundPick]);
+              setYearYears([]);
+              setYearCursor(null);
+              setYearNav({ canPrev: false, canNext: false });
+              lastPickKeyRef.current = foundPick.key;
+              
+              // 키 초기화 (한 번만 사용)
+              setNotificationEventKey(null);
+              await AsyncStorage.removeItem('@notification_event_key');
+              
+              endLoading();
+              return;
+            } else {
+              console.warn('⚠️ [PICK] Notification event not found, using random');
+              setNotificationEventKey(null);
+            }
+          }
+          
+          // 기존 랜덤 선택 로직
           const pick = await pickOneWithSeenRotation(
             poolsByCid,
             chosen,
@@ -3840,8 +3917,8 @@ export default function Home() {
           if (!canceled) {
             if (pick) {
               setHeaderImageUrl(null);
-              setOnePick([pick]);      // 세계도 항상 1개만
-              setYearYears([]);        // 연도 타이틀은 world에서 안 씀
+              setOnePick([pick]);
+              setYearYears([]);
               setYearCursor(null);
               setYearNav({ canPrev: false, canNext: false });
               lastPickKeyRef.current = pick.key;
@@ -3856,7 +3933,7 @@ export default function Home() {
 
           endLoading();
           return;
-        }
+}
 
         // Year 모드: 한/중/일에서 world처럼 1개 이벤트만 보여주기
         // Year 모드: 한/중/일에서 하루에 1개의 연도를 공유해서 사용
@@ -4046,6 +4123,7 @@ export default function Home() {
     isYearMode,
     yearCursor,
     yearSeenGroups,
+    notificationEventKey
   ]);
 
 
@@ -4787,7 +4865,10 @@ export default function Home() {
     </SafeAreaView>
   );
 }
-// home.js 맨 아래
+
+
+// home.js의 refreshTodayFeed 함수 (파일 맨 아래)
+
 export async function refreshTodayFeed() {
   try {
     const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
@@ -4796,9 +4877,12 @@ export async function refreshTodayFeed() {
     const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone || 'UTC';
     const safeTimezone = safeTimeZone(tz);
 
-    const parts = safeFormatParts(today, safeTimezone);
-    const month = parseInt(parts.month, 10);
-    const day = parseInt(parts.day, 10);
+    // ⭐ getDayPartsFrom 사용해서 형식 통일
+    const todayStart = startOfDayInTz(today, safeTimezone);
+    const parts = getDayPartsFrom(todayStart, safeTimezone);
+    
+    const month = parseInt(parts.m, 10);
+    const day = parseInt(parts.d, 10);
 
     console.log('🔄 [REFRESH FEED] Starting for:', currentLanguage, `${month}/${day}`);
 
@@ -4812,22 +4896,34 @@ export async function refreshTodayFeed() {
     }
 
     const chosen = [...selectedCountries];
+    console.log('🔍 [REFRESH FEED] Selected countries:', chosen);
+    
     if (!chosen.length) {
       console.error('❌ [REFRESH FEED] No countries selected');
-      return null;
+      const defaultMessages = {
+        ko: '오늘의 역사를 확인하세요',
+        en: 'Check today in history',
+        ja: '今日の歴史を確認してください'
+      };
+      return defaultMessages[currentLanguage] || defaultMessages.en;
     }
 
     const poolsByCid = {};
     for (const cid of chosen) {
       try {
+        console.log(`🔍 [REFRESH FEED] Loading cache for ${cid}...`);
         let rows = await loadCache(cid, parts);
+        console.log(`🔍 [REFRESH FEED] Cache result for ${cid}:`, rows ? `${rows.length} items` : 'none');
 
         if (!Array.isArray(rows) || !rows.length) {
-          const isoDate = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+          console.log(`📥 [REFRESH FEED] No cache, fetching fresh data for ${cid}...`);
+          const isoDate = `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(parts.d).padStart(2, '0')}`;
           rows = await apiFetchForMode(cid, parts, isoDate);
+          console.log(`🔍 [REFRESH FEED] Fetch result for ${cid}:`, rows ? `${rows.length} items` : 'none');
 
           if (rows && rows.length) {
             await saveCache(cid, parts, rows);
+            console.log(`✅ [REFRESH FEED] Saved ${rows.length} items to cache for ${cid}`);
           }
         }
 
@@ -4848,22 +4944,34 @@ export async function refreshTodayFeed() {
               body,
             });
           }
-          if (arr.length) poolsByCid[cid] = arr;
+          if (arr.length) {
+            poolsByCid[cid] = arr;
+            console.log(`✅ [REFRESH FEED] Added ${arr.length} valid items for ${cid}`);
+          }
         }
       } catch (e) {
         console.warn(`[REFRESH FEED] Failed to fetch ${cid}:`, e);
       }
     }
 
+    console.log('🔍 [REFRESH FEED] Total pools:', Object.keys(poolsByCid).length);
+    console.log('🔍 [REFRESH FEED] Pool sizes:', Object.entries(poolsByCid).map(([k, v]) => `${k}: ${v.length}`).join(', '));
+
     const hasAny = Object.values(poolsByCid).some(arr => arr && arr.length);
     if (!hasAny) {
-      console.error('❌ [REFRESH FEED] No data available');
-      return null;
+      console.error('❌ [REFRESH FEED] No data available after processing all countries');
+      const defaultMessages = {
+        ko: '오늘의 역사를 확인하세요',
+        en: 'Check today in history',
+        ja: '今日の歴史를 확인してください'
+      };
+      return defaultMessages[currentLanguage] || defaultMessages.en;
     }
 
-    const isoDate = `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
+    const isoDate = `${parts.y}-${String(parts.m).padStart(2, '0')}-${String(parts.d).padStart(2, '0')}`;
     const seedKey = `${isoDate}__${chosen.sort().join(',')}__refresh`;
 
+    console.log('🎲 [REFRESH FEED] Picking event with seed:', seedKey);
     const pick = await pickOneWithSeenRotation(
       poolsByCid,
       chosen,
@@ -4873,21 +4981,26 @@ export async function refreshTodayFeed() {
 
     if (!pick) {
       console.error('❌ [REFRESH FEED] Failed to pick event');
-      return null;
+      const defaultMessages = {
+        ko: '오늘의 역사를 확인하세요',
+        en: 'Check today in history',
+        ja: '今日の歴史를 확인してください'
+      };
+      return defaultMessages[currentLanguage] || defaultMessages.en;
     }
 
-    // ⭐ 여기서 형식을 만들어야 해요!
+    console.log('✅ [REFRESH FEED] Picked event from:', pick.cid);
+
     const label = COUNTRY_CFG[pick.cid]?.label?.[currentLanguage] ||
       COUNTRY_CFG[pick.cid]?.label?.en ||
       pick.cid;
 
     const eventYear = getYearFromRow(pick.row);
     const yearNum = parseInt(String(eventYear || ''), 10);
-    const baseYear = parseInt(String(parts.year), 10);
-    const mNum = parseInt(String(parts.month), 10) || 1;
-    const dNum = parseInt(String(parts.day), 10) || 1;
+    const baseYear = parseInt(String(parts.y), 10);
+    const mNum = parseInt(String(parts.m), 10) || 1;
+    const dNum = parseInt(String(parts.d), 10) || 1;
 
-    // 날짜 형식 만들기
     let dateLabel = '';
     if (!Number.isNaN(yearNum) && yearNum > 0) {
       if (currentLanguage === 'ko') {
@@ -4904,14 +5017,12 @@ export async function refreshTodayFeed() {
       }
     }
 
-    // 본문 텍스트 (길이 제한)
     const maxBodyLen = currentLanguage === 'ko' || currentLanguage === 'ja' ? 50 : 80;
     const bodyText = pick.body || '';
     const truncatedBody = bodyText.length > maxBodyLen
       ? `${bodyText.slice(0, maxBodyLen)}...`
       : bodyText;
 
-    // ⭐ 최종 알림 본문 조합
     let finalBody = '';
     if (currentLanguage === 'ko') {
       finalBody = `${dateLabel}, ${label}: ${truncatedBody}`;
@@ -4921,17 +5032,78 @@ export async function refreshTodayFeed() {
       finalBody = `${dateLabel}, ${label}: ${truncatedBody}`;
     }
 
-    // 알림 캐시에 저장
+    // ⭐ 알림에 사용된 이벤트 키 저장
     await AsyncStorage.multiSet([
       ['@notification_body', finalBody],
       ['@notification_language', currentLanguage],
+      ['@notification_event_key', pick.key],  // ⭐ 추가
+      ['@notification_event_date', isoDate],  // ⭐ 추가
     ]);
 
-    console.log('✅ [REFRESH FEED] Success:', finalBody.substring(0, 50));
+    console.log('✅ [REFRESH FEED] Success:', finalBody.substring(0, 50) + '...');
     return finalBody;
 
   } catch (error) {
     console.error('❌ [REFRESH FEED] Error:', error);
-    return null;
+    try {
+      const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
+      const defaultMessages = {
+        ko: '오늘의 역사를 확인하세요',
+        en: 'Check today in history',
+        ja: '今日の歴史를 확인してください'
+      };
+      return defaultMessages[currentLanguage] || defaultMessages.en;
+    } catch {
+      return 'Check today in history';
+    }
+  }
+}
+
+export async function initializeDefaultData(uiLang, tz) {
+  try {
+    const today = startOfDayInTz(new Date(), tz);
+    const parts = getDayPartsFrom(today, tz);
+    const isoDate = `${parts.y}-${parts.m}-${parts.d}`;
+    
+    console.log('🚀 [INIT] Loading default data for:', { uiLang, date: isoDate });
+    
+    // 기본 국가 설정 (언어에 따라)
+    const defaultCountries = DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default;
+    
+    // 각 기본 국가의 데이터 로드 및 캐시
+    for (const cid of defaultCountries) {
+      try {
+        // 캐시가 이미 있는지 확인
+        const cached = await loadCache(cid, parts);
+        if (cached && cached.length > 0) {
+          console.log(`✅ [INIT] Cache already exists for ${cid}`);
+          continue;
+        }
+        
+        // 캐시가 없으면 로드
+        console.log(`📥 [INIT] Loading data for ${cid}...`);
+        const rows = await apiFetchForMode(cid, parts, isoDate);
+        
+        if (rows && rows.length > 0) {
+          await saveCache(cid, parts, rows);
+          console.log(`✅ [INIT] Cached ${rows.length} items for ${cid}`);
+        }
+      } catch (e) {
+        console.warn(`⚠️ [INIT] Failed to load ${cid}:`, e);
+      }
+    }
+    
+    // 기본 알림 본문 생성 (실패해도 계속 진행)
+    try {
+      await refreshTodayFeed();
+      console.log('✅ [INIT] Notification body initialized');
+    } catch (e) {
+      console.warn('⚠️ [INIT] Failed to initialize notification body:', e);
+    }
+    
+    console.log('✅ [INIT] Default data initialization complete');
+    
+  } catch (error) {
+    console.error('❌ [INIT] Failed to initialize default data:', error);
   }
 }
