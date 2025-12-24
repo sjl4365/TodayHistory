@@ -253,3 +253,8 @@ foreach ($file in $csvFiles) {
 
 Write-Host ""
 Write-Host "Done."
+
+
+# powershell -ExecutionPolicy Bypass -File .\Convert-All-History.ps1 `
+# >>   -CsvRoot "." `
+# >>   -OutRoot "..\assets\seed"
