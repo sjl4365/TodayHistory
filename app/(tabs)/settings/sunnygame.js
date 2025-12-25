@@ -33,7 +33,7 @@ export default function SunnyGame() {
     },
     {
         id: 4,
-        name: 'Decibella',
+        name: 'decibella',
         icon: require('../../../assets/images/decibella.png'),
         url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
     },
