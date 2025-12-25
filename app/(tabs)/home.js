@@ -1488,92 +1488,146 @@ function SegmentedCountrySelector({
 
 
 // WebView Modal Component
-function WebViewModal({ visible, url, onClose }) {
+function WebViewModal({ visible, url, title, onClose }) {
   const { scale } = useUIScale();
   const insets = useSafeAreaInsets();
-  const [showAd, setShowAd] = useState(true);
+  const [adLoaded, setAdLoaded] = useState(false);
+  
   useEffect(() => {
     if (visible && url) {
-      setShowAd(true);
+      setAdLoaded(false);
     }
   }, [visible, url]);
+
   if (!visible || !url) return null;
 
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#FFFFFF" }} edges={["bottom"]}>
+      <View style={{ flex: 1, backgroundColor: "#FFFFFF", paddingTop: insets.top }}>
+        {/* Header with Ad and Close Button */}
         <View
           style={{
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "space-between",
-            paddingTop: insets.top + 12,
-            paddingHorizontal: 16,
+            paddingHorizontal: 20,
             paddingVertical: 12,
-            paddingBottom: 12,
+            backgroundColor: "#FFFFFF",
             borderBottomWidth: 1,
             borderBottomColor: "#E5E7EB",
-            backgroundColor: "#FFFFFF",
+            paddingLeft: scale(9)
           }}
         >
-          <View style={{ position: 'relative' }}>
+          {/* Close Button (left side)*/}
+          <Pressable
+            onPress={onClose}
+            hitSlop={10}
+            style={{
+              padding: scale(8),
+              borderRadius: scale(20),
+              backgroundColor: "#F3F4F6",
+              marginRight: scale(8),
+            }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
+              ✕
+            </Text>
+          </Pressable>
+          {/* Ad Banner (right side) */}
+          <View style={{ flex: 1}}>
             <BannerAd
               unitId={TestIds.BANNER}
               size={BannerAdSize.BANNER}
               requestOptions={{
                 requestNonPersonalizedAdsOnly: true,
               }}
+              onAdLoaded={() => {
+                console.log("[WEBVIEW AD] Ad loaded successfully");
+                setAdLoaded(true);
+              }}
+              onAdFailedToLoad={(error) => {
+                console.warn("[WEBVIEW AD] Failed to load:", error);
+                setAdLoaded(true);
+              }}
             />
-
           </View>
+        </View>
+
+        {/* Page Title with close button on the left side*/}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            paddingVertical: scale(12),
+            paddingHorizontal: scale(16),
+            backgroundColor: "#F9FAFB",
+            borderBottomWidth: scale(1),
+            borderBottomColor: "#E5E7EB",
+          }}
+        >
+          {/* Close Button (left side) */}
           <Pressable
             onPress={onClose}
             hitSlop={10}
             style={{
-              position: 'absolute',
-              top: scale(22) + insets.top,
-              // top: scale(22),
-              right: scale(22),
               padding: scale(8),
-              borderRadius: scale(8),
-              backgroundColor: "rgba(243, 244, 246, 0.9)",
-              zIndex: 10,
+              borderRadius: scale(20),
+              backgroundColor: "#F3F4F6",
             }}
           >
-            <Text style={{ fontSize: 16, fontWeight: "600", color: "#374151" }}>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
               ✕
             </Text>
           </Pressable>
 
+          {/* Page Title */}
+          <Text 
+            style={{ 
+              flex: 1,
+              fontSize: 18, 
+              fontWeight: "700", 
+              color: "#111827",
+              marginLeft: scale(8),
+            }}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {title}
+          </Text>
+          
         </View>
 
-        <WebView
-          source={{ uri: url }}
-          style={{ flex: 1 }}
-          startInLoadingState={true}
-          renderLoading={() => (
-            <View
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#FFFFFF",
-              }}
-            >
-              <ActivityIndicator size="large" color="#2563EB" />
-            </View>
-          )}
-        />
-      </SafeAreaView>
+        {/* WebView - Takes remaining space */}
+        <View style={{ flex: 1 }}>
+          <WebView
+            source={{ uri: url }}
+            style={{ flex: 1 }}
+            startInLoadingState={true}
+            renderLoading={() => (
+              <View
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
+                <ActivityIndicator size="large" color="#2563EB" />
+              </View>
+            )}
+          />
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -2289,7 +2343,7 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
         if (!text || !url) return null;
 
         const onPress = () => {
-          if (onLinkPress) onLinkPress(url);
+          if (onLinkPress) onLinkPress(url, text);
           else Linking.openURL(url).catch(() => { });
         };
 
@@ -3235,14 +3289,19 @@ export default function Home() {
 
 
 
-  const handleLinkPress = useCallback((url) => {
+  const [webViewTitle, setWebViewTitle] = useState("");
+
+  const handleLinkPress = useCallback((url, title) => {
+    console.log("Opening WebView with title:", title, "url:", url);
     setWebViewUrl(url);
+    setWebViewTitle(title);
     setWebViewVisible(true);
   }, []);
 
   const handleCloseWebView = useCallback(() => {
     setWebViewVisible(false);
     setWebViewUrl("");
+    setWebViewTitle("");
   }, []);
 
   useEffect(() => {
@@ -4749,6 +4808,7 @@ export default function Home() {
           <WebViewModal
             visible={webViewVisible}
             url={webViewUrl}
+            title={webViewTitle}
             onClose={handleCloseWebView}
           />
 
