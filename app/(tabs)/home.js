@@ -106,6 +106,7 @@ const STORAGE_KEY_NOTIFY_BODY = "@notification_body";
 const STORAGE_KEY_SEEN_PREFIX = "@seen_events_v1:";
 
 const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
+const STORAGE_KEY_YEAR_BASE = "@year_base_v1:";
 
 // 데이터 캐시 TTL (6시간)
 const DATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -117,35 +118,73 @@ const REWARD_PASS_DURATION_MS = 12 * 60 * 60 * 1000; // 12시간
 
 
 const COUNTRY_CFG = {
+  world: {
+    id: "world",
+    label: {
+      en: "World",
+      ko: "세계",
+      ja: "世界",
+      sc: "世界",   // 简体中文
+      tc: "世界",   // 繁體中文
+      es: "Mundo",
+      fr: "Monde",
+    },
+    lang: "en",
+  },
   korea: {
     id: "korea",
-    label: { ko: "한국", en: "Korea", ja: "韓国", zh: "韩国" },
+    label: {
+      en: "Korea",
+      ko: "한국",
+      ja: "韓国",
+      sc: "韩国",
+      tc: "韓國",
+      es: "Corea",
+      fr: "Corée",
+    },
     lang: "ko",
   },
   japan: {
     id: "japan",
-    label: { ko: "일본", en: "Japan", ja: "日本", zh: "日本" },
+    label: {
+      en: "Japan",
+      ko: "일본",
+      ja: "日本",
+      sc: "日本",
+      tc: "日本",
+      es: "Japón",
+      fr: "Japon",
+    },
     lang: "ja",
-  },
-  world: {
-    id: "world",
-    label: { ko: "세계", en: "World", ja: "世界", zh: "世界" },
-    lang: "en",
   },
   china: {
     id: "china",
-    label: { ko: "중국", en: "China", ja: "中国", zh: "中国" },
-    lang: "sc",
+    label: {
+      en: "China",
+      ko: "중국",
+      ja: "中国",
+      sc: "中国",
+      tc: "中國",
+      es: "China",
+      fr: "Chine",
+    },
+    lang: "sc", // 중국 이벤트 기본 언어
   },
 };
+
 
 
 const DEFAULT_COUNTRIES_BY_LANG = {
   en: ["world"],
   ko: ["korea"],
   ja: ["japan"],
+  "zh-Hans": ["china"],
+  "zh-Hant": ["china"],
+  es: ["world"],
+  fr: ["world"],
   default: ["world"],
 };
+
 
 const APP_NAME_BY_LANG = {
   ko: "Histree",
@@ -183,65 +222,76 @@ const UI_STR = {
       next: "明日の歴史",
     },
     sc: {
-      prev: "历史上的昨天",
-      today: "历史上的今天",
-      next: "历史上的明天",
+      prev: "昨日历史",
+      today: "今日历史",
+      next: "明日历史",
     },
     tc: {
-      prev: "歷史上的昨天",
-      today: "歷史上的今天",
-      next: "歷史上的明天",
+      prev: "昨日歷史",
+      today: "今日歷史",
+      next: "明日歷史",
+    },
+    es: {
+      prev: "Ayer en la historia",
+      today: "Hoy en la historia",
+      next: "Mañana en la historia",
+    },
+    fr: {
+      prev: "Hier dans l’histoire",
+      today: "Aujourd’hui dans l’histoire",
+      next: "Demain dans l’histoire",
     },
   },
+
   yearTitle: {
     ko: {
       base: "연도별 역사",
-      prev: "지난해 연도별 역사",
-      next: "다음해 연도별 역사",
     },
     en: {
       base: "Year in History",
-      prev: "Previous Year in History",
-      next: "Next Year in History",
     },
     ja: {
       base: "年の歴史",
-      prev: "前年の歴史",
-      next: "翌年の歴史",
     },
     sc: {
       base: "这一年的历史",
-      prev: "上一年的历史",
-      next: "下一年的历史",
     },
     tc: {
       base: "這一年的歷史",
-      prev: "上一年的歷史",
-      next: "下一年的歷史",
     },
   },
+
   empty: {
     ko: "표시할 항목이 없습니다.",
     en: "No items to display.",
     ja: "表示する項目がありません。",
     sc: "没有可显示的内容。",
     tc: "沒有可顯示的內容。",
+    es: "No hay elementos para mostrar.",
+    fr: "Aucun élément à afficher.",
   },
+
   imageLoading: {
     ko: "사진을 불러오는 중입니다…",
     en: "Loading image…",
     ja: "画像を読み込み中…",
     sc: "正在加载图片…",
     tc: "正在載入圖片…",
+    es: "Cargando imagen…",
+    fr: "Chargement de l’image…",
   },
+
   yearLimitDone: {
     ko: "오늘 볼 수 있는 역사 이벤트를 모두 보셨습니다.\n지금까지 본 12개를 순서대로 다시 볼 수 있어요.",
     en: "You’ve seen all history events available for today.\nYou can now browse again through the 12 events you’ve already viewed.",
     ja: "本日見られる歴史イベントはすべて見ました。\nこれまでに見た12件を順番にもう一度見ることができます。",
     sc: "今天可以查看的历史事件都已经看完了。\n现在可以按顺序再次浏览这 12 条内容。",
     tc: "今天可以查看的歷史事件都已經看完了。\n現在可以依序再次瀏覽這 12 則內容。",
+    es: "Has visto todos los eventos históricos disponibles para hoy.\nAhora puedes volver a recorrer los 12 eventos que ya viste.",
+    fr: "Vous avez vu tous les événements historiques disponibles aujourd’hui.\nVous pouvez maintenant revoir les 12 événements que vous avez déjà consultés.",
   },
 };
+
 
 
 
@@ -360,7 +410,15 @@ const LOCALE_BY_LANG = {
   sc: "zh-Hans",
   tc: "zh-Hant",
 };
-const UI_COL = { ko: "한국어", en: "English", ja: "日本語", zh: "中文" };
+const UI_COL = {
+  ko: "한국어",
+  en: "English",
+  ja: "日本語",
+  sc: "简体中文",
+  tc: "繁體中文",
+  es: "Español",
+  fr: "Français",
+};
 const NATIVE_COL_BY_COUNTRY = {
   korea: "한국어",
   japan: "日本語",
@@ -569,19 +627,48 @@ function normalizeUiLang(value, fallback = "en") {
   const v = String(value || "").toLowerCase();
   if (!v) return fallback;
 
-  const code = v.split(/[-_]/)[0];
+  // 1) 이미 우리가 쓰는 내부 코드면 그대로
+  if (v === "ko") return "ko";
+  if (v === "ja") return "ja";
+  if (v === "en") return "en";
+  if (v === "sc") return "sc";
+  if (v === "tc") return "tc";
+  if (v === "es") return "es";
+  if (v === "fr") return "fr";
 
-  if (code === "ko") return "ko";
-  if (code === "ja") return "ja";
-  if (code === "en") return "en";
+  // 2) 중국어 변형들: 값 전체에서 판단
+  //   - zh-Hant / zh_TW / zh-HK 등 → 번체(tc)
+  if (
+    v.includes("zh-hant") ||
+    v.includes("zh_tw") ||
+    v.includes("zh-hk")
+  ) {
+    return "tc";
+  }
 
-  // 중국어: 기본은 간체(sc), 사용자가 tc 저장하면 그대로 tc 유지
-  if (code === "sc") return "sc";
-  if (code === "tc") return "tc";
-  if (code === "zh") return "sc"; // 장치 언어 zh → 간체로 매핑
+  //   - zh-Hans / zh_CN / zh-SG 등 → 간체(sc)
+  if (
+    v.includes("zh-hans") ||
+    v.includes("zh_cn") ||
+    v.includes("zh-sg")
+  ) {
+    return "sc";
+  }
+
+  //   - 그냥 zh 만 들어오면 기본은 간체(sc)
+  if (v === "zh") return "sc";
+
+  // 3) 언어코드 앞부분으로 대략 처리 (예: en-US, ko-KR, es-MX 등)
+  const base = v.split(/[-_]/)[0];
+  if (base === "ko") return "ko";
+  if (base === "ja") return "ja";
+  if (base === "en") return "en";
+  if (base === "es") return "es";
+  if (base === "fr") return "fr";
 
   return fallback;
 }
+
 
 
 
@@ -1492,7 +1579,7 @@ function WebViewModal({ visible, url, title, onClose }) {
   const { scale } = useUIScale();
   const insets = useSafeAreaInsets();
   const [adLoaded, setAdLoaded] = useState(false);
-  
+
   useEffect(() => {
     if (visible && url) {
       setAdLoaded(false);
@@ -1539,7 +1626,7 @@ function WebViewModal({ visible, url, title, onClose }) {
             </Text>
           </Pressable>
           {/* Ad Banner (right side) */}
-          <View style={{ flex: 1}}>
+          <View style={{ flex: 1 }}>
             <BannerAd
               unitId={TestIds.BANNER}
               size={BannerAdSize.BANNER}
@@ -1587,11 +1674,11 @@ function WebViewModal({ visible, url, title, onClose }) {
           </Pressable>
 
           {/* Page Title */}
-          <Text 
-            style={{ 
+          <Text
+            style={{
               flex: 1,
-              fontSize: 18, 
-              fontWeight: "700", 
+              fontSize: 18,
+              fontWeight: "700",
               color: "#111827",
               marginLeft: scale(8),
             }}
@@ -1600,7 +1687,7 @@ function WebViewModal({ visible, url, title, onClose }) {
           >
             {title}
           </Text>
-          
+
         </View>
 
         {/* WebView - Takes remaining space */}
@@ -2553,7 +2640,7 @@ export default function Home() {
   const [yearAdPromptVisible, setYearAdPromptVisible] = useState(false);
   const [notificationEventKey, setNotificationEventKey] = useState(null);
 
-  // [수정] 초기 데이터 복원 (패스, 본 횟수, +보고 있던 연도)
+  // 초기 데이터 복원 (패스, 본 횟수, +보고 있던 연도)
   useEffect(() => {
     // 오늘 날짜 기준 isoDate
     const today = startOfDayInTz(new Date(), tz);
@@ -2630,7 +2717,7 @@ export default function Home() {
     ).catch(() => { });
   }, [yearCursor, tz]);
 
-  // [수정] 상수 확인 (반드시 1이어야 2개까지 무료)
+  // 상수 확인 (반드시 1이어야 2개까지 무료)
   const YEAR_FREE_REFRESH_LIMIT = 1;
 
   const handlePressYearMore = useCallback(async () => {
@@ -2660,7 +2747,7 @@ export default function Home() {
 
     // 2) 패스 없음 + 무료 구간 끝 → 광고 모달 오픈
     if (!hasPass) {
-      setShowYearAdModal(true);
+      setYearAdPromptVisible(true);
       return;
     }
 
@@ -2703,7 +2790,7 @@ export default function Home() {
 
 
 
-  // [수정] 광고 보상 처리 (화면 갱신 변수 업데이트)
+  // 광고 보상 처리 (화면 갱신 변수 업데이트)
   async function onRewardedForYear() {
     const now = Date.now();
     const until = now + REWARD_PASS_DURATION_MS; // 12시간
@@ -2947,19 +3034,19 @@ export default function Home() {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       async (response) => {
         console.log('📱 [NOTIFICATION] App opened from notification');
-        
+
         try {
           const [eventKey, eventDate] = await AsyncStorage.multiGet([
             '@notification_event_key',
             '@notification_event_date',
           ]);
-          
+
           const key = eventKey[1];
           const date = eventDate[1];
-          
+
           console.log('🔍 [NOTIFICATION] Event key:', key);
           console.log('🔍 [NOTIFICATION] Event date:', date);
-          
+
           // 오늘 날짜와 같은지 확인
           const todayIso = isoDate;
           if (date === todayIso && key) {
@@ -2983,47 +3070,18 @@ export default function Home() {
 
   const [selectedCountries, setSelectedCountries] =
     useState(new Set());
-  const hasWorldSelected = useMemo(
-    () => selectedCountries.has("world"),
-    [selectedCountries]
-  );
-  // 모드 판단
-  const isWorldMode = selectedCountries.size === 1 && selectedCountries.has("world");
-
-  const handlePressWorldPrev = () => {
-    if (!isWorldMode) return;
-
-    // 오늘(0)에서 어제로 가려면 패스 필요
-    if (dayOffset <= -1 && !canUseYesterdayTomorrowHistory) {
-      pendingNavRef.current = "prev";
-      setAdPromptKind("world");
-      setAdPromptVisible(true);
-      return;
-    }
-
-    // 하루만 어제로 제한
-    setDayOffset((v) => Math.max(-1, v - 1));
-  };
-
-  const handlePressWorldNext = () => {
-    if (!isWorldMode) return;
-
-    if (dayOffset >= 1 && !canUseYesterdayTomorrowHistory) {
-      pendingNavRef.current = "next";
-      setAdPromptKind("world");
-      setAdPromptVisible(true);
-      return;
-    }
-
-    setDayOffset((v) => Math.min(1, v + 1));
-  };
 
 
-  // world가 아니고(=한/중/일 중 선택), 선택이 최소 1개면 Year 모드
-  const isYearMode = useMemo(() => !isWorldMode && selectedCountries.size > 0, [
-    isWorldMode,
-    selectedCountries,
-  ]);
+  // 선택된 나라 1개만 사용 (다중 선택 없음 전제)
+  const selectedArr = Array.from(selectedCountries); // Set → 배열
+  const currentCid = selectedArr[0] ?? null;
+
+  // world만 선택된 경우 → World 모드
+  const isWorldMode = currentCid === "world";
+
+  // korea / japan / china 중 하나 선택된 경우 → Year 모드
+  const isYearMode = currentCid != null && currentCid !== "world";
+
 
 
 
@@ -3032,6 +3090,7 @@ export default function Home() {
   const [yearNav, setYearNav] = useState({ canPrev: false, canNext: false });
 
   const [yearYears, setYearYears] = useState([]);
+  const [showYearAdModal, setShowYearAdModal] = useState(false);
 
   const baseYearRef = useRef(null);
 
@@ -3197,7 +3256,7 @@ export default function Home() {
       }
 
       // 광고 끝까지 시청 → 날짜 이동 + 12시간 패스 부여
-      // [수정] 광고 시청 완료 시 보상 처리 로직 통합
+      // 광고 시청 완료 시 보상 처리 로직 통합
       if (type === RewardedAdEventType.EARNED_REWARD) {
         const pending = pendingNavRef.current;
 
@@ -3506,7 +3565,6 @@ export default function Home() {
 
 
   // 초기 설정/복원
-  // [수정] 초기 설정/복원 (연도 데이터 포함 통합)
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -3835,7 +3893,6 @@ export default function Home() {
     setIsRefreshing(false);
   }, []);
 
-  // 데이터 로딩 (로컬 + 원격 + 로테이션)
   // 데이터 로딩 (World = 기존 / Year = 랜덤 연도 + prev/next + refresh 중복방지)
   useEffect(() => {
     if (!hydrated || !uiLang) return;
@@ -3925,26 +3982,22 @@ export default function Home() {
           return;
         }
 
-        //  World 모드: 오늘/어제/내일은 기존 world 로직 유지
-        // 데이터 로딩 useEffect 내부 - World 모드 부분만 수정
-
         if (isWorldMode) {
           if (notificationEventKey) {
-            console.log('🔍 [PICK] Looking for notification event:', notificationEventKey);
-            
-            // 모든 pool에서 해당 키를 가진 이벤트 찾기
+            console.log(' [PICK] Looking for notification event:', notificationEventKey);
+
             let foundPick = null;
             for (const cid of chosen) {
               const pool = poolsByCid[cid];
               if (pool) {
                 foundPick = pool.find(p => p.key === notificationEventKey);
                 if (foundPick) {
-                  console.log('✅ [PICK] Found notification event in', cid);
+                  console.log(' [PICK] Found notification event in', cid);
                   break;
                 }
               }
             }
-            
+
             if (foundPick && !canceled) {
               setHeaderImageUrl(null);
               setOnePick([foundPick]);
@@ -3952,20 +4005,18 @@ export default function Home() {
               setYearCursor(null);
               setYearNav({ canPrev: false, canNext: false });
               lastPickKeyRef.current = foundPick.key;
-              
-              // 키 초기화 (한 번만 사용)
+
               setNotificationEventKey(null);
               await AsyncStorage.removeItem('@notification_event_key');
-              
+
               endLoading();
               return;
             } else {
-              console.warn('⚠️ [PICK] Notification event not found, using random');
+              console.warn('[PICK] Notification event not found, using random');
               setNotificationEventKey(null);
             }
           }
-          
-          // 기존 랜덤 선택 로직
+
           const pick = await pickOneWithSeenRotation(
             poolsByCid,
             chosen,
@@ -3992,10 +4043,9 @@ export default function Home() {
 
           endLoading();
           return;
-}
+        }
 
-        // Year 모드: 한/중/일에서 world처럼 1개 이벤트만 보여주기
-        // Year 모드: 한/중/일에서 하루에 1개의 연도를 공유해서 사용
+        // Year 모드 (korea / japan / china)
         if (isYearMode) {
           const cids = chosen.filter((cid) => cid !== "world");
 
@@ -4011,14 +4061,11 @@ export default function Home() {
             return;
           }
 
-          // ------------- 여기부터 네 코드 -------------
-          // 나라별 연도 집합 만들기
           const yearsByCid = {};
           for (const cid of cids) {
             yearsByCid[cid] = getYearsFromPool(poolsByCid[cid] || []);
           }
 
-          // 1) 교집합(common years) 우선
           let common = null;
           for (const cid of cids) {
             const s = yearsByCid[cid];
@@ -4032,7 +4079,6 @@ export default function Home() {
           }
           const commonYearsArr = common ? [...common].sort((a, b) => a - b) : [];
 
-          // 2) 교집합이 없으면 합집합(union) 사용
           const union = new Set();
           for (const cid of cids) {
             for (const y of yearsByCid[cid] || []) union.add(y);
@@ -4052,107 +4098,85 @@ export default function Home() {
             return;
           }
 
-          // 하루에 1개의 기준 연도 고정
-          let targetYear = yearCursor;
-          if (targetYear == null) {
+          // 2) 오늘 날짜 기준 "공통 기준 연도" 결정 (앱 전체에서 공유)
+          const baseKey = `${STORAGE_KEY_YEAR_BASE}${isoDate}`;
+          let savedBaseYear = null;
+
+          try {
+            const raw = await AsyncStorage.getItem(baseKey);
+            const n = parseInt(raw || "", 10);
+            if (!Number.isNaN(n)) {
+              savedBaseYear = n;
+            }
+          } catch (e) {
+            console.warn("load base year failed:", e);
+          }
+
+          let targetYear = null;
+
+          if (savedBaseYear != null) {
+            // 이미 오늘 날짜에 대해 저장된 기준 연도가 있으면 그거 그대로 사용
+            targetYear = savedBaseYear;
+            baseYearRef.current = targetYear;
+          } else if (baseYearRef.current != null) {
+            // 메모리에 기준 연도가 있으면 그걸 사용
+            targetYear = baseYearRef.current;
+          } else {
+            // 아직 기준 연도가 전혀 없으면, 이번에 한 번만 랜덤으로 뽑고 저장
             const rnd = xorshift(hash32(`year:${isoDate}:${stableKey}`));
             const idx = Math.floor(rnd() * yearsArr.length);
             targetYear = yearsArr[idx];
             baseYearRef.current = targetYear;
-          } else if (baseYearRef.current == null) {
-            baseYearRef.current = targetYear;
+            try {
+              await AsyncStorage.setItem(baseKey, String(targetYear));
+            } catch (e) {
+              console.warn("save base year failed:", e);
+            }
           }
 
           setYearYears(yearsArr);
           setYearCursor(targetYear);
           setYearNav({ canPrev: false, canNext: false });
 
-          const picks = [];
-          const countToFetch = Math.min(
-            YEAR_MAX_EVENTS_PER_COUNTRY,
-            yearSeenGroups + 1
-          );
+          const primaryCid = cids[0];
 
-          for (const cid of cids) {
-            const pool = poolsByCid[cid] || [];
+          const picks = [];;
 
-            const getY = (it) => {
-              const y = parseInt(getYearFromRow(it.row), 10);
-              return Number.isNaN(y) ? null : y;
-            };
+          if (primaryCid) {
+            const pool = poolsByCid[primaryCid] || [];
 
-            let candidates = pool.filter((it) => getY(it) === targetYear);
+            const pick = await pickYearEventRotate(
+              pool,
+              targetYear,
+              isoDate,
+              primaryCid
+            );
 
-            if (!candidates.length && pool.length > 0) {
-              const scored = pool
-                .map((it) => {
-                  const y = getY(it);
-                  const dist = y == null ? 1e9 : Math.abs(y - targetYear);
-                  return { it, y, dist };
-                })
-                .sort((a, b) => a.dist - b.dist);
-
-              if (scored.length) {
-                const bestDist = scored[0].dist;
-                const bestYear = scored.find((x) => x.dist === bestDist)?.y;
-                if (bestYear != null) {
-                  candidates = pool.filter((it) => getY(it) === bestYear);
-                }
-              }
-            }
-
-            if (candidates.length > 0) {
-              candidates.sort((a, b) =>
-                String(a.key).localeCompare(String(b.key))
-              );
-              const selected = candidates.slice(0, countToFetch);
-              picks.push(...selected);
+            if (pick) {
+              picks.push(pick);
             }
           }
 
           if (canceled) return;
 
           setHeaderImageUrl(null);
-          setOnePick(picks);
+          setOnePick(picks);            // 항상 카드 1개
           lastPickKeyRef.current = picks?.[0]?.key || null;
 
           endLoading();
           return;
         }
 
-
-        // 혼합 모드 (world + 다른 나라 같이 선택된 경우)
-        {
-          const pick = await pickOneWithSeenRotation(
-            poolsByCid,
-            chosen,
-            isoDate,
-            seedKey
-          );
-
-          if (!canceled) {
-            if (pick) {
-              setHeaderImageUrl(null);
-              setOnePick([pick]);
-              setYearYears([]);
-              setYearCursor(null);
-              setYearNav({ canPrev: false, canNext: false });
-              lastPickKeyRef.current = pick.key;
-            } else {
-              setHeaderImageUrl(null);
-              setOnePick([]);
-              setYearYears([]);
-              setYearCursor(null);
-              setYearNav({ canPrev: false, canNext: false });
-            }
-          }
-
-          endLoading();
-          return;
+        // 어느 모드도 아니면 (선택 없음)
+        if (!canceled) {
+          setHeaderImageUrl(null);
+          setOnePick([]);
+          setYearYears([]);
+          setYearCursor(null);
+          setYearNav({ canPrev: false, canNext: false });
         }
-
-
-
+        endLoading();
+        return;
 
       } catch (e) {
         if (!canceled) {
@@ -4163,12 +4187,6 @@ export default function Home() {
         fetchingRef.current = false;
       }
     })();
-
-    // [수정] useEffect의 마지막 의존성 배열 부분을 아래와 같이 바꾸세요.
-    return () => {
-      canceled = true;
-      fetchingRef.current = false;
-    };
   }, [
     hydrated,
     todayParts,
@@ -4523,8 +4541,7 @@ export default function Home() {
 
     if (yearCursor == null || baseYearRef.current == null) return undefined;
 
-    // ❗ 이 나라에서 앞/뒤 해 네비가 하나도 없으면
-    //    "지난해/다음해" 개념도 없는 거니까 그냥 기본 타이틀 사용
+
     if (!yearNav.canPrev && !yearNav.canNext) {
       return undefined;
     }
@@ -4940,7 +4957,7 @@ export async function refreshTodayFeed() {
     // ⭐ getDayPartsFrom 사용해서 형식 통일
     const todayStart = startOfDayInTz(today, safeTimezone);
     const parts = getDayPartsFrom(todayStart, safeTimezone);
-    
+
     const month = parseInt(parts.m, 10);
     const day = parseInt(parts.d, 10);
 
@@ -4957,7 +4974,7 @@ export async function refreshTodayFeed() {
 
     const chosen = [...selectedCountries];
     console.log('🔍 [REFRESH FEED] Selected countries:', chosen);
-    
+
     if (!chosen.length) {
       console.error('❌ [REFRESH FEED] No countries selected');
       const defaultMessages = {
@@ -5124,12 +5141,12 @@ export async function initializeDefaultData(uiLang, tz) {
     const today = startOfDayInTz(new Date(), tz);
     const parts = getDayPartsFrom(today, tz);
     const isoDate = `${parts.y}-${parts.m}-${parts.d}`;
-    
+
     console.log('🚀 [INIT] Loading default data for:', { uiLang, date: isoDate });
-    
+
     // 기본 국가 설정 (언어에 따라)
     const defaultCountries = DEFAULT_COUNTRIES_BY_LANG[uiLang] || DEFAULT_COUNTRIES_BY_LANG.default;
-    
+
     // 각 기본 국가의 데이터 로드 및 캐시
     for (const cid of defaultCountries) {
       try {
@@ -5139,11 +5156,11 @@ export async function initializeDefaultData(uiLang, tz) {
           console.log(`✅ [INIT] Cache already exists for ${cid}`);
           continue;
         }
-        
+
         // 캐시가 없으면 로드
         console.log(`📥 [INIT] Loading data for ${cid}...`);
         const rows = await apiFetchForMode(cid, parts, isoDate);
-        
+
         if (rows && rows.length > 0) {
           await saveCache(cid, parts, rows);
           console.log(`✅ [INIT] Cached ${rows.length} items for ${cid}`);
@@ -5152,7 +5169,7 @@ export async function initializeDefaultData(uiLang, tz) {
         console.warn(`⚠️ [INIT] Failed to load ${cid}:`, e);
       }
     }
-    
+
     // 기본 알림 본문 생성 (실패해도 계속 진행)
     try {
       await refreshTodayFeed();
@@ -5160,9 +5177,9 @@ export async function initializeDefaultData(uiLang, tz) {
     } catch (e) {
       console.warn('⚠️ [INIT] Failed to initialize notification body:', e);
     }
-    
+
     console.log('✅ [INIT] Default data initialization complete');
-    
+
   } catch (error) {
     console.error('❌ [INIT] Failed to initialize default data:', error);
   }
