@@ -13,7 +13,11 @@ export default function Language() {
     { name: '한국어', code: 'ko' },
     { name: '日本語', code: 'ja' },
     { name: '简体中文', code: 'zh-Hans' }, 
-    { name: '繁體中文', code: 'zh-Hant' }, 
+    { name: '繁體中文', code: 'zh-Hant' },
+    // {name:'Français',code:'fr'},
+    // {name:'Español',code:'sp'},
+    // {name:'हिन्दी',code:'hin'},
+    // {name:'แบบไทย',code:'th'},
   ];
 
   // Load saved language on mount
