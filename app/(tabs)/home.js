@@ -1640,7 +1640,7 @@ function WebViewModal({ visible, url, title, onClose }) {
     try {
       const savedBgColor = await AsyncStorage.getItem('@app_bg_color');
       const savedBgImage = await AsyncStorage.getItem('@app_bg_image');
-      
+
       if (savedBgImage) {
         setBgImage(savedBgImage);
       } else if (savedBgColor) {
@@ -2769,9 +2769,9 @@ export default function Home() {
   const YEAR_EXTRA_EVENTS_AFTER_AD = 10; // 지금은 설명용, 필요하면 나중에 계산에 쓸 수 있음
 
 
-// 연도 모드: 오늘의 플레이리스트(12개) 상태
-const [currentYearPlaylist, setCurrentYearPlaylist] = useState([]);
-const [yearCurrentIndex, setYearCurrentIndex] = useState(0);
+  // 연도 모드: 오늘의 플레이리스트(12개) 상태
+  const [currentYearPlaylist, setCurrentYearPlaylist] = useState([]);
+  const [yearCurrentIndex, setYearCurrentIndex] = useState(0);
 
   // 한/중/일 연도 모드에서 "더 보기" 가능 여부
   const canSeeMoreYearEvents = useMemo(() => {
@@ -2814,86 +2814,112 @@ const [yearCurrentIndex, setYearCurrentIndex] = useState(0);
     ).catch(() => { });
   }, [yearCursor, tz]);
 
-async function persistYearIndex(cid, newIndex) {
-  const today = startOfDayInTz(new Date(), tz);
-  const { y, m, d } = getDayPartsFrom(today, tz);
-  const isoDate = `${y}-${m}-${d}`;
-  const key = `@year_playlist_v3:${cid}`;
+  async function persistYearIndex(cid, newIndex) {
+    const today = startOfDayInTz(new Date(), tz);
+    const { y, m, d } = getDayPartsFrom(today, tz);
+    const isoDate = `${y}-${m}-${d}`;
+    const key = `@year_playlist_v3:${cid}`;
 
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (raw) {
-      const state = JSON.parse(raw);
-      if (state.isoDate === isoDate) {
-        state.currentIndex = newIndex;
-        await AsyncStorage.setItem(key, JSON.stringify(state));
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      if (raw) {
+        const state = JSON.parse(raw);
+        if (state.isoDate === isoDate) {
+          state.currentIndex = newIndex;
+          await AsyncStorage.setItem(key, JSON.stringify(state));
+        }
       }
+    } catch (e) {
+      console.warn("[YEAR] Update index failed", e);
     }
-  } catch (e) {
-    console.warn("[YEAR] Update index failed", e);
   }
-}
-const applyYearIndex = useCallback(
-  (cid, newIndex) => {
-    const playlist = currentYearPlaylist;
-    const pool = yearPoolRef.current[cid] || [];
-    if (!playlist || !playlist.length) return;
-    if (!pool || !pool.length) return;
+  const applyYearIndex = useCallback(
+    (cid, newIndex) => {
+      const playlist = currentYearPlaylist;
+      const pool = yearPoolRef.current[cid] || [];
+      if (!playlist || !playlist.length) return;
+      if (!pool || !pool.length) return;
 
-    const max = playlist.length;
-    const safeIdx = ((newIndex % max) + max) % max; // 음수 방지
+      const max = playlist.length;
+      const safeIdx = ((newIndex % max) + max) % max; // 음수 방지
 
-    const keyToFind = playlist[safeIdx];
-    const pick = pool.find((p) => p.key === keyToFind);
-    if (!pick) return;
+      const keyToFind = playlist[safeIdx];
+      const pick = pool.find((p) => p.key === keyToFind);
+      if (!pick) return;
 
-    setYearCurrentIndex(safeIdx);
-    setOnePick([pick]);
-    setHeaderImageUrl(null);
+      setYearCurrentIndex(safeIdx);
+      setOnePick([pick]);
+      setHeaderImageUrl(null);
 
-    const pickYear = parseInt(getYearFromRow(pick.row), 10) || null;
-    setYearCursor(pickYear);
-    baseYearRef.current = pickYear;
-  },
-  [currentYearPlaylist]
-);
+      const pickYear = parseInt(getYearFromRow(pick.row), 10) || null;
+      setYearCursor(pickYear);
+      baseYearRef.current = pickYear;
+    },
+    [currentYearPlaylist]
+  );
 
 
-const handlePressYearMore = useCallback(async () => {
-  if (!isYearMode) return;
-  if (!currentCid || currentCid === "world") return;
-  if (!currentYearPlaylist || !currentYearPlaylist.length) return;
+  const handlePressYearMore = useCallback(async () => {
+    if (!isYearMode) return;
+    if (!currentCid || currentCid === "world") return;
+    if (!currentYearPlaylist || !currentYearPlaylist.length) return;
 
-  const now = Date.now();
-  const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > now;
+    const now = Date.now();
+    const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > now;
 
-  const currentIdx = yearCurrentIndex;
-  const maxLimit = currentYearPlaylist.length;
+    const currentIdx = yearCurrentIndex;
+    const maxLimit = currentYearPlaylist.length;
 
-  // 1) 패스 있는 경우: 그냥 계속 순환
-  if (hasPass) {
-    const nextIdx = (currentIdx + 1) % maxLimit;
-    applyYearIndex(currentCid, nextIdx);      // ✅ 즉시 화면 갱신
-    await persistYearIndex(currentCid, nextIdx); // ✅ 백그라운드로 저장
-    return;
-  }
+    // 1) 패스 있는 경우: 그냥 계속 순환
+    if (hasPass) {
+      const nextIdx = (currentIdx + 1) % maxLimit;
+      applyYearIndex(currentCid, nextIdx);      // ✅ 즉시 화면 갱신
+      await persistYearIndex(currentCid, nextIdx); // ✅ 백그라운드로 저장
+      return;
+    }
 
-  // 2) 패스 없는 경우: 0→1 까지는 허용, 그 다음은 광고 모달
-  if (currentIdx < 1) {
-    const nextIdx = currentIdx + 1;
-    applyYearIndex(currentCid, nextIdx);
-    await persistYearIndex(currentCid, nextIdx);
-  } else {
-    setYearAdPromptVisible(true);
-  }
-}, [
-  isYearMode,
-  currentCid,
-  currentYearPlaylist,
-  yearCurrentIndex,
-  yearAdUnlockedUntil,
-  applyYearIndex,
-]);
+    // 2) 패스 없는 경우: 0→1 까지는 허용, 그 다음은 광고 모달
+    if (currentIdx < 1) {
+      const nextIdx = currentIdx + 1;
+      applyYearIndex(currentCid, nextIdx);
+      await persistYearIndex(currentCid, nextIdx);
+    } else {
+      setYearAdPromptVisible(true);
+    }
+  }, [
+    isYearMode,
+    currentCid,
+    currentYearPlaylist,
+    yearCurrentIndex,
+    yearAdUnlockedUntil,
+    applyYearIndex,
+  ]);
+
+
+  const handleCloseYearAdPrompt = useCallback(async () => {
+    // 모달 닫기
+    setYearAdPromptVisible(false);
+
+    // 이미 패스(광고 시청) 있으면 아무 것도 안 함
+    const now = Date.now();
+    const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > now;
+    if (hasPass) return;
+
+    // 연도 모드가 아니거나, 나라/플레이리스트가 없으면 패스
+    if (!isYearMode) return;
+    if (!currentCid || currentCid === "world") return;
+    if (!currentYearPlaylist || !currentYearPlaylist.length) return;
+
+    // 광고를 거절했으니까 다시 첫 번째 이벤트(인덱스 0)로 롤백
+    applyYearIndex(currentCid, 0);
+    await persistYearIndex(currentCid, 0);
+  }, [
+    isYearMode,
+    currentCid,
+    currentYearPlaylist,
+    yearAdUnlockedUntil,
+    applyYearIndex,
+  ]);
 
 
 
@@ -2901,7 +2927,7 @@ const handlePressYearMore = useCallback(async () => {
   function showNextYearGroup() {
     // Year 모드에서 "한 번 더 보기" = refreshTick 올려서 로딩 useEffect 다시 돌리기
     setIsRefreshing(true);
-    setRefreshTick((t) => t + 1); 
+    setRefreshTick((t) => t + 1);
   }
   async function updateYearSeenCount(cid, nextCountForCid) {
     const today = startOfDayInTz(new Date(), tz);
@@ -2930,24 +2956,24 @@ const handlePressYearMore = useCallback(async () => {
 
 
   // 광고 보상 처리 (연도 모드)
-async function onRewardedForYear() {
-  const now = Date.now();
-  const until = now + REWARD_PASS_DURATION_MS;
+  async function onRewardedForYear() {
+    const now = Date.now();
+    const until = now + REWARD_PASS_DURATION_MS;
 
-  setYearAdUnlockedUntil(until);
-  try {
-    await AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until));
-  } catch (e) {}
+    setYearAdUnlockedUntil(until);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until));
+    } catch (e) { }
 
-  setYearAdPromptVisible(false);
+    setYearAdPromptVisible(false);
 
-  if (!currentCid || currentCid === "world") return;
-  if (!currentYearPlaylist || !currentYearPlaylist.length) return;
+    if (!currentCid || currentCid === "world") return;
+    if (!currentYearPlaylist || !currentYearPlaylist.length) return;
 
-  const nextIdx = (yearCurrentIndex + 1) % currentYearPlaylist.length;
-  applyYearIndex(currentCid, nextIdx);
-  await persistYearIndex(currentCid, nextIdx);
-}
+    const nextIdx = (yearCurrentIndex + 1) % currentYearPlaylist.length;
+    applyYearIndex(currentCid, nextIdx);
+    await persistYearIndex(currentCid, nextIdx);
+  }
 
 
   function showRewardedAdForYear() {
@@ -3241,11 +3267,11 @@ async function onRewardedForYear() {
 
   const baseYearRef = useRef(null);
 
-const yearPoolRef = useRef({
-  korea: [],
-  japan: [],
-  china: [],
-});
+  const yearPoolRef = useRef({
+    korea: [],
+    japan: [],
+    china: [],
+  });
 
 
 
@@ -3665,7 +3691,7 @@ const yearPoolRef = useRef({
     // World 모드: 예전처럼 무제한 새로고침
     if (!isYearMode) {
       setIsRefreshing(true);
-      setRefreshTick((t) => t + 1); 
+      setRefreshTick((t) => t + 1);
       return;
     }
 
@@ -4196,91 +4222,91 @@ const yearPoolRef = useRef({
 
         // Year 모드 (한/중/일) 전용 분기
         // [수정] Year 모드 (한/중/일) 로직
-if (isYearMode) {
-  const cid = currentCid;
-  if (!cid || cid === "world") {
-    if (!canceled) { setOnePick([]); endLoading(); }
-    return;
-  }
+        if (isYearMode) {
+          const cid = currentCid;
+          if (!cid || cid === "world") {
+            if (!canceled) { setOnePick([]); endLoading(); }
+            return;
+          }
 
-  // 1. 해당 국가 데이터 가져오기
-  let pool = poolsByCid[cid] || [];
-  
-  if (!pool.length) {
-    if (!canceled) {
-      setOnePick([]);
-      setErr("표시할 역사가 없습니다.");
-      endLoading();
-    }
-    return;
-  }
+          // 1. 해당 국가 데이터 가져오기
+          let pool = poolsByCid[cid] || [];
+
+          if (!pool.length) {
+            if (!canceled) {
+              setOnePick([]);
+              setErr("표시할 역사가 없습니다.");
+              endLoading();
+            }
+            return;
+          }
 
 
-  const isoDate = `${todayParts.y}-${todayParts.m}-${todayParts.d}`;
-  const stateKey = `@year_playlist_v3:${cid}`;
+          const isoDate = `${todayParts.y}-${todayParts.m}-${todayParts.d}`;
+          const stateKey = `@year_playlist_v3:${cid}`;
 
-  // 3. 오늘의 플레이리스트(12개) 로드 또는 생성
-  let playlist = [];
-  let currentIndex = 0;
+          // 3. 오늘의 플레이리스트(12개) 로드 또는 생성
+          let playlist = [];
+          let currentIndex = 0;
 
-  try {
-    const rawState = await AsyncStorage.getItem(stateKey);
-    const state = rawState ? JSON.parse(rawState) : null;
+          try {
+            const rawState = await AsyncStorage.getItem(stateKey);
+            const state = rawState ? JSON.parse(rawState) : null;
 
-    if (state && state.isoDate === isoDate && state.playlist && state.playlist.length > 0) {
-      // 이미 오늘 만든 리스트가 있음 → 그대로 복원
-      playlist = state.playlist;
-      currentIndex = state.currentIndex || 0;
-    } else {
-  if (pool.length > 0) {
-  const countToPick = Math.min(pool.length, 12); // 최대 12개
+            if (state && state.isoDate === isoDate && state.playlist && state.playlist.length > 0) {
+              // 이미 오늘 만든 리스트가 있음 → 그대로 복원
+              playlist = state.playlist;
+              currentIndex = state.currentIndex || 0;
+            } else {
+              if (pool.length > 0) {
+                const countToPick = Math.min(pool.length, 12); // 최대 12개
 
-  playlist = pool.slice(0, countToPick).map((p) => p.key);
-}
+                playlist = pool.slice(0, countToPick).map((p) => p.key);
+              }
 
-currentIndex = 0;
-await AsyncStorage.setItem(stateKey, JSON.stringify({
-  isoDate,
-  playlist,
-  currentIndex,
-}));
+              currentIndex = 0;
+              await AsyncStorage.setItem(stateKey, JSON.stringify({
+                isoDate,
+                playlist,
+                currentIndex,
+              }));
 
-    }
-  } catch (e) {
-    console.warn("Playlist init error", e);
-  }
+            }
+          } catch (e) {
+            console.warn("Playlist init error", e);
+          }
 
-  if (!canceled) {
-      yearPoolRef.current[cid] = pool;
+          if (!canceled) {
+            yearPoolRef.current[cid] = pool;
 
-    setCurrentYearPlaylist(playlist);
-    setYearCurrentIndex(currentIndex);
+            setCurrentYearPlaylist(playlist);
+            setYearCurrentIndex(currentIndex);
 
-    if (playlist.length > 0) {
-      if (currentIndex >= playlist.length) currentIndex = 0;
+            if (playlist.length > 0) {
+              if (currentIndex >= playlist.length) currentIndex = 0;
 
-      const keyToFind = playlist[currentIndex];
-      const pick = pool.find(p => p.key === keyToFind);
+              const keyToFind = playlist[currentIndex];
+              const pick = pool.find(p => p.key === keyToFind);
 
-      if (pick) {
-        setOnePick([pick]);
-        setHeaderImageUrl(null);
+              if (pick) {
+                setOnePick([pick]);
+                setHeaderImageUrl(null);
 
-        const pickYear = parseInt(getYearFromRow(pick.row), 10) || null;
-        setYearCursor(pickYear);
-        baseYearRef.current = pickYear;
-      } else {
-        setOnePick([pool[0]]);
-      }
-    } else {
-      setOnePick([]);
-    }
+                const pickYear = parseInt(getYearFromRow(pick.row), 10) || null;
+                setYearCursor(pickYear);
+                baseYearRef.current = pickYear;
+              } else {
+                setOnePick([pool[0]]);
+              }
+            } else {
+              setOnePick([]);
+            }
 
-    setYearNav({ canPrev: false, canNext: false });
-  }
-  endLoading();
-  return;
-}
+            setYearNav({ canPrev: false, canNext: false });
+          }
+          endLoading();
+          return;
+        }
 
 
 
@@ -4409,7 +4435,7 @@ await AsyncStorage.setItem(stateKey, JSON.stringify({
         // 앱으로 돌아오면 항상 "오늘(0)" 기준으로 맞춰주기
         setDayOffset(0);
 
-      
+
         // 오늘 기준으로 캐시/배너 미리 준비
         warmCacheAndBanner({
           date: today,
@@ -5020,12 +5046,12 @@ await AsyncStorage.setItem(stateKey, JSON.stringify({
             visible={yearAdPromptVisible}
             transparent
             animationType="fade"
-            onRequestClose={() => setYearAdPromptVisible(false)}
+            onRequestClose={handleCloseYearAdPrompt}
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
               <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
                 <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
-                  <Pressable onPress={() => setYearAdPromptVisible(false)} hitSlop={10}>
+                  <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
                 </View>
