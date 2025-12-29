@@ -27,12 +27,11 @@
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-        
+        "backgroundColor": "#ffffff" 
       },
       "splash": {
         "image": "./assets/splash.png",
-        "resizeMode": "contain",
+        "resizeMode": "cover",
         "backgroundColor": "#111827"
       }
     },
