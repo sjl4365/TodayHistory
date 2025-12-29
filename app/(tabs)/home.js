@@ -2896,6 +2896,32 @@ const handlePressYearMore = useCallback(async () => {
 ]);
 
 
+const handleCloseYearAdPrompt = useCallback(async () => {
+  // 모달 닫기
+  setYearAdPromptVisible(false);
+
+  // 이미 패스(광고 시청) 있으면 아무 것도 안 함
+  const now = Date.now();
+  const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > now;
+  if (hasPass) return;
+
+  // 연도 모드가 아니거나, 나라/플레이리스트가 없으면 패스
+  if (!isYearMode) return;
+  if (!currentCid || currentCid === "world") return;
+  if (!currentYearPlaylist || !currentYearPlaylist.length) return;
+
+  // 광고를 거절했으니까 다시 첫 번째 이벤트(인덱스 0)로 롤백
+  applyYearIndex(currentCid, 0);
+  await persistYearIndex(currentCid, 0);
+}, [
+  isYearMode,
+  currentCid,
+  currentYearPlaylist,
+  yearAdUnlockedUntil,
+  applyYearIndex,
+]);
+
+
 
 
   function showNextYearGroup() {
@@ -5020,12 +5046,12 @@ await AsyncStorage.setItem(stateKey, JSON.stringify({
             visible={yearAdPromptVisible}
             transparent
             animationType="fade"
-            onRequestClose={() => setYearAdPromptVisible(false)}
+onRequestClose={handleCloseYearAdPrompt}
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
               <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
                 <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
-                  <Pressable onPress={() => setYearAdPromptVisible(false)} hitSlop={10}>
+            <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}> 
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
                 </View>
