@@ -67,6 +67,10 @@ export default function SettingsIndex() {
     { name: '日本語', code: 'ja' },
     { name: '簡体中文', code: 'zh-Hans' },
     { name: '繁體中文', code: 'zh-Hant' },
+    // {name:'Français',code:'fr'},
+    // {name:'Español',code:'sp'},
+    // {name:'हिन्दी',code:'hin'},
+    // {name:'แบบไทย',code:'th'},
   ];
 
   useEffect(() => {
