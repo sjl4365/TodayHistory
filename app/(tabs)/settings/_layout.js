@@ -1,24 +1,12 @@
 // app/(tabs)/settings/_layout.js
+// Settings stack navigation within the settings tab
 import React from 'react';
-import { Stack } from 'expo-router';
-import { TouchableOpacity, Image } from 'react-native';
-import { useTranslation } from '../../../lib/translations';
-import { useFocusEffect } from '@react-navigation/native';
+import {Stack} from 'expo-router';
+import { TouchableOpacity, Image} from 'react-native';
 
-export default function SettingsLayout() {
-  const { t, currentLanguage } = useTranslation();
-  const [key, setKey] = React.useState(0);
-
-  // Force re-render when this screen is focused and language might have changed
-  useFocusEffect(
-    React.useCallback(() => {
-      setKey(prev => prev + 1);
-    }, [currentLanguage])
-  );
-
-  return (
+export default function SettingsLayout(){
+  return(
     <Stack
-      key={key}
       screenOptions={{
         headerStyle: {
           backgroundColor: 'black',
@@ -34,14 +22,14 @@ export default function SettingsLayout() {
       <Stack.Screen 
         name="setting" 
         options={({ navigation }) => ({ 
-          title: t('settings'),
+          title: 'Settings',
           headerLeft: () => (
             <TouchableOpacity 
-              onPress={() => navigation.navigate('home')}
+              onPress={() => navigation.navigate('home')} // Navigate to home tab
               style={{ marginRight: 15 }}
             >
               <Image 
-                source={require('../../../assets/images/prevv.png')}
+                source={require('../../../assets/images/prevv.png')} // Correct path from settings folder
                 style={{ width: 24, height: 24, tintColor: 'white' }}
                 resizeMode="contain"
               />
@@ -53,7 +41,7 @@ export default function SettingsLayout() {
       <Stack.Screen 
         name="look-and-feel" 
         options={{ 
-          title: t('lookAndFeel'),
+          title: 'Look & Feel',
           presentation: 'card',
         }} 
       />
@@ -61,15 +49,23 @@ export default function SettingsLayout() {
       <Stack.Screen 
         name="language" 
         options={{ 
-          title: t('language'),
+          title: 'Language',
           presentation: 'card',
         }} 
       />
+
+      {/* <Stack.Screen
+        name="instagram"
+        options={{
+          title: 'Instagram',
+          presentation: 'card',
+        }}
+      /> */}
       
       <Stack.Screen 
         name="credit" 
         options={{ 
-          title: t('credits'),
+          title: 'Credits',
           presentation: 'card',
         }} 
       />
@@ -77,7 +73,7 @@ export default function SettingsLayout() {
       <Stack.Screen
         name="sunnygame"
         options={{
-          title: t('sunnyGames'),
+          title: 'Sunny\'s Games and Apps',
           presentation: 'card',
         }}
       />
@@ -85,10 +81,12 @@ export default function SettingsLayout() {
       <Stack.Screen
         name="opensource"
         options={{
-          title: t('openSource'),
+          title: 'Open Source Info',
           presentation: 'card',
         }}
       />
     </Stack>
+
+    
   );
 }

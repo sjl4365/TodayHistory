@@ -130,7 +130,7 @@ export default function TabLayout() {
   const segments = useSegments();
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
-  const isInSettings = segments.includes("settings");
+
   // 안드로이드 네비게이션바 위로 띄우기
   const ANDROID_EXTRA_BOTTOM =
     Platform.OS === "android" ? insets.bottom || 20 : 0;
@@ -180,18 +180,16 @@ export default function TabLayout() {
         tabBarInactiveTintColor: "black",
         tabBarActiveBackgroundColor: "transparent",
         tabBarInactiveBackgroundColor: "transparent",
-        tabBarStyle: isInSettings
-          ? { display: "none" }
-          : {
-              width: "100%",
-              backgroundColor: "#fff",
-              borderTopWidth: 0,
-              height: tabBarHeight + ANDROID_EXTRA_BOTTOM,
-              paddingTop: PAD_V,
-              paddingBottom: PAD_V + ANDROID_EXTRA_BOTTOM,
-              justifyContent: "center",
-              alignItems: "center",
-            },
+        tabBarStyle: {
+          width: "100%",
+          backgroundColor: "#fff",
+          borderTopWidth: 0,
+          height: tabBarHeight + ANDROID_EXTRA_BOTTOM,
+          paddingTop: PAD_V,
+          paddingBottom: PAD_V + ANDROID_EXTRA_BOTTOM,
+          justifyContent: "center",
+          alignItems: "center",
+        },
         tabBarItemStyle: { width: "auto", padding: 0, margin: 0, flex: 0 },
         lazy: true,
       }}

@@ -1,9 +1,7 @@
 // app/(tabs)/settings/sunnygame.js
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Alert, useWindowDimensions} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useTranslation } from '../../../lib/translations';
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -14,43 +12,34 @@ function useUIScale() {
 
 export default function SunnyGame() {
   const { scale } = useUIScale();
-  const { t } = useTranslation();
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    navigation.setOptions({
-      title: t('sunnyGames')
-    });
-  }, [navigation, t]);
-
   const apps = [
     {
         id: 1,
-        name: t('skyPeacemaker'),
+        name: 'Sky Peacemaker',
         icon: require('../../../assets/images/skypeacemaker.png'),
         url: 'https://skypeacemaker.onelink.me/YQxG/8s9sx66i',
     },
     {
         id: 2,
-        name: t('worldMovieTrailer'),
+        name: 'World Move Trailer',
         icon: require('../../../assets/images/worldmovietrailer.png'),
         url: 'https://wmt.onelink.me/YPN9/m428wgpq',
     },
     {
         id: 3,
-        name: t('dualFlashlight'),
+        name: 'Dual Flashlight',
         icon: require('../../../assets/images/dualflashlight.png'),
         url: 'https://dualflashlight.onelink.me/7gkq/qpbc8y65',
     },
     {
         id: 4,
-        name: t('decibella'),
+        name: 'Decibella',
         icon: require('../../../assets/images/decibella.png'),
         url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
     },
     {
         id: 5,
-        name: t('findFour'),
+        name: 'Find Four',
         icon: require('../../../assets/images/findfour.png'),
         url: 'https://findfour.onelink.me/vurA/0tfteiuf',
     },
@@ -112,7 +101,7 @@ export default function SunnyGame() {
 
           <View style={{ paddingHorizontal: scale(12) }}>
             <Text style={[styles.linkText, { fontSize: scale(14) }]}>
-              {t('link')}
+              Link
             </Text>
           </View>
         </View>
@@ -172,7 +161,7 @@ export default function SunnyGame() {
                   paddingHorizontal: scale(4),
                 }
               ]}>
-                {t('termsOfService')}
+                Terms of Service
               </Text>
             </TouchableOpacity>
             
@@ -194,7 +183,7 @@ export default function SunnyGame() {
                   paddingHorizontal: scale(4),
                 }
               ]}>
-                {t('privacyPolicy')}
+                Privacy Policy
               </Text>
             </TouchableOpacity>
           </View>

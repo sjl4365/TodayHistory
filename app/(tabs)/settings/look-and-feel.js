@@ -14,15 +14,13 @@ import {
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { StrokeText } from "@charmy.tech/react-native-stroke-text";
-import { useTranslation } from '../../../lib/translations';
-import { useNavigation } from 'expo-router';
 
 const STORAGE_KEY_FONT = '@app_font';
 const STORAGE_KEY_FONT_SIZE = '@app_font_size';
 const STORAGE_KEY_FONT_COLOR = '@app_font_color';
 const STORAGE_KEY_BG_COLOR = '@app_bg_color';
 const STORAGE_KEY_BG_IMAGE = '@app_bg_image';
+const LANGUAGE_STORAGE_KEY = '@app_language';
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -33,23 +31,15 @@ function useUIScale() {
 
 export default function LookAndFeel() {
   const { scale } = useUIScale();
-  const { t, currentLanguage } = useTranslation();
-  const navigation = useNavigation();
   const [selectedFont, setSelectedFont] = useState('Verdana');
   const [fontSize, setFontSize] = useState(18);
   const [fontColor, setFontColor] = useState('#000000');
   const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState('en');
   
   const [showFontModal, setShowFontModal] = useState(false);
-
-  // Update header title when language changes
-  useEffect(() => {
-    navigation.setOptions({
-      title: t('lookAndFeel'),
-    });
-  }, [currentLanguage, navigation, t]);
 
   const fonts = [
     'System',
@@ -60,9 +50,20 @@ export default function LookAndFeel() {
     'Georgia',
   ];
 
+  // Language-specific messages
+  const fontAppliedMessages = {
+    en: '*Only the English font is applied.',
+    ko: '*영어 폰트만 적용 됩니다.',
+    ja: '*英語のフォントだけが適用されます。',
+  };
+
+  // Font Color options (includes Brown)
   const fontcolorOptions = [
-    { name: 'Black', value: '#000000', useStroke: true, strokeColor: '#FFFFFF', strokeWidth: 3},
-    { name: 'White', value: '#FFFFFF', useStroke: true, strokeColor: '#000000', strokeWidth: 3},
+    // Basic colors (keeping black and white for contrast)
+    { name: 'Black', value: '#000000' },
+    { name: 'White', value: '#FFFFFF' },
+    
+    // Rainbow colors in order: ROYGBIV
     { name: 'Red', value: '#FF0000' },
     { name: 'Orange', value: '#FF8000' },
     { name: 'Yellow', value: '#FFFF00' },
@@ -70,6 +71,8 @@ export default function LookAndFeel() {
     { name: 'Blue', value: '#0000FF' },
     { name: 'Indigo', value: '#4B0082' },
     { name: 'Violet', value: '#8A2BE2' },
+    
+    // Additional rainbow variations
     { name: 'Pink', value: '#FF69B4' },
     { name: 'Cyan', value: '#00FFFF' },
     { name: 'Magenta', value: '#FF00FF' },
@@ -77,9 +80,13 @@ export default function LookAndFeel() {
     { name: 'Brown', value: '#8B4513' },
   ];
 
+  // Background Color options (without Brown, has upload button instead)
   const backcolorOptions = [
+    // Basic colors (keeping black and white for contrast)
     { name: 'Black', value: '#000000' },
     { name: 'White', value: '#FFFFFF' },
+    
+    // Rainbow colors in order: ROYGBIV
     { name: 'Red', value: '#FF0000' },
     { name: 'Orange', value: '#FF8000' },
     { name: 'Yellow', value: '#FFFF00' },
@@ -87,46 +94,14 @@ export default function LookAndFeel() {
     { name: 'Blue', value: '#0000FF' },
     { name: 'Indigo', value: '#4B0082' },
     { name: 'Violet', value: '#8A2BE2' },
+    
+    // Additional rainbow variations
     { name: 'Pink', value: '#FF69B4' },
     { name: 'Cyan', value: '#00FFFF' },
     { name: 'Magenta', value: '#FF00FF' },
     { name: 'Lime', value: '#32CD32' },
   ];
 
-  const getCurrentFontColorOption = () => {
-    return fontcolorOptions.find(option => option.value === fontColor) || fontcolorOptions[1];
-  };
-
-  const renderPreviewText = (text) => {
-    const currentOption = getCurrentFontColorOption();
-    if (currentOption.useStroke && backgroundImage) {
-      return (
-        <StrokeText
-          text={text}
-          fontSize={fontSize}
-          color={currentOption.value}
-          strokeColor={currentOption.strokeColor}
-          strokeWidth={currentOption.strokeWidth}
-          fontFamily={getFontFamily(selectedFont)}
-          align="center"
-        />
-      );
-    }
-    return (
-      <Text
-        style={[
-          styles.previewText,
-          {
-            fontFamily: getFontFamily(selectedFont),
-            fontSize: fontSize,
-            color: fontColor,
-          },
-        ]}
-      >
-        {text}
-      </Text>
-    );
-  };
 
   // Font Dropdown Modal Component
   const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts, getFontFamily }) => (
@@ -142,7 +117,7 @@ export default function LookAndFeel() {
             { marginBottom: scale(20) }
           ]}>
             <Text style={[styles.modalTitle, { fontSize: scale(18) }]}>
-              {t('selectFont')}
+              Select Font
             </Text>
             <TouchableOpacity onPress={onClose}>
               <Text style={[styles.closeButton, { fontSize: scale(20) }]}>
@@ -307,12 +282,20 @@ export default function LookAndFeel() {
         const imageUri = result.assets[0].uri;
         setBackgroundImage(imageUri);
         await AsyncStorage.setItem(STORAGE_KEY_BG_IMAGE, imageUri);
+        // Clear color when image is set
         setBackgroundColor(null);
         await AsyncStorage.removeItem(STORAGE_KEY_BG_COLOR);
       }
     } catch (error) {
       console.error('Error picking image:', error);
     }
+  };
+
+  const removeBackgroundImage = async () => {
+    setBackgroundImage(null);
+    await AsyncStorage.removeItem(STORAGE_KEY_BG_IMAGE);
+    setBackgroundColor('#FFFFFF');
+    await AsyncStorage.setItem(STORAGE_KEY_BG_COLOR,'#FFFFFF');
   };
   
   useEffect(() => {
@@ -326,12 +309,14 @@ export default function LookAndFeel() {
       const savedFontColor = await AsyncStorage.getItem(STORAGE_KEY_FONT_COLOR);
       const savedBgColor = await AsyncStorage.getItem(STORAGE_KEY_BG_COLOR);
       const savedBgImage = await AsyncStorage.getItem(STORAGE_KEY_BG_IMAGE);
+      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
       
       if (savedFont) setSelectedFont(savedFont);
       if (savedSize) setFontSize(parseInt(savedSize));
       if (savedFontColor) setFontColor(savedFontColor);
       if (savedBgColor) setBackgroundColor(savedBgColor);
       if (savedBgImage) setBackgroundImage(savedBgImage);
+      if (savedLanguage) setCurrentLanguage(savedLanguage);
       
       setIsLoaded(true);
     } catch (error) {
@@ -340,6 +325,21 @@ export default function LookAndFeel() {
     }
   };
 
+  // Listen for language changes
+  useEffect(() => {
+    const checkLanguage = async () => {
+      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (savedLanguage && savedLanguage !== currentLanguage) {
+        setCurrentLanguage(savedLanguage);
+      }
+    };
+
+    // Check language when screen focuses
+    const interval = setInterval(checkLanguage, 500);
+    return () => clearInterval(interval);
+  }, [currentLanguage]);
+
+  // Save whenever settings change
   useEffect(() => {
     if (isLoaded) {
       AsyncStorage.setItem(STORAGE_KEY_FONT, selectedFont).catch(() => {});
@@ -366,6 +366,8 @@ export default function LookAndFeel() {
 
   return (
     <View style={styles.container}>
+
+      {/* Preview Area - Thank you! message */}
       <View
         style={[
           styles.previewArea,
@@ -384,7 +386,18 @@ export default function LookAndFeel() {
             style={[styles.previewImage, { borderRadius: scale(8) }]}
           />
         )}
-        {renderPreviewText('Thank you!')}
+        <Text
+          style={[
+            styles.previewText,
+            {
+              fontFamily: getFontFamily(selectedFont),
+              fontSize: fontSize,
+              color: fontColor,
+            },
+          ]}
+        >
+          Thank you!
+        </Text>
       </View>
 
       <ScrollView 
@@ -400,7 +413,7 @@ export default function LookAndFeel() {
         {/* Font Selection */}
         <View style={[styles.section, { marginBottom: scale(24) }]}>
           <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
-            {t('font')}
+            Font
           </Text>
           <TouchableOpacity 
             style={[
@@ -429,14 +442,14 @@ export default function LookAndFeel() {
             </View>
           </TouchableOpacity>
           <Text style={[styles.fontNote, { fontSize: scale(12), marginTop: scale(8) }]}>
-            {t('fontAppliedNote')}
+            {fontAppliedMessages[currentLanguage] || fontAppliedMessages.en}
           </Text>
         </View>
 
         {/* Size Slider */}
         <View style={[styles.section, { marginBottom: scale(24) }]}>
           <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
-            {t('fontSize')}
+            Size
           </Text>
           <View style={[styles.sliderContainer, { gap: scale(12) }]}>
             <Text style={[styles.sizeLabel, { fontSize: scale(12) }]}>
@@ -459,18 +472,19 @@ export default function LookAndFeel() {
           <Text style={[styles.currentSize, { fontSize: scale(12), marginTop: scale(4) }]}>
             {Math.round(fontSize)}pt
           </Text>
+          
         </View>
 
         {/* Font Color Palette */}
         <FontColorPalette 
-          title={t('fontColor')}
+          title="Font Color"
           selectedColor={fontColor}
           onColorChange={setFontColor}
         />
 
         {/* Background Color Palette with Image Upload */}
         <BackColorPalette 
-          title={t('backgroundColor')}
+          title="Background Color"
           selectedColor={backgroundImage ? null : backgroundColor}
           onColorChange={setBackgroundColor}
         />
@@ -520,7 +534,9 @@ const styles = StyleSheet.create({
   controlsContainer: {
     flex: 1,
   },
-  section: {},
+  section: {
+    // Dynamic marginBottom applied inline
+  },
   sectionTitle: {
     fontWeight: '600',
     color: '#333',
@@ -571,7 +587,44 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#ddd',
   },
-  uploadImageIcon: {},
+  uploadImageIcon: {
+    // Dynamic fontSize applied inline
+  },
+  imagePreviewContainer: {
+    marginTop: 12,
+    borderRadius: 8,
+    overflow: 'hidden',
+    height: 120,
+    position: 'relative',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  removeImageButtonText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  inlineCheckmark: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  selectedColorText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
+    textAlign: 'center',
+  },
   fontDropdownButton: {
     backgroundColor: 'white',
     borderWidth: 1,
@@ -589,6 +642,7 @@ const styles = StyleSheet.create({
   dropdownArrow: {
     color: '#666',
   },
+  // Modal styles (for font only)
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

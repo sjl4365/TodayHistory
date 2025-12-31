@@ -1,8 +1,9 @@
 // app/_layout.js
 
 import * as SplashScreen from "expo-splash-screen";
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync(); // 파일 최상단에서 1번
 
+// Root layout
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
@@ -83,6 +84,7 @@ export default function RootLayout() {
     };
   }, []);
 
+  // ANDROID 전용: 앱 시작 시 네비게이션 바 스타일 적용
   useEffect(() => {
     if (Platform.OS !== "android") return;
     (async () => {
@@ -99,10 +101,9 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
-
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
+      <StatusBar style="dark" translucent={false} backgroundColor="transparent" />
+      <Stack>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       </Stack>
     </SafeAreaProvider>
   );

@@ -6,8 +6,6 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Notifications from 'expo-notifications';
-import { useNavigation } from '@react-navigation/native';
-import { useTranslation } from '../../../lib/translations';
 import { refreshTodayFeed } from '../home';
 import { PICK_RESULT_CACHE } from '../home';
 
@@ -24,9 +22,6 @@ const CHANNEL_ID = 'daily-reminder-channel';
 const TAG = 'DAILY_REMINDER';
 
 export default function Notification() {
-  const {t} = useTranslation();
-  const navigation = useNavigation();
-  
   const [isNotificationOn, setIsNotificationOn] = useState(false);
   const [date, setDate] = useState(() => {
     const defaultTime = new Date();
@@ -40,12 +35,6 @@ export default function Notification() {
 
   const notificationListener = useRef(null);
   const responseListener = useRef(null);
-
-  useEffect(() => {
-    navigation.setOptions({
-      title: t('notification')
-    });
-  }, [navigation, t]);
 
   useEffect(() => {
     init();

@@ -12,8 +12,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useTranslation } from '../../../lib/translations';
-import { Stack } from 'expo-router';
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -24,7 +22,6 @@ function useUIScale() {
 
 export default function OpenSourceScreen() {
   const { scale } = useUIScale();
-  const { t } = useTranslation();
 
   const openLink = (url) => {
     Linking.openURL(url).catch((err) =>
@@ -55,15 +52,6 @@ export default function OpenSourceScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
-            <Stack.Screen
-        options={{
-          title: t('openSource'),
-          headerStyle: {
-            backgroundColor: '#000',
-          },
-          headerTintColor: '#fff',
-        }}
-      />
       <View style={styles.contentWrapper}>
         <ScrollView  
           style={styles.scrollView}
