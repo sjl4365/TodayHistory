@@ -1,17 +1,37 @@
-//This page matches the root URL
-//Redirects users to the main page
+// app/index.js
 
-import { Redirect } from "expo-router";
-import { useEffect } from 'react';
-import { router } from 'expo-router';
-import { View, Text } from 'react-native';
+import React, { useEffect } from "react";
+import { View, ImageBackground, StyleSheet } from "react-native";
+import { router } from "expo-router";
 
 export default function Index() {
-  return <Redirect href="/home" />;
+  useEffect(() => {
+    const t = setTimeout(() => {
+      router.replace("/(tabs)/home");
+    }, 1500);
+
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      <ImageBackground
+        source={require("../assets/splash.png")}
+        style={styles.bg}
+        resizeMode="cover" 
+      />
+    </View>
+  );
 }
 
-// import { Redirect } from 'expo-router';
-
-// export default function Index() {
-//   return <Redirect href="/(tabs)/refresh" />;
-// }
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#000", 
+  },
+  bg: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+  },
+});

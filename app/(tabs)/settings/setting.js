@@ -1,5 +1,6 @@
-// app/(tabs)/settings/index.js
-// Main settings screen that replaces your settings.js
+// app/(tabs)/settings/setting.js
+// Updated settings screen with translation support
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   View, 
@@ -16,16 +17,13 @@ import mobileAds, {
   BannerAd,
   BannerAdSize,
   TestIds,
-  RewardedAd,
-  RewardedAdEventType,
-  AdEventType,
 } from "react-native-google-mobile-ads";
-import { useRouter } from 'expo-router';
+import { useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// BackHandler
 import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from '../../../lib/translations';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -38,32 +36,41 @@ function useUIScale() {
 
 export default function SettingsIndex() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { scale, screenW } = useUIScale();
+  const { t, currentLanguage, changeLanguage } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
 
-    // back button handler
+  useEffect(() => {
+    navigation.setOptions({
+      title: t('settings'),
+    });
+  }, [currentLanguage, navigation, t]);
+
   useFocusEffect(
     React.useCallback(() => {
       const sub = BackHandler.addEventListener(
         'hardwareBackPress',
         () => {
-          // 세팅 루트에서 기기 뒤로가기 누르면 무조건 홈으로
           router.replace('/home');
           return true;
         },
       );
-
       return () => sub.remove();
     }, [router]),
-   );
-
+  );
 
   const languages = [
     { name: 'English', code: 'en' },
     { name: '한국어', code: 'ko' },
     { name: '日本語', code: 'ja' },
-    {name: '中国', code:'zh'},
+    { name: '簡体中文', code: 'zh-Hans' },
+    { name: '繁體中文', code: 'zh-Hant' },
+    // {name:'Français',code:'fr'},
+    // {name:'Español',code:'sp'},
+    // {name:'हिन्दी',code:'hin'},
+    // {name:'แบบไทย',code:'th'},
   ];
 
   useEffect(() => {
@@ -87,12 +94,7 @@ export default function SettingsIndex() {
   const handleLanguageSelect = async (language) => {
     setSelectedLanguage(language.name);
     setIsLanguageExpanded(false);
-    try {
-      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language.code);
-      console.log(`Language changed to: ${language.name}`);
-    } catch (error) {
-      console.error('Error saving language:', error);
-    }
+    await changeLanguage(language.code);
   };
 
   const openInstagram = async () => {
@@ -108,20 +110,16 @@ export default function SettingsIndex() {
     } catch (error) {
       try {
         await Linking.openURL(webUrl);
-      } catch (webError) {
-      }
+      } catch (webError) {}
     }
   };
  
 
   const openTwitter = async () => {
-    // Twitter/X app URLs
     const twitterAppUrl = 'twitter://user?screen_name=Sunnyinnolab';
     const webUrl = 'https://x.com/Sunnyinnolab';
-   
     try {
       const supported = await Linking.canOpenURL(twitterAppUrl);
-     
       if (supported) {
         await Linking.openURL(twitterAppUrl);
       } else {
@@ -132,7 +130,6 @@ export default function SettingsIndex() {
         await Linking.openURL(webUrl);
       } catch (webError) {
         Alert.alert('Error', 'Unable to open X (Twitter)');
-        console.error('Twitter error:', webError);
       }
     }
   };
@@ -147,7 +144,6 @@ export default function SettingsIndex() {
       }
     } catch (error) {
       Alert.alert('Error', 'Unable to open link');
-      console.error(error);
     }
   };
 
@@ -188,14 +184,14 @@ export default function SettingsIndex() {
       >
         <View style={styles.section}>
           <SettingItem
-            title="Look & Feel"
+            title={t('lookAndFeel')}
             onPress={() => router.push('/settings/look-and-feel')}
           />
         </View>
         
         <View style={styles.section}>
           <SettingItem
-            title="Notification"
+            title={t('notification')}
             onPress={() => router.push('/settings/notification')}
           />
         </View>
@@ -212,7 +208,7 @@ export default function SettingsIndex() {
             onPress={() => setIsLanguageExpanded(!isLanguageExpanded)}
           >
             <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>
-              Language
+              {t('language')}
             </Text>
             <View style={[styles.rightContainer, { gap: scale(8) }]}>
               <Text style={[
@@ -264,11 +260,11 @@ export default function SettingsIndex() {
 
         <View style={styles.section}>
           <SettingItem
-            title="Instagram"
+            title={t('instagram')}
             onPress={openInstagram}
             rightComponent={
               <Text style={[styles.linkText, { fontSize: scale(15) }]}>
-                Link
+                {t('link')}
               </Text>
             }
             showArrow={false}
@@ -277,11 +273,11 @@ export default function SettingsIndex() {
 
         <View style={styles.section}>
           <SettingItem
-            title="X (Twitter)"
+            title={t('xTwitter')}
             onPress={openTwitter}
             rightComponent={
               <Text style={[styles.linkText, { fontSize: scale(15) }]}>
-                Link
+                {t('link')}
               </Text>
             }
             showArrow={false}
@@ -290,35 +286,34 @@ export default function SettingsIndex() {
           
         <View style={styles.section}>
           <SettingItem
-            title="Sunny's Games and Apps"
+            title={t('sunnyGames')}
             onPress={() => router.push('/settings/sunnygame')}
           />
         </View>
 
-      {/* Credit */}
-      <View style={styles.section}>
-        <SettingItem
-          title="Credits"
-          onPress={() => router.push('/settings/credit')}
-        />
-      </View>
+        <View style={styles.section}>
+          <SettingItem
+            title={t('credits')}
+            onPress={() => router.push('/settings/credit')}
+          />
+        </View>
 
         <View style={styles.section}>
           <SettingItem
-            title="Open Source Info"
+            title={t('openSource')}
             onPress={() => router.push('/settings/opensource')}
           />
         </View>
 
         <View style={[styles.section, styles.lastSection]}>
           <SettingItem
-            title="App Version"
+            title={t('appVersion')}
             rightComponent={
               <Text style={[
                 styles.selectedLanguageText, 
                 { fontSize: scale(16) }
               ]}>
-                v 0.0.13
+                v 1.0.2
               </Text>
             }
             showArrow={false}
@@ -326,8 +321,8 @@ export default function SettingsIndex() {
         </View>
       </ScrollView>
 
-{/* Footer */}
-<View style={[
+      {/* Footer */}
+      <View style={[
         styles.footerContainer,
         {
           paddingTop: scale(12),
@@ -335,7 +330,6 @@ export default function SettingsIndex() {
           paddingHorizontal: scale(4),          
         }
       ]}>
-        {/* Logo and Links Row */}
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -365,7 +359,7 @@ export default function SettingsIndex() {
                   paddingHorizontal: scale(4),
                 }
               ]}>
-                Terms of Service
+                {t('termsOfService')}
               </Text>
             </TouchableOpacity>
             
@@ -387,26 +381,17 @@ export default function SettingsIndex() {
                   paddingHorizontal: scale(4),
                 }
               ]}>
-                Privacy Policy
+                {t('privacyPolicy')}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
         
-        {/* Ad Banner - Full Width */}
-        <View
-          style={{
-            width: '100%',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+        <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}>
           <BannerAd
             unitId={TestIds.BANNER}
             size={BannerAdSize.FULL_BANNER}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
-            }}
+            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
           />
         </View>
       </View>
@@ -473,9 +458,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'black',
   },
-  footerLogo: {
-    // Dynamic sizing applied inline
-  },
+  footerLogo: {},
   footerLinksContainer: {
     flexDirection: 'row',
     alignItems: 'center',
