@@ -1,5 +1,5 @@
 // app/(tabs)/settings/setting.js
-// Updated settings screen with translation support
+// Updated settings screen with notification time display
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
@@ -24,8 +24,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
+import * as Notifications from 'expo-notifications';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
+const TAG = 'DAILY_REMINDER';
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -41,6 +43,7 @@ export default function SettingsIndex() {
   const { t, currentLanguage, changeLanguage } = useTranslation();
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
+  const [notificationTime, setNotificationTime] = useState(null);
 
   useEffect(() => {
     navigation.setOptions({
@@ -48,8 +51,11 @@ export default function SettingsIndex() {
     });
   }, [currentLanguage, navigation, t]);
 
+  // Load notification time when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
+      loadNotificationTime();
+      
       const sub = BackHandler.addEventListener(
         'hardwareBackPress',
         () => {
@@ -58,9 +64,8 @@ export default function SettingsIndex() {
         },
       );
       return () => sub.remove();
-    }, [router]),
-  );
-
+    }, []),
+  );  
   const languages = [
     { name: 'English', code: 'en' },
     { name: '한국어', code: 'ko' },
@@ -76,6 +81,36 @@ export default function SettingsIndex() {
   useEffect(() => {
     loadLanguage();
   }, []);
+
+  const loadNotificationTime = async () => {
+    try {
+      const all = await Notifications.getAllScheduledNotificationsAsync();
+      const mine = all.find(n => n?.content?.data?.__tag === TAG);
+      
+      if (mine && mine.trigger && mine.trigger.hour !== undefined) {
+        const hour = String(mine.trigger.hour).padStart(2, '0');
+        const minute = String(mine.trigger.minute).padStart(2, '0');
+        const timeStr = `${hour}:${minute}`;
+        setNotificationTime(timeStr);
+        return;
+      }
+      const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
+      
+      if (savedTimeStr) {
+        const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
+        if (!isNaN(hour) && !isNaN(minute)) {
+          const h = String(hour).padStart(2, '0');
+          const m = String(minute).padStart(2, '0');
+          const timeStr = `${h}:${m}`;
+          setNotificationTime(timeStr);
+          return;
+        }
+      }
+      setNotificationTime(null);
+    } catch (error) {
+      setNotificationTime(null);
+    }
+  };
 
   const loadLanguage = async () => {
     try {
@@ -193,6 +228,13 @@ export default function SettingsIndex() {
           <SettingItem
             title={t('notification')}
             onPress={() => router.push('/settings/notification')}
+            rightComponent={
+              notificationTime && (
+                <Text style={[styles.timeText, { fontSize: scale(16) }]}>
+                  {notificationTime}
+                </Text>
+              )
+            }
           />
         </View>
 
@@ -437,6 +479,10 @@ const styles = StyleSheet.create({
   },
   linkText: {
     color: 'grey',
+  },
+  timeText: {
+    color: 'white',
+    fontWeight: '500',
   },
   dropdownContainer: {
     backgroundColor: '#1a1a1a',
