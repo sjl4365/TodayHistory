@@ -2533,50 +2533,72 @@ const BANNER_KEY = (dateISO, cid) =>
   `@banner_url:${dateISO}:${cid}`;
 
 // pick → 배너 URL 계산
+// home.js의 computeBannerUrlForPick 함수 수정
+
 async function computeBannerUrlForPick(pick, uiLang) {
   const nativeLang = COUNTRY_CFG[pick.cid]?.lang || "en";
 
-  const anchorsText = getAnchorsForLang(
-    pick.row,
-    nativeLang
-  )
-    .map((a) => a.text)
-    .filter(Boolean);
+  const anchors = getAnchorsForLang(pick.row, nativeLang);
+  console.log('🔍 [IMAGE] Found anchors:', anchors.length);
 
   let imageUrl = null;
 
-  try {
-    if (anchorsText.length) {
-      imageUrl = await withTimeout(
-        fetchWikipediaImageFromAnchors(
-          anchorsText,
-          nativeLang
-        ),
-        2500
-      );
-    }
-  } catch { }
+  // ✅ 각 앵커를 순차적으로 시도 (최대 2개)
+  for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+    const anchorText = anchors[i]?.text;
+    if (!anchorText) continue;
 
+    console.log(`🔍 [IMAGE] Trying anchor ${i + 1}:`, anchorText);
+    
+    try {
+      const result = await withTimeout(
+        fetchWikipediaImageFromAnchors([anchorText], nativeLang),
+        3000 // 각 앵커당 3초
+      );
+      
+      if (result) {
+        console.log(`✅ [IMAGE] Found image from anchor ${i + 1}`);
+        imageUrl = result;
+        break; // 성공하면 즉시 종료
+      }
+    } catch (e) {
+      console.warn(`⚠️ [IMAGE] Anchor ${i + 1} failed:`, e.message);
+      // 다음 앵커 시도
+    }
+  }
+
+  // ✅ 앵커에서 실패하면 Google Search 시도
   if (!imageUrl) {
+    console.log('🔍 [IMAGE] No image from anchors, trying Google Search');
     const y = getYearFromRow(pick.row);
-    // 원본 언어로 작성된 본문 사용
     const nativeBody = bodyOfRowByLang(pick.row, nativeLang, pick.cid);
+    
     try {
       imageUrl = await withTimeout(
-        fetchImageForContent(
-          nativeBody || pick.body,
-          y,
-          pick.cid
-        ),
-        2500
+        fetchImageForContent(nativeBody || pick.body, y, pick.cid),
+        3000
       );
-    } catch { }
+      
+      if (imageUrl) {
+        console.log('✅ [IMAGE] Found image from Google Search');
+      }
+    } catch (e) {
+      console.warn('⚠️ [IMAGE] Google Search failed:', e.message);
+    }
   }
 
+  // ✅ 이미지 최적화
   if (imageUrl) {
-    const best = await bestWikiThumb(imageUrl, 640);
-    imageUrl = best || sanitizeImageUrl(imageUrl);
+    try {
+      const best = await bestWikiThumb(imageUrl, 640);
+      imageUrl = best || sanitizeImageUrl(imageUrl);
+      console.log('✅ [IMAGE] Final optimized URL:', imageUrl ? 'success' : 'failed');
+    } catch (e) {
+      console.warn('⚠️ [IMAGE] Optimization failed:', e.message);
+      imageUrl = sanitizeImageUrl(imageUrl);
+    }
   }
+
   return imageUrl || null;
 }
 
