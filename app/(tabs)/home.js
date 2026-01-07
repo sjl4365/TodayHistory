@@ -34,7 +34,8 @@ import {
   onGoPrevDay,
   onGoNextDay,
   onShareAttach,
-  emitCountriesChanged ,
+  emitCountriesChanged,
+
 } from "../../lib/bus";
 import {
   SafeAreaView,
@@ -109,6 +110,31 @@ const STORAGE_KEY_SEEN_PREFIX = "@seen_events_v1:";
 
 const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
 const STORAGE_KEY_YEAR_BASE = "@year_base_v1:";
+
+// ────────────────────────────────────────────────────────────────
+// Year 모드: 하루(isoDate) 기준 베이스 연도 고정 + 언어별/국가별 플레이리스트 키
+//  - uiLang 바뀌면 다른 키를 사용해 (이전 언어에서 만든 playlist key mismatch로 새로고침이 멈추는 버그 방지)
+//  - baseYear는 24시간(isoDate) 동안 유지
+// ────────────────────────────────────────────────────────────────
+function getYearPlaylistKey(uiLang, cid) {
+  const lang = uiLang || "en";
+  return `@year_playlist_v4:${lang}:${cid}`;
+}
+function getYearDayBaseKey(uiLang) {
+  const lang = uiLang || "en";
+  return `@year_day_base_v1:${lang}`;
+}
+function clampInt(v, min, max) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return min;
+  return Math.min(max, Math.max(min, Math.trunc(n)));
+}
+function randomInt(min, max) {
+  const a = Math.ceil(min);
+  const b = Math.floor(max);
+  if (b < a) return a;
+  return a + Math.floor(Math.random() * (b - a + 1));
+}
 
 // 데이터 캐시 TTL (6시간)
 const DATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -696,11 +722,11 @@ function getDayPartsFrom(date, tz) {
     md: `${parts.month}-${parts.day}`,
     dcode: `D${parts.month}${parts.day}`,
     y: parts.year,
-    year: parts.year,    // ⭐ 추가
-    m: parts.month,      // ⭐ 추가
-    month: parts.month,  // ⭐ 기존 유지
-    d: parts.day,        // ⭐ 추가
-    day: parts.day,      // ⭐ 기존 유지
+    year: parts.year,
+    m: parts.month,
+    month: parts.month,
+    d: parts.day,
+    day: parts.day,
   };
 }
 
@@ -1509,7 +1535,8 @@ function SegmentedCountrySelector({
   const handlePress = (id) => {
     if (selectedId === id) return;
     onChange(new Set([id])); // 단일 선택 유지
-     emitCountriesChanged(id);  
+    emitCountriesChanged(id);
+
   };
 
   const fontFamily = Platform.OS === "ios" ? "Arial" : "sans-serif";
@@ -2551,13 +2578,13 @@ async function computeBannerUrlForPick(pick, uiLang) {
     if (!anchorText) continue;
 
     console.log(`🔍 [IMAGE] Trying anchor ${i + 1}:`, anchorText);
-    
+
     try {
       const result = await withTimeout(
         fetchWikipediaImageFromAnchors([anchorText], nativeLang),
         3000 // 각 앵커당 3초
       );
-      
+
       if (result) {
         console.log(`✅ [IMAGE] Found image from anchor ${i + 1}`);
         imageUrl = result;
@@ -2574,13 +2601,13 @@ async function computeBannerUrlForPick(pick, uiLang) {
     console.log('🔍 [IMAGE] No image from anchors, trying Google Search');
     const y = getYearFromRow(pick.row);
     const nativeBody = bodyOfRowByLang(pick.row, nativeLang, pick.cid);
-    
+
     try {
       imageUrl = await withTimeout(
         fetchImageForContent(nativeBody || pick.body, y, pick.cid),
         3000
       );
-      
+
       if (imageUrl) {
         console.log('✅ [IMAGE] Found image from Google Search');
       }
@@ -2735,7 +2762,7 @@ export default function Home() {
         const [passRaw, seenRaw, cursorRaw] = await AsyncStorage.multiGet([
           STORAGE_KEY_YEAR_PASS_UNTIL,
           STORAGE_KEY_YEAR_SEEN_GROUPS,
-          STORAGE_KEY_YEAR_CURSOR_SAVED, // [추가]
+          STORAGE_KEY_YEAR_CURSOR_SAVED,
         ]);
 
         if (passRaw?.[1]) {
@@ -2824,7 +2851,7 @@ export default function Home() {
 
 
 
-  // [추가] 연도가 바뀔 때마다 저장 (앱 강제종료 대비)
+  //연도가 바뀔 때마다 저장 (앱 강제종료 대비)
   useEffect(() => {
     if (!yearCursor) return;
 
@@ -2842,7 +2869,7 @@ export default function Home() {
     const today = startOfDayInTz(new Date(), tz);
     const { y, m, d } = getDayPartsFrom(today, tz);
     const isoDate = `${y}-${m}-${d}`;
-    const key = `@year_playlist_v3:${cid}`;
+    const key = getYearPlaylistKey(uiLang, cid);
 
     try {
       const raw = await AsyncStorage.getItem(key);
@@ -2897,8 +2924,8 @@ export default function Home() {
     // 1) 패스 있는 경우: 그냥 계속 순환
     if (hasPass) {
       const nextIdx = (currentIdx + 1) % maxLimit;
-      applyYearIndex(currentCid, nextIdx);      // ✅ 즉시 화면 갱신
-      await persistYearIndex(currentCid, nextIdx); // ✅ 백그라운드로 저장
+      applyYearIndex(currentCid, nextIdx);
+      await persistYearIndex(currentCid, nextIdx);
       return;
     }
 
@@ -2934,16 +2961,18 @@ export default function Home() {
     if (!currentCid || currentCid === "world") return;
     if (!currentYearPlaylist || !currentYearPlaylist.length) return;
 
-    // 광고를 거절했으니까 다시 첫 번째 이벤트(인덱스 0)로 롤백
-    applyYearIndex(currentCid, 0);
-    await persistYearIndex(currentCid, 0);
+    // 2번째 이벤트(index=1)에 그대로 머물기 (화면 + 저장 모두 1)
+    applyYearIndex(currentCid, 1);
+    await persistYearIndex(currentCid, 1);
   }, [
     isYearMode,
     currentCid,
     currentYearPlaylist,
     yearAdUnlockedUntil,
     applyYearIndex,
+    persistYearIndex,
   ]);
+
 
 
 
@@ -3000,36 +3029,118 @@ export default function Home() {
   }
 
 
-  function showRewardedAdForYear() {
-    if (!rewardedAd.loaded) {
-      rewardedAd.load();
-    }
-
-    const subscription = rewardedAd.addAdEventListener(
-      RewardedAdEventType.EARNED_REWARD,
-      async () => {
-        await onRewardedForYear();
-        subscription(); // 리스너 해제
+  // 보상형 광고가 로드될 때까지 기다렸다가 show() (로드 전 show 에러 방지)
+  function waitForRewardedLoaded(timeoutMs = 8000) {
+    return new Promise((resolve, reject) => {
+      if (rewardedAd.loaded) {
+        resolve(true);
+        return;
       }
-    );
 
-    rewardedAd.show().catch((e) => {
-      console.warn("[AD] showRewardedAdForYear failed", e);
-      subscription();
+      let done = false;
+      let unsubLoaded = null;
+      let unsubErr = null;
+
+      const finish = (ok, val) => {
+        if (done) return;
+        done = true;
+        try { unsubLoaded && unsubLoaded(); } catch { }
+        try { unsubErr && unsubErr(); } catch { }
+        if (ok) resolve(val);
+        else reject(val);
+      };
+
+      const timer = setTimeout(() => {
+        clearTimeout(timer);
+        finish(false, new Error("rewarded_load_timeout"));
+      }, timeoutMs);
+
+      unsubLoaded = rewardedAd.addAdEventListener(
+        RewardedAdEventType.LOADED,
+        () => {
+          clearTimeout(timer);
+          finish(true, true);
+        }
+      );
+
+      unsubErr = rewardedAd.addAdEventListener(
+        AdEventType.ERROR,
+        (e) => {
+          clearTimeout(timer);
+          finish(false, e);
+        }
+      );
+
+      try {
+        rewardedAd.load();
+      } catch (e) {
+        clearTimeout(timer);
+        finish(false, e);
+      }
     });
   }
 
-  // [추가] 월드 모드용 광고 보여주기 함수
-  function showRewardedAdForWorld() {
-    if (!rewardedAd.loaded) {
-      rewardedAd.load();
+  async function showRewardedAdForYear() {
+    if (adShowLockRef.current) return;
+    adShowLockRef.current = true;
+
+    let unsubEarned = null;
+
+    try {
+      if (!rewardedAd.loaded) {
+        await waitForRewardedLoaded();
+      }
+
+      // 보상 콜백 (이 화면에서만 필요)
+      unsubEarned = rewardedAd.addAdEventListener(
+        RewardedAdEventType.EARNED_REWARD,
+        async () => {
+          try {
+            await onRewardedForYear();
+          } finally {
+            try { unsubEarned && unsubEarned(); } catch { }
+            unsubEarned = null;
+          }
+        }
+      );
+
+      await rewardedAd.show();
+    } catch (e) {
+      console.warn("[AD] showRewardedAdForYear failed", e);
+
+      // 다음 시도를 위해 재로드 시도
+      try { rewardedAd.load(); } catch { }
+    } finally {
+      try { unsubEarned && unsubEarned(); } catch { }
+      adShowLockRef.current = false;
+
+      // 어떤 경우든 모달은 닫아주기
+      setYearAdPromptVisible(false);
     }
-    // 리스너는 useEffect에서 이미 등록되어 있으므로 show만 호출
-    rewardedAd.show().catch((e) => {
+  }
+
+  // 월드 모드용 광고 보여주기 함수
+  async function showRewardedAdForWorld() {
+    if (adShowLockRef.current) return;
+    adShowLockRef.current = true;
+
+    try {
+      if (!rewardedAd.loaded) {
+        await waitForRewardedLoaded();
+      }
+
+      await rewardedAd.show();
+    } catch (e) {
       console.warn("[AD] showWorld failed", e);
-      // 에러 시 강제로라도 모달 닫기
+
+      // 다음 시도를 위해 재로드 시도
+      try { rewardedAd.load(); } catch { }
+    } finally {
+      adShowLockRef.current = false;
+
+      // 에러/성공과 관계없이 모달은 닫기
       setAdPromptVisible(false);
-    });
+    }
   }
 
 
@@ -3291,6 +3402,9 @@ export default function Home() {
 
   const baseYearRef = useRef(null);
 
+
+  // 보상형 광고 show() 중복 호출 방지
+  const adShowLockRef = useRef(false);
   const yearPoolRef = useRef({
     korea: [],
     japan: [],
@@ -3783,7 +3897,6 @@ export default function Home() {
           STORAGE_KEY_FONT_SIZE,
           STORAGE_KEY_FONT_COLOR,
           STORAGE_KEY_REWARD_PASS_UNTIL,
-          // [추가] 연도 모드 관련 키들도 여기서 같이 로드
           STORAGE_KEY_YEAR_PASS_UNTIL,
           STORAGE_KEY_YEAR_SEEN_GROUPS,
           STORAGE_KEY_YEAR_CURSOR_SAVED,
@@ -3800,7 +3913,7 @@ export default function Home() {
           }
         }
 
-        // 3. [추가] 연도 모드 데이터 복원 (이 부분이 핵심)
+        // 3. 연도 모드 데이터 복원 (이 부분이 핵심)
         const today = startOfDayInTz(new Date(), tz);
         const { y, m, d } = getDayPartsFrom(today, tz);
         const isoDate = `${y}-${m}-${d}`;
@@ -4244,8 +4357,7 @@ export default function Home() {
           return;
         }
 
-        // Year 모드 (한/중/일) 전용 분기
-        // [수정] Year 모드 (한/중/일) 로직
+        // Year 모드 (한/중/일) 로직
         if (isYearMode) {
           const cid = currentCid;
           if (!cid || cid === "world") {
@@ -4267,7 +4379,7 @@ export default function Home() {
 
 
           const isoDate = `${todayParts.y}-${todayParts.m}-${todayParts.d}`;
-          const stateKey = `@year_playlist_v3:${cid}`;
+          const stateKey = getYearPlaylistKey(uiLang, cid);
 
           // 3. 오늘의 플레이리스트(12개) 로드 또는 생성
           let playlist = [];
@@ -4974,7 +5086,7 @@ export default function Home() {
                               screenWidth={screenW}
                               cardBg={cardBg}
                               customBgColor={customBgColor}
-                              resetKey={onePick[0]?.key || 'empty'} // 🔹 추가
+                              resetKey={onePick[0]?.key || 'empty'} //
                             />
                           </View>
 

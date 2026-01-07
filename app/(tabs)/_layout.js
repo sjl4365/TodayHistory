@@ -1,5 +1,5 @@
 // app/(tabs)/_layout.js
-import React, { memo, useEffect, useRef, useState } from "react"; // ✅ useState 추가
+import React, { memo, useEffect, useRef, useState } from "react";
 import {
   Pressable,
   InteractionManager,
@@ -262,7 +262,7 @@ export default function TabLayout() {
           tabBarButton: () => (
             <Slot mr={gaps[2]} w={itemW} h={itemH}>
               <ActionButton
-                name={forwardIconName} // ✅ 변경
+                name={forwardIconName} 
                 onPress={emitGoNextDay}
                 w={itemW}
                 h={itemH}
