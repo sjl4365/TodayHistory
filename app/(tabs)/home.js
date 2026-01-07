@@ -34,6 +34,7 @@ import {
   onGoPrevDay,
   onGoNextDay,
   onShareAttach,
+  emitCountriesChanged ,
 } from "../../lib/bus";
 import {
   SafeAreaView,
@@ -1508,6 +1509,7 @@ function SegmentedCountrySelector({
   const handlePress = (id) => {
     if (selectedId === id) return;
     onChange(new Set([id])); // 단일 선택 유지
+     emitCountriesChanged(id);  
   };
 
   const fontFamily = Platform.OS === "ios" ? "Arial" : "sans-serif";
