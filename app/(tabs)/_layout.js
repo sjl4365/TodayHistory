@@ -1,5 +1,5 @@
 // app/(tabs)/_layout.js
-import React, { memo, useEffect, useRef } from "react";
+import React, { memo, useEffect, useRef, useState } from "react";
 import {
   Pressable,
   InteractionManager,
@@ -16,6 +16,7 @@ import {
   emitGoPrevDay,
   emitGoNextDay,
   emitShareAttach,
+  onCountriesChanged, 
 } from "../../lib/bus";
 import { markUserInteracted } from "../../lib/idle";
 
@@ -23,10 +24,15 @@ import { markUserInteracted } from "../../lib/idle";
 const ICONS = {
   "chevron-back": require("../../assets/images/prev.png"),
   "chevron-forward": require("../../assets/images/next.png"),
+
+  "blur-left": require("../../assets/images/blur_left_arrow.png"),
+  "blur-right": require("../../assets/images/blur_right_arrow.png"),
+
   refresh: require("../../assets/images/refresh.png"),
   share: require("../../assets/images/share.png"),
   setting: require("../../assets/images/setting.png"),
 };
+
 
 // 공통 버튼
 const ActionButton = memo(function ActionButton({
@@ -131,11 +137,32 @@ export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const { width: screenW } = useWindowDimensions();
   const isInSettings = segments.includes("settings");
-  // 안드로이드 네비게이션바 위로 띄우기
+
   const ANDROID_EXTRA_BOTTOM =
     Platform.OS === "android" ? insets.bottom || 20 : 0;
 
-  // 디자인 상수
+  const [isCjkTab, setIsCjkTab] = useState(false);
+
+  useEffect(() => {
+    // home에서 emitCountriesChanged(payload)로 보내주는 값을 받음
+    const off = onCountriesChanged((payload) => {
+      // payload 허용 형태:
+      // 1) "korea" 같은 string
+      // 2) ["korea"] 같은 array
+      // 3) { currentCid: "korea" } 같은 object (혹시 몰라서)
+      let cid = payload;
+
+      if (Array.isArray(payload)) cid = payload[0];
+      else if (payload && typeof payload === "object") cid = payload.currentCid ?? payload.cid;
+
+      const on = cid === "korea" || cid === "china" || cid === "japan";
+      setIsCjkTab(!!on);
+    });
+
+    return off;
+  }, []);
+
+  // 디자인 상수(그대로)
   const MAX_CLUSTER_W = 340;
   const BASE_ITEM_W = 57;
   const BASE_ITEM_H = 56;
@@ -170,6 +197,9 @@ export default function TabLayout() {
   const tabBarHeight = Math.round(PAD_V + itemH + PAD_V);
   const gaps = [gap, gap, gap, gap, 0];
 
+  const backIconName = isCjkTab ? "blur-left" : "chevron-back";
+  const forwardIconName = isCjkTab ? "blur-right" : "chevron-forward";
+
   return (
     <Tabs
       initialRouteName="home"
@@ -203,7 +233,7 @@ export default function TabLayout() {
           tabBarButton: () => (
             <Slot mr={gaps[0]} w={itemW} h={itemH}>
               <ActionButton
-                name="chevron-back"
+                name={backIconName}   
                 onPress={emitGoPrevDay}
                 w={itemW}
                 h={itemH}
@@ -219,12 +249,7 @@ export default function TabLayout() {
         options={{
           tabBarButton: () => (
             <Slot mr={gaps[1]} w={itemW} h={itemH}>
-              <ActionButton
-                name="refresh"
-                onPress={emitRefresh}
-                w={itemW}
-                h={itemH}
-              />
+              <ActionButton name="refresh" onPress={emitRefresh} w={itemW} h={itemH} />
             </Slot>
           ),
         }}
@@ -237,7 +262,7 @@ export default function TabLayout() {
           tabBarButton: () => (
             <Slot mr={gaps[2]} w={itemW} h={itemH}>
               <ActionButton
-                name="chevron-forward"
+                name={forwardIconName} 
                 onPress={emitGoNextDay}
                 w={itemW}
                 h={itemH}
@@ -253,12 +278,7 @@ export default function TabLayout() {
         options={{
           tabBarButton: () => (
             <Slot mr={gaps[3]} w={itemW} h={itemH}>
-              <ActionButton
-                name="share"
-                onPress={emitShareAttach}
-                w={itemW}
-                h={itemH}
-              />
+              <ActionButton name="share" onPress={emitShareAttach} w={itemW} h={itemH} />
             </Slot>
           ),
         }}
@@ -270,19 +290,12 @@ export default function TabLayout() {
         options={{
           tabBarButton: () => (
             <Slot mr={gaps[4]} w={itemW} h={itemH}>
-              <SettingsButton
-                router={router}
-                href="/settings"
-                name="setting"
-                w={itemW}
-                h={itemH}
-              />
+              <SettingsButton router={router} href="/settings" name="setting" w={itemW} h={itemH} />
             </Slot>
           ),
         }}
       />
 
-      {/* 홈은 탭에 안보이게 */}
       <Tabs.Screen name="home" options={{ href: null }} />
     </Tabs>
   );
