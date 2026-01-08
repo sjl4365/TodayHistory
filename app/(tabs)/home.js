@@ -3084,37 +3084,20 @@ export default function Home() {
     if (adShowLockRef.current) return;
     adShowLockRef.current = true;
 
-    let unsubEarned = null;
-
     try {
       if (!rewardedAd.loaded) {
         await waitForRewardedLoaded();
       }
 
-      // 보상 콜백 (이 화면에서만 필요)
-      unsubEarned = rewardedAd.addAdEventListener(
-        RewardedAdEventType.EARNED_REWARD,
-        async () => {
-          try {
-            await onRewardedForYear();
-          } finally {
-            try { unsubEarned && unsubEarned(); } catch { }
-            unsubEarned = null;
-          }
-        }
-      );
+      pendingNavRef.current = "year_reward";
 
       await rewardedAd.show();
     } catch (e) {
       console.warn("[AD] showRewardedAdForYear failed", e);
-
-      // 다음 시도를 위해 재로드 시도
+      pendingNavRef.current = null; // 실패 시 플래그 초기화
       try { rewardedAd.load(); } catch { }
     } finally {
-      try { unsubEarned && unsubEarned(); } catch { }
       adShowLockRef.current = false;
-
-      // 어떤 경우든 모달은 닫아주기
       setYearAdPromptVisible(false);
     }
   }
@@ -3175,6 +3158,143 @@ export default function Home() {
     const idx = Math.floor(rnd() * union.length);
     return union[idx];
   }
+
+  // =========================
+  // Year Session (24h) + 17세기(1600) 기준 로직
+  //  - uiLang별로 24시간 동안 baseYear 고정
+  //  - baseYear < 1600: 한/중/일 각각 "1600 미만" 랜덤 year 선택
+  //  - baseYear >= 1600: 한/중/일이 baseYear와 같거나 가장 가까운 year 선택
+  //  - 각 나라별로 선택된 year에서부터 pool을 정렬한 뒤 12개를 순차 playlist로 저장
+  // =========================
+  const YEAR_SESSION_KEY_PREFIX = "@year_session_v1:";
+  const YEAR_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  const YEAR_PRE1600_CUTOFF = 1600;
+
+  function getUiLangBase(uiLang) {
+    return String(uiLang || "en").split(/[-_]/)[0];
+  }
+
+  function getYearSessionKey(uiLang) {
+    return `${YEAR_SESSION_KEY_PREFIX}${getUiLangBase(uiLang)}`;
+  }
+
+  function pickClosestYear(availableYears, targetYear, rnd) {
+    // availableYears: number[]
+    if (!availableYears || !availableYears.length) return null;
+    let best = availableYears[0];
+    let bestDiff = Math.abs(best - targetYear);
+    for (let i = 1; i < availableYears.length; i++) {
+      const y = availableYears[i];
+      const d = Math.abs(y - targetYear);
+      if (d < bestDiff) {
+        best = y;
+        bestDiff = d;
+      } else if (d === bestDiff) {
+        // tie-breaker: rng
+        if (rnd && rnd() < 0.5) best = y;
+      }
+    }
+    return best;
+  }
+
+  function getYearListFromPool(pool) {
+    const ys = [];
+    const seen = new Set();
+    for (const it of pool || []) {
+      const y = parseInt(getYearFromRow(it.row), 10);
+      if (!Number.isNaN(y) && y > 0 && !seen.has(y)) {
+        seen.add(y);
+        ys.push(y);
+      }
+    }
+    return ys;
+  }
+
+  function buildSequentialPlaylistFromPool(pool, startYear, count) {
+    if (!Array.isArray(pool) || pool.length === 0) return [];
+    const sorted = pool
+      .slice()
+      .sort((a, b) => {
+        const ya = parseInt(getYearFromRow(a.row), 10) || 0;
+        const yb = parseInt(getYearFromRow(b.row), 10) || 0;
+        if (ya !== yb) return ya - yb;
+        // 안정적 정렬
+        return String(a.key || "").localeCompare(String(b.key || ""));
+      });
+
+    // start index: startYear가 있으면 그 year 첫 번째, 없으면 0
+    let startIdx = 0;
+    if (startYear != null) {
+      for (let i = 0; i < sorted.length; i++) {
+        const y = parseInt(getYearFromRow(sorted[i].row), 10) || 0;
+        if (y === startYear) { startIdx = i; break; }
+      }
+    }
+
+    const max = Math.min(sorted.length, count);
+    const keys = [];
+    for (let i = 0; i < max; i++) {
+      const idx = (startIdx + i) % sorted.length;
+      keys.push(sorted[idx].key);
+    }
+    return keys;
+  }
+
+  async function loadOrCreateYearSession({ uiLang, seedKey, poolsByCid }) {
+    const key = getYearSessionKey(uiLang);
+    const now = Date.now();
+
+    // 1) load
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s && s.expiresAt && s.expiresAt > now && s.baseYear) {
+          return s;
+        }
+      }
+    } catch { }
+
+    // 2) create
+    const cids = ["korea", "china", "japan"].filter((c) => (poolsByCid[c] || []).length > 0);
+    const baseYear = pickTargetYearFromUnion(poolsByCid, cids, seedKey) || null;
+
+    // 나라별 target year 결정
+    const picked = {};
+    for (const cid of cids) {
+      const pool = poolsByCid[cid] || [];
+      const years = getYearListFromPool(pool);
+      if (!years.length) { picked[cid] = null; continue; }
+
+      const rnd = xorshift(hash32(`ysess:${getUiLangBase(uiLang)}:${seedKey}:${cid}:${baseYear ?? 0}`));
+
+      if (baseYear != null && baseYear < YEAR_PRE1600_CUTOFF) {
+        const pre = years.filter((y) => y > 0 && y < YEAR_PRE1600_CUTOFF);
+        if (pre.length) {
+          picked[cid] = pre[Math.floor(rnd() * pre.length)];
+        } else {
+          picked[cid] = pickClosestYear(years, baseYear, rnd);
+        }
+      } else if (baseYear != null) {
+        picked[cid] = pickClosestYear(years, baseYear, rnd);
+      } else {
+        picked[cid] = years[Math.floor(rnd() * years.length)];
+      }
+    }
+
+    const expiresAt = now + YEAR_SESSION_TTL_MS;
+    const session = {
+      baseYear: baseYear,
+      expiresAt,
+      picked, // {korea, china, japan}
+      sessionId: `${getUiLangBase(uiLang)}:${baseYear ?? "null"}:${expiresAt}`,
+    };
+
+    try { await AsyncStorage.setItem(key, JSON.stringify(session)); } catch { }
+    return session;
+  }
+
+
 
   const STORAGE_KEY_YEAR_EVT_IDX = "@year_evt_idx_v1:";
 
@@ -3580,19 +3700,19 @@ export default function Home() {
           const until = Date.now() + REWARD_PASS_DURATION_MS; // 12시간 패스 부여
           setRewardPassUntil(until);
           AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
+
           goBy(pending); // 예약된 방향으로 자동 이동
         }
 
-        // 2. 한중일(연도) 모드: 더보기 예약인 경우
-        else if (pending === "year_refresh") {
-          // 연도 패스 부여는 onRewardedForYear()에서 별도 처리되지만, 여기서 확실히 리프레시
+        else if (pending === "year_reward") {
+          onRewardedForYear();
         }
 
         // 공통 정리
         pendingNavRef.current = null;
-        setAdPromptVisible(false); // 월드 모달 닫기
+        setAdPromptVisible(false);     // 월드 모달 닫기
+        setYearAdPromptVisible(false); // 연도 모달 닫기 (확실히 하기 위해 추가)
         setRewardedLoaded(false);
-
       }
 
       // 광고 닫힘 (중간에 닫은 경우 포함)
@@ -4381,32 +4501,55 @@ export default function Home() {
           const isoDate = `${todayParts.y}-${todayParts.m}-${todayParts.d}`;
           const stateKey = getYearPlaylistKey(uiLang, cid);
 
-          // 3. 오늘의 플레이리스트(12개) 로드 또는 생성
+          // 3. (24h) Year Session 기반 플레이리스트 로드/생성
+          //    - uiLang별 session(baseYear) 유지
+          //    - session에 따라 나라별 targetYear를 고정
+          //    - targetYear 기준으로 pool을 정렬하고 12개를 순차로 저장
           let playlist = [];
           let currentIndex = 0;
+
+          const session = await loadOrCreateYearSession({ uiLang, seedKey, poolsByCid });
+          const sessionId = session?.sessionId || `${getUiLangBase(uiLang)}:fallback`;
+
+          // 이 나라에서 사용할 targetYear
+          const targetYearForCid = session?.picked?.[cid] ?? session?.baseYear ?? null;
 
           try {
             const rawState = await AsyncStorage.getItem(stateKey);
             const state = rawState ? JSON.parse(rawState) : null;
 
-            if (state && state.isoDate === isoDate && state.playlist && state.playlist.length > 0) {
-              // 이미 오늘 만든 리스트가 있음 → 그대로 복원
+            const isValid =
+              state &&
+              state.sessionId === sessionId &&
+              state.playlist &&
+              Array.isArray(state.playlist) &&
+              state.playlist.length > 0;
+
+            if (isValid) {
+              // 이미 만들어둔 리스트 복원
               playlist = state.playlist;
               currentIndex = state.currentIndex || 0;
             } else {
-              if (pool.length > 0) {
-                const countToPick = Math.min(pool.length, 12); // 최대 12개
+              // 새로 생성
+              const countToPick = Math.min(pool.length, 12);
 
-                playlist = pool.slice(0, countToPick).map((p) => p.key);
-              }
+              // targetYear를 "정렬된 pool의 시작점"으로 잡아서 12개를 순차로 구성
+              playlist = buildSequentialPlaylistFromPool(pool, targetYearForCid, countToPick);
 
               currentIndex = 0;
-              await AsyncStorage.setItem(stateKey, JSON.stringify({
-                isoDate,
-                playlist,
-                currentIndex,
-              }));
 
+              await AsyncStorage.setItem(
+                stateKey,
+                JSON.stringify({
+                  sessionId,
+                  isoDate, // 디버깅/표시용 (세션 기준은 sessionId)
+                  playlist,
+                  currentIndex,
+                  targetYear: targetYearForCid,
+                  baseYear: session?.baseYear ?? null,
+                  expiresAt: session?.expiresAt ?? null,
+                })
+              );
             }
           } catch (e) {
             console.warn("Playlist init error", e);
@@ -5064,7 +5207,7 @@ export default function Home() {
                                 customFontColor,
                             }}
                           >
-                            {p.body}
+                            {bodyOfRowByLang(p.row, uiLang || "en", p.cid)}
                           </Text>
 
                           <AnchorList
