@@ -111,18 +111,12 @@ const STORAGE_KEY_SEEN_PREFIX = "@seen_events_v1:";
 const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
 const STORAGE_KEY_YEAR_BASE = "@year_base_v1:";
 
-// ────────────────────────────────────────────────────────────────
-// Year 모드: 하루(isoDate) 기준 베이스 연도 고정 + 언어별/국가별 플레이리스트 키
-//  - uiLang 바뀌면 다른 키를 사용해 (이전 언어에서 만든 playlist key mismatch로 새로고침이 멈추는 버그 방지)
-//  - baseYear는 24시간(isoDate) 동안 유지
-// ────────────────────────────────────────────────────────────────
-function getYearPlaylistKey(uiLang, cid) {
-  const lang = uiLang || "en";
-  return `@year_playlist_v4:${lang}:${cid}`;
+
+function getYearPlaylistKey(cid) {
+  return `@year_playlist_v5:${cid}`;
 }
-function getYearDayBaseKey(uiLang) {
-  const lang = uiLang || "en";
-  return `@year_day_base_v1:${lang}`;
+function getYearDayBaseKey() {
+  return `@year_day_base_v2`;
 }
 function clampInt(v, min, max) {
   const n = Number(v);
@@ -910,7 +904,7 @@ async function pickYearEventSequential(poolsByCid, cid, isoDate, baseYear) {
   const pool = poolsByCid[cid] || [];
   if (!pool.length) return null;
 
-  // 👉 오늘/이 기준연도에서 실제로 쓰는 최대 개수 (하루에 볼 수 있는 리스트)
+  // 오늘/이 기준연도에서 실제로 쓰는 최대 개수 (하루에 볼 수 있는 리스트)
   const maxLen = Math.min(pool.length, YEAR_MAX_EVENTS_PER_COUNTRY);
 
   // 2) 나라 + 날짜 + 기준연도 기준으로 인덱스 관리
@@ -2501,9 +2495,12 @@ async function apiFetchForMode(mode, todayParts, isoDate) {
 function AnchorList({ anchors, onLinkPress, fontSize }) {
   if (!anchors || !anchors.length) return null;
 
-  const FS = fontSize || 12; // 이미지: Arial bold 12
-  const H = 24;              // 이미지: H24
-  const R = 21;              // 이미지: Corner radius 21
+  const FS = fontSize || 12;
+  const R = 21;
+
+  // 폰트 커질수록 pill도 커지게
+  const padV = Math.max(6, Math.round(FS * 0.45));      // 세로 패딩
+  const minH = Math.max(24, Math.round(FS * 2.0));      // 최소 높이
 
   return (
     <View style={{ marginTop: 10, flexDirection: "row", flexWrap: "wrap" }}>
@@ -2514,7 +2511,7 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
 
         const onPress = () => {
           if (onLinkPress) onLinkPress(url, text);
-          else Linking.openURL(url).catch(() => { });
+          else Linking.openURL(url).catch(() => {});
         };
 
         return (
@@ -2524,12 +2521,13 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
             accessibilityRole="link"
             hitSlop={6}
             style={{
-              height: H,
+              minHeight: minH,              // ✅ 고정 height 대신 minHeight
               borderRadius: R,
               backgroundColor: "#242424",
               borderWidth: 1,
               borderColor: "#FFFFFF",
               paddingHorizontal: 12,
+              paddingVertical: padV,        // ✅ 폰트에 따라 박스도 커짐
               alignItems: "center",
               justifyContent: "center",
               marginRight: 10,
@@ -2541,7 +2539,6 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
                 fontSize: FS,
                 fontWeight: "700",
                 color: "#FFFFFF",
-                // iOS는 Arial, Android는 기본 sans-serif로 fallback
                 fontFamily: Platform.OS === "ios" ? "Arial" : "sans-serif",
               }}
               numberOfLines={1}
@@ -2658,17 +2655,33 @@ async function warmCacheAndBanner({
     const rows = await loadCache(cid, parts);
     if (Array.isArray(rows)) {
       for (const r of rows) {
-        const body = bodyOfRowByLang(r, uiLang, cid);
+        // ✅ 풀(pool)은 언어와 무관하게 "row 기준"으로 유지해야 함
+        // (언어 변경 시에도 playlist key 매칭이 깨지지 않도록)
+        const bodyPrimary = bodyOfRowByLang(r, uiLang, cid);
+
+        // 번역이 비어있어도 row는 유지하고, 표시용 body만 fallback
+        const bodyFallback = trimHtml(
+          r?.English ||
+          r?.["한국어"] ||
+          r?.["日本語"] ||
+          r?.["简体中文"] ||
+          r?.["繁體中文"] ||
+          ""
+        );
+
+        const body = hasAnyText(bodyPrimary) ? bodyPrimary : bodyFallback;
         if (!hasAnyText(body)) continue;
-        const tag = trimHtml(
-          r?.["한국어"] || r?.English || r?.["日本語"] || ""
-        ).slice(0, 50);
+
+        const y = String(r?.Year ?? r?.year ?? "");
+        const d = String(r?.Date ?? r?.date ?? "");
+
+        // ✅ key는 절대 언어 텍스트를 섞지 말기 (언어 바뀌어도 동일 key 유지)
+        const unique = hash32(`${cid}|${y}|${d}|${JSON.stringify(r)}`);
+
         pool.push({
           cid,
           row: r,
-          key: `${cid}|${String(r?.Year || r?.year || "")}|${String(
-            r?.Date || r?.date || ""
-          )}|${tag}`,
+          key: `${cid}|${y}|${d}|h${unique}`,
           body,
         });
       }
@@ -2811,9 +2824,9 @@ export default function Home() {
 
   // 나라별 무료 새로고침 횟수
   const YEAR_FREE_REFRESH_LIMIT_BY_CID = {
-    korea: 1,
-    japan: 1,
-    china: 1,
+    korea: 2,
+    japan: 2,
+    china: 2,
   };
 
   // 광고 한 번 시청 시 추가로 볼 수 있는 개수
@@ -2869,7 +2882,7 @@ export default function Home() {
     const today = startOfDayInTz(new Date(), tz);
     const { y, m, d } = getDayPartsFrom(today, tz);
     const isoDate = `${y}-${m}-${d}`;
-    const key = getYearPlaylistKey(uiLang, cid);
+    const key = getYearPlaylistKey(cid);
 
     try {
       const raw = await AsyncStorage.getItem(key);
@@ -3167,15 +3180,17 @@ export default function Home() {
   //  - 각 나라별로 선택된 year에서부터 pool을 정렬한 뒤 12개를 순차 playlist로 저장
   // =========================
   const YEAR_SESSION_KEY_PREFIX = "@year_session_v1:";
-  const YEAR_SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+  const YEAR_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
   const YEAR_PRE1600_CUTOFF = 1600;
 
   function getUiLangBase(uiLang) {
     return String(uiLang || "en").split(/[-_]/)[0];
   }
 
-  function getYearSessionKey(uiLang) {
-    return `${YEAR_SESSION_KEY_PREFIX}${getUiLangBase(uiLang)}`;
+  function getYearSessionKey() {
+    // 12시간 윈도우 단위로 세션을 고정 (언어 무관)
+    const win = Math.floor(Date.now() / YEAR_SESSION_TTL_MS);
+    return `${YEAR_SESSION_KEY_PREFIX}WIN:${win}`;
   }
 
   function pickClosestYear(availableYears, targetYear, rnd) {
@@ -3241,7 +3256,7 @@ export default function Home() {
   }
 
   async function loadOrCreateYearSession({ uiLang, seedKey, poolsByCid }) {
-    const key = getYearSessionKey(uiLang);
+    const key = getYearSessionKey();
     const now = Date.now();
 
     // 1) load
@@ -3266,7 +3281,7 @@ export default function Home() {
       const years = getYearListFromPool(pool);
       if (!years.length) { picked[cid] = null; continue; }
 
-      const rnd = xorshift(hash32(`ysess:${getUiLangBase(uiLang)}:${seedKey}:${cid}:${baseYear ?? 0}`));
+      const rnd = xorshift(hash32(`ysess:${seedKey}:${cid}:${baseYear ?? 0}`));
 
       if (baseYear != null && baseYear < YEAR_PRE1600_CUTOFF) {
         const pre = years.filter((y) => y > 0 && y < YEAR_PRE1600_CUTOFF);
@@ -4499,7 +4514,7 @@ export default function Home() {
 
 
           const isoDate = `${todayParts.y}-${todayParts.m}-${todayParts.d}`;
-          const stateKey = getYearPlaylistKey(uiLang, cid);
+          const stateKey = getYearPlaylistKey(cid);
 
           // 3. (24h) Year Session 기반 플레이리스트 로드/생성
           //    - uiLang별 session(baseYear) 유지
