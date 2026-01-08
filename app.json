@@ -12,41 +12,36 @@
     "icon": "./assets/Histree_icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": {
-          "image": "./assets/splash.png",
 
+    "splash": {
+      "image": "./assets/splash.png",
       "resizeMode": "cover",
       "backgroundColor": "#111827"
     },
-    "extra": {
-      "eas": {
-        "projectId": "8e4bde71-890b-4e6e-a3d3-2241152dc6f4"
+
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sunnyinnolab.Histree"
+    },
+
+    "android": {
+      "package": "com.todayhistory.todayhistory",
+      "versionCode": 2,
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "splash": {
+        "image": "./assets/splash.png",
+        "backgroundColor": "#111827"
       }
     },
-    "android": {
-      "package": "com.todayhistory.todayhistory"
-    }
-  },
-  "ios": {
-    "supportsTablet": true,
-    "bundleIdentifier": "com.sunnyinnolab.Histree"
-  },
-  "android": {
-    "package": "com.todayhistory.todayhistory",
-    "versionCode": 2,
-    "edgeToEdgeEnabled": true,
-    "adaptiveIcon": {
-      "foregroundImage": "./assets/adaptive-icon.png",
-      "backgroundColor": "#ffffff"
-    },
-    "splash": {
-        "image": "./assets/splash.png",
 
-      "backgroundColor": "#111827"
-    },
     "web": {
       "favicon": "./assets/favicon.png"
     },
+
     "plugins": [
       [
         "expo-notifications",
@@ -64,6 +59,7 @@
       ],
       "expo-router"
     ],
+
     "extra": {
       "router": {},
       "eas": {
