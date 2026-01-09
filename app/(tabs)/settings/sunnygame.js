@@ -54,6 +54,12 @@ export default function SunnyGame() {
         icon: require('../../../assets/images/findfour.png'),
         url: 'https://findfour.onelink.me/vurA/0tfteiuf',
     },
+    {
+      id: 6,
+      name: t('wisdomqclock'),
+      icon: require('../../../assets/images/wisdomqclock.png'),
+      url: 'https://wisdomqclock.onelink.me/SVr2/b7gs4og1',
+  },
   ];
 
   const openAppLink = async (url, appName) => {
