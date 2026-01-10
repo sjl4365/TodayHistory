@@ -155,6 +155,10 @@ const DATA_CACHE_VERSION = "v5";
 const STORAGE_KEY_REWARD_PASS_UNTIL = "@reward_pass_until_v1";
 const REWARD_PASS_DURATION_MS = 12 * 60 * 60 * 1000; // 12시간
 
+// World 모드: "오늘의 역사" 무료 새로고침 3회 제한(하루 단위)
+const STORAGE_KEY_WORLD_TODAY_FREE_COUNT_PREFIX = "@world_today_free_count_v1:";
+const WORLD_TODAY_FREE_LIMIT = 3;
+
 
 const COUNTRY_CFG = {
   world: {
@@ -338,49 +342,49 @@ const AD_MODAL_TEXT = {
   en: {
     title: "Use the history of yesterday and tomorrow",
     description:
-      "Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.",
+      "Watch one ad to enjoy 12 hours of ad-free access to 'Yesterday, Today & Tomorrow' and 'Random Year History'.",
     badge: "Enjoy all features · No ads",
     cta: "Watch Ad for Free Access",
   },
   ko: {
     title: "어제와 내일의 역사 사용",
     description:
-      "광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.",
+      "광고를 한번 시청하면, ‘어제와 오늘과 내일의 역사’및 '랜덤 연도 역사'를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.",
     badge: "모든 기능 이용 · 광고 없음",
     cta: "광고 보고 무료 이용",
   },
   ja: {
     title: "昨日と明日の歴史を利用",
     description:
-      "広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。",
+      "広告を1回視聴すると、12時間『昨日・今日・明日の歴史』および『ランダム年表』を動画広告なしで自由にご利用いただけます。",
     badge: "全機能利用 · 広告なし",
     cta: "広告視聴で無料利用",
   },
   sc: {
     title: "使用“昨日与明日的历史”",
     description:
-      "观看一则广告，即可在接下来的12小时内无视频广告地使用“Yesterday & Tomorrow History”功能。",
+      "观看一次广告，即可在 12 小时内无视频广告体验“昨日、今日与明日的历史”及“随机年份历史”。",
     badge: "全部功能 · 无广告",
     cta: "看广告免费使用",
   },
   tc: {
     title: "使用「昨日與明日的歷史」",
     description:
-      "觀看一則廣告，即可在接下來的12小時內無視訊廣告地使用「Yesterday & Tomorrow History」功能。",
+      "觀看一次廣告，即可在 12 小時內無影片廣告體驗「昨日、今日與明日的歷史」及「隨機年份歷史」。",
     badge: "全部功能 · 無廣告",
     cta: "看廣告免費使用",
   },
   es: {
     title: "Usar la historia de ayer y de mañana.",
     description:
-      "Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.",
+      "Mira un anuncio para disfrutar de 12 horas de acceso sin publicidad a 'Ayer, Hoy y Mañana' y 'Historia de un Año Aleatorio'.",
     badge: "Todas las funciones · Sin anuncios",
     cta: "Uso gratuito al ver un anuncio",
   },
   fr: {
     title: "Utiliser l’histoire d’hier et de demain.",
     description:
-      "Regardez une annonce pour utiliser « Yesterday & Tomorrow History » sans publicité vidéo pendant les 12 prochaines heures.",
+      "Regardez une publicité pour profiter de 12 heures d'accès sans publicité à 'Hier, Aujourd'hui et Demain' et 'Histoire d'une Année Aléatoire'.",
     badge: "Toutes les fonctions · Sans pub",
     cta: "Usage gratuit après publicité",
   },
@@ -3692,6 +3696,8 @@ export default function Home() {
   const [rewardedLoaded, setRewardedLoaded] = useState(false);   // 광고 로딩 여부
   const pendingNavRef = useRef(null); // -1(어제), +1(내일) 저장
   const [rewardPassUntil, setRewardPassUntil] = useState(0);
+  const [worldTodayFreeCount, setWorldTodayFreeCount] = useState(0);
+  const worldTodayFreeKeyRef = useRef(null);
 
 
 
@@ -3755,6 +3761,34 @@ export default function Home() {
     pendingNavRef.current = +1;
     setAdPromptVisible(true);
   }, [rewardPassUntil, goBy, isYearMode]);
+
+
+// World 모드: 오늘(isoDate) 기준 무료 새로고침 카운트 복원
+useEffect(() => {
+  if (isYearMode) return;
+  // dayOffset은 오늘/어제/내일 UI 이동용이지만, 무료 카운트는 '오늘' 날짜 기준으로만 관리
+  const isoToday = `${todayParts?.y}-${todayParts?.m}-${todayParts?.d}`;
+  const key = `${STORAGE_KEY_WORLD_TODAY_FREE_COUNT_PREFIX}${isoToday}`;
+  worldTodayFreeKeyRef.current = key;
+
+  let alive = true;
+  (async () => {
+    try {
+      const raw = await AsyncStorage.getItem(key);
+      const n = parseInt(raw || "0", 10);
+      if (!alive) return;
+      setWorldTodayFreeCount(Number.isFinite(n) && n >= 0 ? n : 0);
+    } catch {
+      if (!alive) return;
+      setWorldTodayFreeCount(0);
+    }
+  })();
+
+  return () => {
+    alive = false;
+  };
+}, [isYearMode, todayParts?.y, todayParts?.m, todayParts?.d]);
+
   useEffect(() => {
     let isMounted = true;
 
@@ -3780,6 +3814,17 @@ export default function Home() {
           AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
 
           goBy(pending); // 예약된 방향으로 자동 이동
+        }
+
+        // 1-2. 월드 모드: "오늘 3회 이후" 더 보기(새로고침) 잠금 해제
+        else if (pending === "world_today_more") {
+          const until = Date.now() + REWARD_PASS_DURATION_MS; // 12시간 패스 부여
+          setRewardPassUntil(until);
+          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
+
+          // 광고 시청 직후, 현재 화면(오늘)에서 바로 1회 새로고침 수행
+          setIsRefreshing(true);
+          setRefreshTick((t) => t + 1);
         }
 
         else if (pending === "year_reward") {
@@ -4023,17 +4068,62 @@ export default function Home() {
 
   const fetchingRef = useRef(false);
 
-  const handlePullToRefresh = useCallback(() => {
-    // World 모드: 예전처럼 무제한 새로고침
+  
+const handlePullToRefresh = useCallback(() => {
+    // =========================
+    // World 모드
+    // =========================
     if (!isYearMode) {
-      setIsRefreshing(true);
-      setRefreshTick((t) => t + 1);
+      const now = Date.now();
+
+      // 1) 12시간 패스가 있으면 제한 없이 새로고침
+      if (rewardPassUntil && rewardPassUntil > now) {
+        setIsRefreshing(true);
+        setRefreshTick((t) => t + 1);
+        return;
+      }
+
+      // 2) 어제/내일은 "처음부터" 못 보게 해야 하므로
+      //    (UI 이동 자체가 handlePrevDay/handleNextDay에서 막힘)
+      //    여기서는 오늘(dayOffset===0)만 3회 무료 새로고침 허용
+      if (dayOffset === 0) {
+        if (worldTodayFreeCount < WORLD_TODAY_FREE_LIMIT) {
+          const next = worldTodayFreeCount + 1;
+          setWorldTodayFreeCount(next);
+          const key = worldTodayFreeKeyRef.current;
+          if (key) {
+            AsyncStorage.setItem(key, String(next)).catch(() => {});
+          }
+          setIsRefreshing(true);
+          setRefreshTick((t) => t + 1);
+          return;
+        }
+
+        // 3회 초과 → 어제/내일과 동일한 리워드 모달 노출
+        pendingNavRef.current = "world_today_more";
+        setAdPromptVisible(true);
+        return;
+      }
+
+      // (안전장치) 혹시 외부 경로로 dayOffset이 -1/+1인데 여기로 들어오면,
+      // 패스가 없으니 리워드 모달로 유도
+      pendingNavRef.current = dayOffset < 0 ? -1 : +1;
+      setAdPromptVisible(true);
       return;
     }
 
+    // =========================
     // 🇰🇷🇨🇳🇯🇵 연도 모드: "더 보기" 버튼과 동일한 동작
+    // =========================
     handlePressYearMore();
-  }, [isYearMode, handlePressYearMore]);
+  }, [
+    isYearMode,
+    rewardPassUntil,
+    dayOffset,
+    worldTodayFreeCount,
+    handlePressYearMore,
+  ]);
+
 
 
 
