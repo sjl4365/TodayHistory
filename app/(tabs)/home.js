@@ -74,6 +74,7 @@ import mobileAds, {
 } from "react-native-google-mobile-ads";
 import { BlurView } from "expo-blur";
 import * as Notifications from 'expo-notifications';
+import StrokeText from '../../lib/stroketext';
 
 // mobileAds()
 //   .initialize()
@@ -111,6 +112,22 @@ const STORAGE_KEY_SEEN_PREFIX = "@seen_events_v1:";
 const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
 const STORAGE_KEY_YEAR_BASE = "@year_base_v1:";
 
+const fontColorOptions = [
+  { name: 'Black', value: '#000000', useStroke: true, strokeColor: '#FFFFFF', strokeWidth: 3 },
+  { name: 'White', value: '#FFFFFF', useStroke: true, strokeColor: '#000000', strokeWidth: 3 },
+  { name: 'Red', value: '#FF0000' },
+  { name: 'Orange', value: '#FF8000' },
+  { name: 'Yellow', value: '#FFFF00' },
+  { name: 'Green', value: '#00FF00' },
+  { name: 'Blue', value: '#0000FF' },
+  { name: 'Indigo', value: '#4B0082' },
+  { name: 'Violet', value: '#8A2BE2' },
+  { name: 'Pink', value: '#FF69B4' },
+  { name: 'Cyan', value: '#00FFFF' },
+  { name: 'Magenta', value: '#FF00FF' },
+  { name: 'Lime', value: '#32CD32' },
+  { name: 'Brown', value: '#8B4513' },
+];
 
 function getYearPlaylistKey(cid) {
   return `@year_playlist_v5:${cid}`;
@@ -1459,6 +1476,52 @@ async function bestWikiThumb(rawUrl, desiredPx = 640) {
   if (await headOkImage(u)) return u;
   return null;
 }
+
+
+function getCurrentFontColorOption(fontColor) {
+  return fontColorOptions.find(option => option.value === fontColor) || fontColorOptions[0];
+}
+
+
+function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, customBgImage) {
+  const currentOption = getCurrentFontColorOption(fontColor);
+  
+  if (currentOption.useStroke && customBgImage) {
+    return (
+      <StrokeText
+        text={text}
+        strokeColor={currentOption.strokeColor}
+        strokeWidth={currentOption.strokeWidth}
+        style={{
+          marginTop: 4,
+          marginBottom: 14,
+          fontSize: fontSize,
+          lineHeight: lineHeight,
+          fontFamily: fontFamily,
+          color: currentOption.value,
+          textAlign: 'left',
+        }}
+      />
+    );
+  }
+  
+  // Regular text for solid backgrounds or other colors
+  return (
+    <Text
+      style={{
+        marginTop: 4,
+        marginBottom: 14,
+        fontSize: fontSize,
+        lineHeight: lineHeight,
+        fontFamily: fontFamily,
+        color: fontColor,
+      }}
+    >
+      {text}
+    </Text>
+  );
+}
+
 
 // ui
 function useUIScale() {
@@ -5268,52 +5331,66 @@ const handlePullToRefresh = useCallback(() => {
                               marginBottom: 8,
                             }}
                           >
-                            <Text
+                            {/* <Text
                               style={{
                                 fontSize: locationFontSize,
                                 fontWeight: "600",
-                                color: "#6b7280",
+                                color: customFontColor,
                               }}
                             >
                               {fieldLabels.location}:{" "}
                               <Text
                                 style={{
-                                  color: "#6b7280",
+                                  color: customFontColor, 
                                 }}
                               >
                                 {label}
                               </Text>
-                            </Text>
-                            {!!dateLabel && (
+                            </Text> */}
+                          {renderHistoryText(
+                            `${fieldLabels.location}: ${label}`,
+                            locationFontSize,
+                            customFontColor,
+                            getFontFamily(customFont),
+                            locationFontSize * 1.3,
+                            customBgImage
+                          )}
+                            
+                            {/* {!!dateLabel && (
                               <Text
                                 style={{
                                   marginTop: 4,
                                   fontSize: dateFontSize,
-                                  color: "#6b7280",
+                                  color: customFontColor, 
                                 }}
                               >
                                 {fieldLabels.date}:{" "}
                                 {dateLabel}
                               </Text>
                             )}
-                          </View>
+                          </View> */}
+                          {!!dateLabel && (
+        <View style={{ marginTop: 4 }}>
+          {renderHistoryText(
+            `${fieldLabels.date}: ${dateLabel}`,
+            dateFontSize,
+            customFontColor,
+            getFontFamily(customFont),
+            dateFontSize * 1.3,
+            customBgImage
+          )}
+        </View>
+      )}
+    </View>
 
-                          <Text
-                            style={{
-                              marginTop: 4,
-                              marginBottom: 14,
-                              fontSize: customFontSize,
-                              lineHeight: bodyLineHeight,
-                              fontFamily:
-                                getFontFamily(
-                                  customFont
-                                ),
-                              color:
-                                customFontColor,
-                            }}
-                          >
-                            {bodyOfRowByLang(p.row, uiLang || "en", p.cid)}
-                          </Text>
+                          {renderHistoryText(
+                  bodyOfRowByLang(p.row, uiLang || "en", p.cid),
+                  customFontSize,
+                  customFontColor,
+                  getFontFamily(customFont),
+                  bodyLineHeight,
+                  customBgImage
+                )}
 
                           <AnchorList
                             anchors={anchors}

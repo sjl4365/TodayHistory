@@ -13,6 +13,7 @@
     "@charmy.tech/react-native-stroke-text": "^1.2.3",
     "@expo/metro-runtime": "~6.1.2",
     "@google-cloud/storage": "^7.17.2",
+    "@minbong/stroke-svg-text": "^0.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
     "@react-native-community/slider": "5.0.1",
