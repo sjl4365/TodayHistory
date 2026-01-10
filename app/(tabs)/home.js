@@ -342,49 +342,49 @@ const AD_MODAL_TEXT = {
   en: {
     title: "Use the history of yesterday and tomorrow",
     description:
-      "Watch an ad to use “Yesterday & Tomorrow History” without video ads for the next 12 hours.",
+      "Watch one ad to enjoy 12 hours of ad-free access to 'Yesterday, Today & Tomorrow' and 'Random Year History'.",
     badge: "Enjoy all features · No ads",
     cta: "Watch Ad for Free Access",
   },
   ko: {
     title: "어제와 내일의 역사 사용",
     description:
-      "광고를 시청하면, ‘어제와 내일의 역사’를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.",
+      "광고를 한번 시청하면, ‘어제와 오늘과 내일의 역사’및 '랜덤 연도 역사'를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.",
     badge: "모든 기능 이용 · 광고 없음",
     cta: "광고 보고 무료 이용",
   },
   ja: {
     title: "昨日と明日の歴史を利用",
     description:
-      "広告を視聴すると、「昨日と明日の歴史」を12時間、動画広告なしで自由に利用できます。",
+      "広告を1回視聴すると、12時間『昨日・今日・明日の歴史』および『ランダム年表』を動画広告なしで自由にご利用いただけます。",
     badge: "全機能利用 · 広告なし",
     cta: "広告視聴で無料利用",
   },
   sc: {
     title: "使用“昨日与明日的历史”",
     description:
-      "观看一则广告，即可在接下来的12小时内无视频广告地使用“Yesterday & Tomorrow History”功能。",
+      "观看一次广告，即可在 12 小时内无视频广告体验“昨日、今日与明日的历史”及“随机年份历史”。",
     badge: "全部功能 · 无广告",
     cta: "看广告免费使用",
   },
   tc: {
     title: "使用「昨日與明日的歷史」",
     description:
-      "觀看一則廣告，即可在接下來的12小時內無視訊廣告地使用「Yesterday & Tomorrow History」功能。",
+      "觀看一次廣告，即可在 12 小時內無影片廣告體驗「昨日、今日與明日的歷史」及「隨機年份歷史」。",
     badge: "全部功能 · 無廣告",
     cta: "看廣告免費使用",
   },
   es: {
     title: "Usar la historia de ayer y de mañana.",
     description:
-      "Mira un anuncio para usar “Yesterday & Tomorrow History” sin anuncios de vídeo durante las próximas 12 horas.",
+      "Mira un anuncio para disfrutar de 12 horas de acceso sin publicidad a 'Ayer, Hoy y Mañana' y 'Historia de un Año Aleatorio'.",
     badge: "Todas las funciones · Sin anuncios",
     cta: "Uso gratuito al ver un anuncio",
   },
   fr: {
     title: "Utiliser l’histoire d’hier et de demain.",
     description:
-      "Regardez une annonce pour utiliser « Yesterday & Tomorrow History » sans publicité vidéo pendant les 12 prochaines heures.",
+      "Regardez une publicité pour profiter de 12 heures d'accès sans publicité à 'Hier, Aujourd'hui et Demain' et 'Histoire d'une Année Aléatoire'.",
     badge: "Toutes les fonctions · Sans pub",
     cta: "Usage gratuit après publicité",
   },
