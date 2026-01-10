@@ -4522,11 +4522,11 @@ const handlePullToRefresh = useCallback(() => {
           if (Array.isArray(c) && c.length) {
             const arr = [];
             for (const r of c) {
-              const body = bodyOfRowByLang(r, uiLang, cid);
+              const body = bodyOfRowByLang(r, "en", cid);
               if (!hasAnyText(body)) continue;
               const y = String(r?.Year || r?.year || "");
               const d = String(r?.Date || r?.date || "");
-              const unique = hash32(`${y}|${d}|${body}|${JSON.stringify(r)}`); // 충돌 거의 없음
+              const unique = hash32(`${y}|${d}|${JSON.stringify(r)}`); // 충돌 거의 없음
 
               arr.push({
                 cid,
@@ -4548,11 +4548,11 @@ const handlePullToRefresh = useCallback(() => {
 
             const arr = [];
             for (const r of rows) {
-              const body = bodyOfRowByLang(r, uiLang, cid);
+              const body = bodyOfRowByLang(r, "en", cid);
               if (!hasAnyText(body)) continue;
               const y = String(r?.Year || r?.year || "");
               const d = String(r?.Date || r?.date || "");
-              const unique = hash32(`${y}|${d}|${body}|${JSON.stringify(r)}`); // 충돌 거의 없음
+              const unique = hash32(`${y}|${d}|${JSON.stringify(r)}`); // 충돌 거의 없음
 
               arr.push({
                 cid,
@@ -4781,7 +4781,6 @@ const handlePullToRefresh = useCallback(() => {
   }, [
     hydrated,
     todayParts,
-    uiLang,
     selectedCountries,
     stableKey,
     seedKey,
@@ -5614,7 +5613,7 @@ export async function refreshTodayFeed() {
 
             const y = String(r?.Year || r?.year || '');
             const d = String(r?.Date || r?.date || '');
-            const unique = hash32(`${y}|${d}|${body}|${JSON.stringify(r)}`);
+            const unique = hash32(`${y}|${d}|${JSON.stringify(r)}`);
 
             arr.push({
               cid,
