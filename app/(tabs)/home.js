@@ -94,7 +94,7 @@ if (__DEV__) {
 }
 
 // 상수
-const YEAR_MAX_EVENTS_PER_COUNTRY = 12; // 총 12개 (무료 2개 + 광고 후 10개)
+const YEAR_MAX_EVENTS_PER_COUNTRY = 8; 
 const STORAGE_KEY_SELECTED = "selectedCountries";
 const STORAGE_KEY_UI_LANG = "@app_language";
 const STORAGE_KEY_FONT = "@app_font";
@@ -157,7 +157,7 @@ const REWARD_PASS_DURATION_MS = 12 * 60 * 60 * 1000; // 12시간
 
 // World 모드: "오늘의 역사" 무료 새로고침 3회 제한(하루 단위)
 const STORAGE_KEY_WORLD_TODAY_FREE_COUNT_PREFIX = "@world_today_free_count_v1:";
-const WORLD_TODAY_FREE_LIMIT = 3;
+const WORLD_TODAY_FREE_LIMIT = 2;
 
 
 const COUNTRY_CFG = {
@@ -325,13 +325,13 @@ const UI_STR = {
   },
 
   yearLimitDone: {
-    ko: "오늘 볼 수 있는 역사 이벤트를 모두 보셨습니다.\n지금까지 본 12개를 순서대로 다시 볼 수 있어요.",
-    en: "You’ve seen all history events available for today.\nYou can now browse again through the 12 events you’ve already viewed.",
-    ja: "本日見られる歴史イベントはすべて見ました。\nこれまでに見た12件を順番にもう一度見ることができます。",
-    sc: "今天可以查看的历史事件都已经看完了。\n现在可以按顺序再次浏览这 12 条内容。",
-    tc: "今天可以查看的歷史事件都已經看完了。\n現在可以依序再次瀏覽這 12 則內容。",
-    es: "Has visto todos los eventos históricos disponibles para hoy.\nAhora puedes volver a recorrer los 12 eventos que ya viste.",
-    fr: "Vous avez vu tous les événements historiques disponibles aujourd’hui.\nVous pouvez maintenant revoir les 12 événements que vous avez déjà consultés.",
+    ko: "오늘 볼 수 있는 역사 이벤트를 모두 보셨습니다.\n지금까지 본 11개를 순서대로 다시 볼 수 있어요.",
+    en: "You’ve seen all history events available for today.\nYou can now browse again through the 11 events you’ve already viewed.",
+    ja: "本日見られる歴史イベントはすべて見ました。\nこれまでに見た11件を順番にもう一度見ることができます。",
+    sc: "今天可以查看的历史事件都已经看完了。\n现在可以按顺序再次浏览这 11 条内容。",
+    tc: "今天可以查看的歷史事件都已經看完了。\n現在可以依序再次瀏覽這 11 則內容。",
+    es: "Has visto todos los eventos históricos disponibles para hoy.\nAhora puedes volver a recorrer los 11 eventos que ya viste.",
+    fr: "Vous avez vu tous les événements historiques disponibles aujourd’hui.\nVous pouvez maintenant revoir les 11 événements que vous avez déjà consultés.",
   },
 };
 
@@ -1485,7 +1485,7 @@ function getCurrentFontColorOption(fontColor) {
 
 function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, customBgImage) {
   const currentOption = getCurrentFontColorOption(fontColor);
-  
+
   if (currentOption.useStroke && customBgImage) {
     return (
       <StrokeText
@@ -1504,7 +1504,7 @@ function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, cu
       />
     );
   }
-  
+
   // Regular text for solid backgrounds or other colors
   return (
     <Text
@@ -2578,7 +2578,7 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
 
         const onPress = () => {
           if (onLinkPress) onLinkPress(url, text);
-          else Linking.openURL(url).catch(() => {});
+          else Linking.openURL(url).catch(() => { });
         };
 
         return (
@@ -3010,7 +3010,7 @@ export default function Home() {
     }
 
     // 2) 패스 없는 경우: 0→1 까지는 허용, 그 다음은 광고 모달
-    if (currentIdx < 1) {
+    if (currentIdx < 2) {
       const nextIdx = currentIdx + 1;
       applyYearIndex(currentCid, nextIdx);
       await persistYearIndex(currentCid, nextIdx);
@@ -3042,8 +3042,8 @@ export default function Home() {
     if (!currentYearPlaylist || !currentYearPlaylist.length) return;
 
     // 2번째 이벤트(index=1)에 그대로 머물기 (화면 + 저장 모두 1)
-    applyYearIndex(currentCid, 1);
-    await persistYearIndex(currentCid, 1);
+    applyYearIndex(currentCid, 2);
+    await persistYearIndex(currentCid, 2);
   }, [
     isYearMode,
     currentCid,
@@ -3165,22 +3165,28 @@ export default function Home() {
     adShowLockRef.current = true;
 
     try {
+      setYearAdPromptVisible(false);
+
+      // 모달 dismiss + UI 안정화 시간
+      await new Promise((r) => setTimeout(r, 250));
+      await InteractionManager.runAfterInteractions(() => Promise.resolve());
+
       if (!rewardedAd.loaded) {
         await waitForRewardedLoaded();
       }
 
       pendingNavRef.current = "year_reward";
 
-      await rewardedAd.show();
+      rewardedAd.show();
     } catch (e) {
       console.warn("[AD] showRewardedAdForYear failed", e);
-      pendingNavRef.current = null; // 실패 시 플래그 초기화
+      pendingNavRef.current = null;
       try { rewardedAd.load(); } catch { }
     } finally {
       adShowLockRef.current = false;
-      setYearAdPromptVisible(false);
     }
   }
+
 
   // 월드 모드용 광고 보여주기 함수
   async function showRewardedAdForWorld() {
@@ -3188,21 +3194,21 @@ export default function Home() {
     adShowLockRef.current = true;
 
     try {
+      setAdPromptVisible(false);
+
+      await new Promise((r) => setTimeout(r, 250));
+      await InteractionManager.runAfterInteractions(() => Promise.resolve());
+
       if (!rewardedAd.loaded) {
         await waitForRewardedLoaded();
       }
 
-      await rewardedAd.show();
+      rewardedAd.show();
     } catch (e) {
       console.warn("[AD] showWorld failed", e);
-
-      // 다음 시도를 위해 재로드 시도
       try { rewardedAd.load(); } catch { }
     } finally {
       adShowLockRef.current = false;
-
-      // 에러/성공과 관계없이 모달은 닫기
-      setAdPromptVisible(false);
     }
   }
 
@@ -3582,15 +3588,35 @@ export default function Home() {
     useState(new Set());
 
 
+
+  const [focusedCid, setFocusedCid] = useState(null);
+
+  // 선택 Set이 바뀌면 포커스도 동기화 (탭 UI는 단일 선택이지만 안전장치)
+  useEffect(() => {
+    const only = getOnlyCountryId(selectedCountries);
+    if (only && only !== focusedCid) {
+      setFocusedCid(only);
+    }
+  }, [selectedCountries, focusedCid]);
   // 선택된 나라 1개만 사용 (다중 선택 없음 전제)
   const selectedArr = Array.from(selectedCountries); // Set → 배열
-  const currentCid = selectedArr[0] ?? null;
+  const currentCid = focusedCid || (selectedArr[0] ?? null);;
 
   // world만 선택된 경우 → World 모드
   const isWorldMode = currentCid === "world";
 
   // korea / japan / china 중 하나 선택된 경우 → Year 모드
   const isYearMode = currentCid != null && currentCid !== "world";
+
+
+  // ✅ Year Mode(한/중/일) 진입 시 어제/내일(dayOffset) 상태를 즉시 초기화
+  // - 앱이 꺼졌다 켜져도(복원) 바로 "오늘" 화면으로 맞춰서 네비게이션(어제/내일)이 꼬이지 않게 함
+  useEffect(() => {
+    if (!hydrated) return;
+    if (isYearMode && dayOffset !== 0) {
+      setDayOffset(0);
+    }
+  }, [hydrated, isYearMode, dayOffset]);
 
 
 
@@ -3763,31 +3789,31 @@ export default function Home() {
   }, [rewardPassUntil, goBy, isYearMode]);
 
 
-// World 모드: 오늘(isoDate) 기준 무료 새로고침 카운트 복원
-useEffect(() => {
-  if (isYearMode) return;
-  // dayOffset은 오늘/어제/내일 UI 이동용이지만, 무료 카운트는 '오늘' 날짜 기준으로만 관리
-  const isoToday = `${todayParts?.y}-${todayParts?.m}-${todayParts?.d}`;
-  const key = `${STORAGE_KEY_WORLD_TODAY_FREE_COUNT_PREFIX}${isoToday}`;
-  worldTodayFreeKeyRef.current = key;
+  // World 모드: 오늘(isoDate) 기준 무료 새로고침 카운트 복원
+  useEffect(() => {
+    if (isYearMode) return;
+    // dayOffset은 오늘/어제/내일 UI 이동용이지만, 무료 카운트는 '오늘' 날짜 기준으로만 관리
+    const isoToday = `${todayParts?.y}-${todayParts?.m}-${todayParts?.d}`;
+    const key = `${STORAGE_KEY_WORLD_TODAY_FREE_COUNT_PREFIX}${isoToday}`;
+    worldTodayFreeKeyRef.current = key;
 
-  let alive = true;
-  (async () => {
-    try {
-      const raw = await AsyncStorage.getItem(key);
-      const n = parseInt(raw || "0", 10);
-      if (!alive) return;
-      setWorldTodayFreeCount(Number.isFinite(n) && n >= 0 ? n : 0);
-    } catch {
-      if (!alive) return;
-      setWorldTodayFreeCount(0);
-    }
-  })();
+    let alive = true;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(key);
+        const n = parseInt(raw || "0", 10);
+        if (!alive) return;
+        setWorldTodayFreeCount(Number.isFinite(n) && n >= 0 ? n : 0);
+      } catch {
+        if (!alive) return;
+        setWorldTodayFreeCount(0);
+      }
+    })();
 
-  return () => {
-    alive = false;
-  };
-}, [isYearMode, todayParts?.y, todayParts?.m, todayParts?.d]);
+    return () => {
+      alive = false;
+    };
+  }, [isYearMode, todayParts?.y, todayParts?.m, todayParts?.d]);
 
   useEffect(() => {
     let isMounted = true;
@@ -3842,6 +3868,7 @@ useEffect(() => {
       if (type === AdEventType.CLOSED) {
         console.log("[AD] closed");
         setAdPromptVisible(false);
+        setYearAdPromptVisible(false);
         pendingNavRef.current = null;
         setRewardedLoaded(false);
 
@@ -4068,8 +4095,8 @@ useEffect(() => {
 
   const fetchingRef = useRef(false);
 
-  
-const handlePullToRefresh = useCallback(() => {
+
+  const handlePullToRefresh = useCallback(() => {
     // =========================
     // World 모드
     // =========================
@@ -4092,7 +4119,7 @@ const handlePullToRefresh = useCallback(() => {
           setWorldTodayFreeCount(next);
           const key = worldTodayFreeKeyRef.current;
           if (key) {
-            AsyncStorage.setItem(key, String(next)).catch(() => {});
+            AsyncStorage.setItem(key, String(next)).catch(() => { });
           }
           setIsRefreshing(true);
           setRefreshTick((t) => t + 1);
@@ -4522,7 +4549,7 @@ const handlePullToRefresh = useCallback(() => {
           if (Array.isArray(c) && c.length) {
             const arr = [];
             for (const r of c) {
-              const body = bodyOfRowByLang(r, "en", cid);
+              const body = bodyOfRowByLang(r, uiLang, cid);
               if (!hasAnyText(body)) continue;
               const y = String(r?.Year || r?.year || "");
               const d = String(r?.Date || r?.date || "");
@@ -4548,7 +4575,7 @@ const handlePullToRefresh = useCallback(() => {
 
             const arr = [];
             for (const r of rows) {
-              const body = bodyOfRowByLang(r, "en", cid);
+              const body = bodyOfRowByLang(r, uiLang, cid);
               if (!hasAnyText(body)) continue;
               const y = String(r?.Year || r?.year || "");
               const d = String(r?.Date || r?.date || "");
@@ -4699,10 +4726,10 @@ const handlePullToRefresh = useCallback(() => {
               currentIndex = state.currentIndex || 0;
             } else {
               // 새로 생성
-              const countToPick = Math.min(pool.length, 12);
+              const countToPick = Math.min(pool.length, YEAR_MAX_EVENTS_PER_COUNTRY);
 
               // targetYear를 "정렬된 pool의 시작점"으로 잡아서 12개를 순차로 구성
-              playlist = buildSequentialPlaylistFromPool(pool, targetYearForCid, countToPick);
+              playlist = buildYearOrder(pool, isoDate).slice(0, countToPick);
 
               currentIndex = 0;
 
@@ -4940,6 +4967,17 @@ const handlePullToRefresh = useCallback(() => {
         nextSetRaw,
         uiLang
       );
+
+      // Year Mode(한/중/일)로 바뀌면, "어제/내일" 오프셋을 즉시 0(오늘)로 되돌림
+      // (앱 재시작 시에도 바로 반영되도록)
+      try {
+        const onlyCid = getOnlyCountryId(ensured);
+        if (onlyCid && onlyCid !== "world") {
+          setDayOffset(0);
+        }
+      } catch {
+        // noop
+      }
       const added = [...ensured].filter(
         (c) => !selectedCountries.has(c)
       );
@@ -4964,6 +5002,7 @@ const handlePullToRefresh = useCallback(() => {
       }
 
       setSelectedCountries(ensured);
+      setFocusedCid(getOnlyCountryId(ensured));
       AsyncStorage.setItem(
         STORAGE_KEY_SELECTED,
         JSON.stringify([...ensured])
@@ -4971,6 +5010,16 @@ const handlePullToRefresh = useCallback(() => {
     },
     [selectedCountries, uiLang]
   );
+
+  const STORAGE_KEY_FOCUSED_CID = "@focused_cid_v1";
+
+  useEffect(() => {
+    if (!currentCid) return;
+
+    emitCountriesChanged(currentCid);
+
+    AsyncStorage.setItem(STORAGE_KEY_FOCUSED_CID, String(currentCid)).catch(() => { });
+  }, [currentCid]);
 
 
 
@@ -5346,15 +5395,15 @@ const handlePullToRefresh = useCallback(() => {
                                 {label}
                               </Text>
                             </Text> */}
-                          {renderHistoryText(
-                            `${fieldLabels.location}: ${label}`,
-                            locationFontSize,
-                            customFontColor,
-                            getFontFamily(customFont),
-                            locationFontSize * 1.3,
-                            customBgImage
-                          )}
-                            
+                            {renderHistoryText(
+                              `${fieldLabels.location}: ${label}`,
+                              locationFontSize,
+                              customFontColor,
+                              getFontFamily(customFont),
+                              locationFontSize * 1.3,
+                              customBgImage
+                            )}
+
                             {/* {!!dateLabel && (
                               <Text
                                 style={{
@@ -5368,28 +5417,28 @@ const handlePullToRefresh = useCallback(() => {
                               </Text>
                             )}
                           </View> */}
-                          {!!dateLabel && (
-        <View style={{ marginTop: 4 }}>
-          {renderHistoryText(
-            `${fieldLabels.date}: ${dateLabel}`,
-            dateFontSize,
-            customFontColor,
-            getFontFamily(customFont),
-            dateFontSize * 1.3,
-            customBgImage
-          )}
-        </View>
-      )}
-    </View>
+                            {!!dateLabel && (
+                              <View style={{ marginTop: 4 }}>
+                                {renderHistoryText(
+                                  `${fieldLabels.date}: ${dateLabel}`,
+                                  dateFontSize,
+                                  customFontColor,
+                                  getFontFamily(customFont),
+                                  dateFontSize * 1.3,
+                                  customBgImage
+                                )}
+                              </View>
+                            )}
+                          </View>
 
                           {renderHistoryText(
-                  bodyOfRowByLang(p.row, uiLang || "en", p.cid),
-                  customFontSize,
-                  customFontColor,
-                  getFontFamily(customFont),
-                  bodyLineHeight,
-                  customBgImage
-                )}
+                            bodyOfRowByLang(p.row, uiLang || "en", p.cid),
+                            customFontSize,
+                            customFontColor,
+                            getFontFamily(customFont),
+                            bodyLineHeight,
+                            customBgImage
+                          )}
 
                           <AnchorList
                             anchors={anchors}
