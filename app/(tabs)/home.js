@@ -1711,16 +1711,21 @@ function WebViewModal({ visible, url, title, onClose }) {
   const [adLoaded, setAdLoaded] = useState(false);
   const [bgColor, setBgColor] = useState('#FFFFFF');
   const [bgImage, setBgImage] = useState(null);
+  const [bgSettingsLoaded, setBgSettingsLoaded] = useState(false);
+  const [webViewLoaded, setWebViewLoaded] = useState(false);
+  const [adHeight, setAdHeight] = useState(50); // Reduced default height
+  const [showContent, setShowContent] = useState(true);
 
+  // Reset states when modal opens
   useEffect(() => {
     if (visible && url) {
       setAdLoaded(false);
+      setBgSettingsLoaded(false);
+      setWebViewLoaded(false);
+      setShowContent(false);
+      loadBackgroundSettings();
     }
   }, [visible, url]);
-
-  useEffect(() => {
-    loadBackgroundSettings();
-  }, [visible]);
 
   const loadBackgroundSettings = async () => {
     try {
@@ -1735,8 +1740,18 @@ function WebViewModal({ visible, url, title, onClose }) {
       }
     } catch (error) {
       console.error('Error loading background settings:', error);
+    } finally {
+      setBgSettingsLoaded(true);
     }
   };
+
+  // Show content immediately when background settings are loaded
+  // Don't wait for ad or webview
+  useEffect(() => {
+    if (bgSettingsLoaded) {
+      setShowContent(true);
+    }
+  }, [bgSettingsLoaded]);
 
   if (!visible || !url) return null;
 
@@ -1744,116 +1759,147 @@ function WebViewModal({ visible, url, title, onClose }) {
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
       <View style={{ flex: 1, backgroundColor: bgImage ? 'transparent' : bgColor, paddingTop: insets.top }}>
-        {/* Background Image (if set) */}
-        {bgImage && (
-          <RNImage
-            source={{ uri: bgImage }}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: '100%',
-              height: '100%',
-            }}
-            resizeMode="cover"
-          />
-        )}
-
-        {/* Header with Ad Banner - Centered */}
+        {/* Hidden preloader for ad */}
         <View
           style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "center",
-            paddingHorizontal: 20,
-            paddingVertical: 12,
-            backgroundColor: bgImage ? 'rgba(255,255,255,0.9)' : bgColor,
-            borderBottomWidth: 1,
-            borderBottomColor: "#E5E7EB",
+            position: 'absolute',
+            top: -9999,
+            left: -9999,
+            width: 320,
+            opacity: 0,
+            zIndex: -1,
           }}
         >
-          {/* Ad Banner (centered) */}
-          <BannerAd
-            unitId={TestIds.BANNER}
-            size={BannerAdSize.BANNER}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
-            }}
-            onAdLoaded={() => {
-              console.log("[WEBVIEW AD] Ad loaded successfully");
-              setAdLoaded(true);
-            }}
-            onAdFailedToLoad={(error) => {
-              console.warn("[WEBVIEW AD] Failed to load:", error);
-              setAdLoaded(true);
-            }}
-          />
+          <View onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h > 0) setAdHeight(h);
+          }}>
+            <BannerAd
+              unitId={TestIds.BANNER}
+              size={BannerAdSize.BANNER}
+              requestOptions={{
+                requestNonPersonalizedAdsOnly: true,
+              }}
+              onAdLoaded={() => {
+                console.log("[WEBVIEW AD PRELOAD] Ad loaded");
+                setAdLoaded(true);
+              }}
+              onAdFailedToLoad={(error) => {
+                console.warn("[WEBVIEW AD PRELOAD] Failed to load:", error);
+                setAdLoaded(true);
+              }}
+            />
+          </View>
         </View>
 
-        {/* Page Title with close button on the left side*/}
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-            paddingVertical: scale(12),
-            paddingHorizontal: scale(16),
-            backgroundColor: "#F9FAFB",
-            borderBottomWidth: scale(1),
-            borderBottomColor: "#E5E7EB",
-          }}
-        >
-          {/* Close Button (left side) */}
-          <Pressable
-            onPress={onClose}
-            hitSlop={10}
-            style={{
-              padding: scale(8),
-              borderRadius: scale(20),
-              backgroundColor: "#F3F4F6",
-            }}
-          >
-            <Text style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
-              ✕
-            </Text>
-          </Pressable>
-
-          {/* Page Title */}
-          <Text
-            style={{
-              flex: 1,
-              fontSize: scale(16),
-              fontWeight: "600",
-              color: "#111827",
-              textAlign: "center",
-              marginHorizontal: scale(12),
-            }}
-            numberOfLines={1}
-          >
-            {title || ""}
-          </Text>
-
-          {/* Empty space to balance the close button */}
-          <View style={{ width: scale(8) + scale(16) }} />
-        </View>
-
-        {/* WebView */}
-        <WebView
-          source={{ uri: url }}
-          style={{ flex: 1 }}
-          startInLoadingState={true}
-          renderLoading={() => (
-            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <ActivityIndicator size="large" color="#3B82F6" />
-            </View>
+        {/* Actual content */}
+        <View style={{ 
+          flex: 1, 
+          // opacity: showContent ? 1 : 0 
+        }}>
+          {/* Background Image (if set) */}
+          {bgImage && (
+            <RNImage
+              source={{ uri: bgImage }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+              }}
+              resizeMode="cover"
+            />
           )}
-        />
+
+          {/* Header with Ad Banner - Fixed height with reduced padding */}
+          <View
+            style={{
+              height: adHeight, // Reserve space based on measured ad height
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              paddingHorizontal: 20,
+              paddingVertical: 4, // Reduced from 12 to 4
+              backgroundColor: bgImage ? 'rgba(255,255,255,0.9)' : bgColor,
+              borderBottomWidth: 1,
+              borderBottomColor: "#E5E7EB",
+            }}
+          >
+            <BannerAd
+              unitId={TestIds.BANNER}
+              size={BannerAdSize.BANNER}
+              requestOptions={{
+                requestNonPersonalizedAdsOnly: true,
+              }}
+            />
+          </View>
+
+          {/* Page Title with close button */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingVertical: scale(12),
+              paddingHorizontal: scale(16),
+              backgroundColor: "#F9FAFB",
+              borderBottomWidth: scale(1),
+              borderBottomColor: "#E5E7EB",
+            }}
+          >
+            <Pressable
+              onPress={onClose}
+              hitSlop={10}
+              style={{
+                padding: scale(8),
+                borderRadius: scale(20),
+                backgroundColor: "#F3F4F6",
+              }}
+            >
+              <Text style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
+                ✕
+              </Text>
+            </Pressable>
+
+            <Text
+              style={{
+                flex: 1,
+                fontSize: scale(16),
+                fontWeight: "600",
+                color: "#111827",
+                textAlign: "center",
+                marginHorizontal: scale(12),
+              }}
+              numberOfLines={1}
+            >
+              {title || ""}
+            </Text>
+
+            <View style={{ width: scale(8) + scale(16) }} />
+          </View>
+
+          {/* WebView */}
+          <WebView
+            source={{ uri: url }}
+            style={{ flex: 1 }}
+            startInLoadingState={false}
+            onLoad={() => {
+              console.log("[WEBVIEW] Loaded");
+              setWebViewLoaded(true);
+            }}
+            onError={() => {
+              console.log("[WEBVIEW] Error");
+              setWebViewLoaded(true);
+            }}
+          />
+        </View>
       </View>
     </Modal>
   );

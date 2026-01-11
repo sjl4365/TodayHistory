@@ -38,27 +38,29 @@ export default function SunnyGame() {
     },
     {
         id: 3,
-        name: t('dualFlashlight'),
-        icon: require('../../../assets/images/dualflashlight.png'),
-        url: 'https://dualflashlight.onelink.me/7gkq/qpbc8y65',
+        name: "Wisdom Qclock",
+        icon: require('../../../assets/images/wisdomqclock.png'),
+        url: 'https://wisdomqclock.onelink.me/SVr2/b7gs4og1',
     },
     {
         id: 4,
-        name: t('decibella'),
-        icon: require('../../../assets/images/decibella.png'),
-        url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
-    },
-    {
-        id: 5,
         name: t('findFour'),
         icon: require('../../../assets/images/findfour.png'),
         url: 'https://findfour.onelink.me/vurA/0tfteiuf',
     },
     {
+        id: 5,
+        name: t('dualFlashlight'),
+        icon: require('../../../assets/images/dualflashlight.png'),
+        url: 'https://dualflashlight.onelink.me/7gkq/qpbc8y65',
+
+    },
+    {
       id: 6,
-      name: t('wisdomqclock'),
-      icon: require('../../../assets/images/wisdomqclock.png'),
-      url: 'https://wisdomqclock.onelink.me/SVr2/b7gs4og1',
+      name: t('decibella'),
+      icon: require('../../../assets/images/decibella.png'),
+      url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
+
   },
   ];
 
