@@ -16,9 +16,10 @@ import {
   emitGoPrevDay,
   emitGoNextDay,
   emitShareAttach,
-  onCountriesChanged, 
+  onCountriesChanged,
 } from "../../lib/bus";
 import { markUserInteracted } from "../../lib/idle";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // 아이콘 PNG 매핑
 const ICONS = {
@@ -143,6 +144,30 @@ export default function TabLayout() {
 
   const [isCjkTab, setIsCjkTab] = useState(false);
 
+
+  const STORAGE_KEY_FOCUSED_CID = "@focused_cid_v1";
+
+  useEffect(() => {
+    let alive = true;
+
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(STORAGE_KEY_FOCUSED_CID);
+        if (!alive) return;
+
+        const on = saved === "korea" || saved === "china" || saved === "japan";
+        setIsCjkTab(!!on);
+      } catch {
+        // ignore
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+
   useEffect(() => {
     // home에서 emitCountriesChanged(payload)로 보내주는 값을 받음
     const off = onCountriesChanged((payload) => {
@@ -213,15 +238,15 @@ export default function TabLayout() {
         tabBarStyle: isInSettings
           ? { display: "none" }
           : {
-              width: "100%",
-              backgroundColor: "#fff",
-              borderTopWidth: 0,
-              height: tabBarHeight + ANDROID_EXTRA_BOTTOM,
-              paddingTop: PAD_V,
-              paddingBottom: PAD_V + ANDROID_EXTRA_BOTTOM,
-              justifyContent: "center",
-              alignItems: "center",
-            },
+            width: "100%",
+            backgroundColor: "#fff",
+            borderTopWidth: 0,
+            height: tabBarHeight + ANDROID_EXTRA_BOTTOM,
+            paddingTop: PAD_V,
+            paddingBottom: PAD_V + ANDROID_EXTRA_BOTTOM,
+            justifyContent: "center",
+            alignItems: "center",
+          },
         tabBarItemStyle: { width: "auto", padding: 0, margin: 0, flex: 0 },
         lazy: true,
       }}
@@ -233,7 +258,7 @@ export default function TabLayout() {
           tabBarButton: () => (
             <Slot mr={gaps[0]} w={itemW} h={itemH}>
               <ActionButton
-                name={backIconName}   
+                name={backIconName}
                 onPress={emitGoPrevDay}
                 w={itemW}
                 h={itemH}
@@ -262,7 +287,7 @@ export default function TabLayout() {
           tabBarButton: () => (
             <Slot mr={gaps[2]} w={itemW} h={itemH}>
               <ActionButton
-                name={forwardIconName} 
+                name={forwardIconName}
                 onPress={emitGoNextDay}
                 w={itemW}
                 h={itemH}

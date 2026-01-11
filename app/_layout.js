@@ -1,5 +1,4 @@
 // app/_layout.js
-
 import * as SplashScreen from "expo-splash-screen";
 SplashScreen.preventAutoHideAsync();
 
@@ -25,7 +24,8 @@ export default function RootLayout() {
 
     (async () => {
       try {
-        await new Promise((r) => setTimeout(r, 1000)); // 1초
+        // 필요하면 아주 짧게만 (0~100ms 정도) 두고, 길게는 index에서 처리
+        // await new Promise((r) => setTimeout(r, 50));
       } finally {
         if (mounted) {
           await SplashScreen.hideAsync();
@@ -55,8 +55,8 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" translucent backgroundColor="transparent" />
-
       <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
       </Stack>
     </SafeAreaProvider>
