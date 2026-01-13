@@ -1975,7 +1975,8 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
 
 
 function WikipediaBanner({
-  imageUrl,
+  status, // 'loading' | 'no-image' | 'ready'
+  imageUrl, // status === 'ready'일 때만 string
   maxWidth = 340,
   screenWidth,
   cardBg = "none",
@@ -1984,98 +1985,9 @@ function WikipediaBanner({
   const [imageFailed, setImageFailed] = useState(false);
   const [imageSize, setImageSize] = useState(null);
   const [displayUrl, setDisplayUrl] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(status === "loading");
   const fadeAnim = useRef(new Animated.Value(0)).current;
-
-  const prevImageUrlRef = useRef(null);
-
-
-  // home.js (ImageBanner 컴포넌트 내부의 useEffect 훅)
-
-  useEffect(() => {
-    console.log('🖼️ [BANNER] Image URL changed:', { prev: prevImageUrlRef.current, new: imageUrl });
-
-    if (!imageUrl) {
-      // 이미지가 없는 경우 처리
-      setDisplayUrl(null);
-      setImageFailed(true);
-      setLoading(false);
-      prevImageUrlRef.current = null;
-      return;
-    }
-
-    // 1. 기존 이미지 언마운트 및 로딩 인디케이터 즉시 표시
-    // 이전 이미지가 화면에 남아있는 현상을 해결하기 위해 displayUrl을 null로 즉시 설정합니다.
-    setDisplayUrl(null); // 👈 **기존 이미지를 뷰 계층에서 즉시 제거**
-    setLoading(true); // 👈 **로딩 인디케이터 즉시 표시**
-    setImageFailed(false);
-
-    prevImageUrlRef.current = imageUrl;
-    const targetUrl = imageUrl;
-
-    // 2. 짧은 지연(50ms) 후 새 이미지 로드 프로세스 시작
-    // 이 지연은 React Native가 이전 이미지의 언마운트와 로딩 상태를 화면에 완전히 반영할 
-    // 시간을 주기 위함이며, InteractionManager의 예측 불가능한 긴 대기를 방지합니다.
-    const timer = setTimeout(() => {
-      // 대기 중에 URL이 다시 변경되었는지 확인하여 불필요한 작업 방지
-      if (targetUrl !== prevImageUrlRef.current) return;
-
-      // 새 이미지가 로드될 때 Fade-in 애니메이션을 위해 투명도를 0으로 초기화
-      fadeAnim.setValue(0);
-
-      // 기존 로직을 따라 RNImage.getSize 호출 및 displayUrl 설정
-      if (Platform.OS === 'ios') {
-        RNImage.getSize(
-          targetUrl,
-          (width, height) => {
-            if (targetUrl !== prevImageUrlRef.current) return;
-            setImageSize({ width, height });
-            setDisplayUrl(targetUrl); // 👈 새로운 이미지 로드 시작
-          },
-          (error) => {
-            if (targetUrl !== prevImageUrlRef.current) return;
-            console.warn("Failed to get image size:", error);
-            setImageFailed(true);
-            setLoading(false);
-          }
-        );
-      } else {
-        // Android/Fallback
-        setImageSize({ width: maxWidth, height: maxWidth * 0.6 });
-        setDisplayUrl(targetUrl); // 👈 새로운 이미지 로드 시작
-      }
-    }, 50); // 50ms 지연 설정
-
-    // 컴포넌트 정리(Cleanup) 함수: useEffect가 다시 실행되거나 컴포넌트가 언마운트될 때 setTimeout을 취소
-    return () => clearTimeout(timer);
-
-  }, [imageUrl, maxWidth, fadeAnim]);
-  // ... (생략) ...
-
-  const handleImageLoad = useCallback((e) => {
-    console.log(' [BANNER] Image loaded');
-    setLoading(false);
-
-    // 🔹 이미지 로드 완료 후 페이드인
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    if (Platform.OS === 'android' && e?.source) {
-      const { width, height } = e.source;
-      if (width && height) {
-        setImageSize({ width, height });
-      }
-    }
-  }, [fadeAnim]);
-
-  const handleImageError = useCallback((e) => {
-    console.warn("❌ [BANNER] Image load error:", e?.nativeEvent);
-    setImageFailed(true);
-    setLoading(false);
-  }, []);
+  const prevUrlRef = useRef(null);
 
   const BG_MAP = {
     none: "#FFFFFF",
@@ -2088,8 +2000,115 @@ function WikipediaBanner({
     ? customBgColor.trim()
     : BG_MAP[cardBg] ?? "#FFFFFF";
 
-  // 이미지가 없거나 실패했을 때만 광고 표시
-  if (!imageUrl || imageFailed) {
+  // ✅ status 변화에 따른 내부 상태 초기화/로드
+  useEffect(() => {
+    // 1) 로딩
+    if (status === "loading") {
+      setLoading(true);
+      setImageFailed(false);
+      setImageSize(null);
+      setDisplayUrl(null);
+      prevUrlRef.current = null;
+      fadeAnim.setValue(0);
+      return;
+    }
+
+    // 2) 이미지 없음 → 광고
+    if (status === "no-image") {
+      setLoading(false);
+      setImageFailed(false);
+      setImageSize(null);
+      setDisplayUrl(null);
+      prevUrlRef.current = null;
+      fadeAnim.setValue(0);
+      return;
+    }
+
+    // 3) ready (이미지 표시)
+    if (status === "ready" && imageUrl) {
+      setLoading(true);
+      setImageFailed(false);
+      setImageSize(null);
+      setDisplayUrl(null);
+
+      prevUrlRef.current = imageUrl;
+      fadeAnim.setValue(0);
+
+      const timer = setTimeout(() => {
+        if (prevUrlRef.current !== imageUrl) return;
+
+        if (Platform.OS === "ios") {
+          RNImage.getSize(
+            imageUrl,
+            (width, height) => {
+              if (prevUrlRef.current !== imageUrl) return;
+              setImageSize({ width, height });
+              setDisplayUrl(imageUrl);
+            },
+            () => {
+              if (prevUrlRef.current !== imageUrl) return;
+              setImageFailed(true);
+              setLoading(false);
+            }
+          );
+        } else {
+          setImageSize({ width: maxWidth, height: maxWidth * 0.6 });
+          setDisplayUrl(imageUrl);
+        }
+      }, 50);
+
+      return () => clearTimeout(timer);
+    }
+  }, [status, imageUrl, maxWidth, fadeAnim]);
+
+  const handleImageLoad = useCallback(
+    (e) => {
+      setLoading(false);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+
+      if (Platform.OS === "android" && e?.source) {
+        const { width, height } = e.source;
+        if (width && height) setImageSize({ width, height });
+      }
+    },
+    [fadeAnim]
+  );
+
+  const handleImageError = useCallback(() => {
+    setImageFailed(true);
+    setLoading(false);
+  }, []);
+
+  // ---------- Render 분기(오직 status로만!) ----------
+
+  // ✅ 1) 로딩
+  if (status === "loading") {
+    return (
+      <View
+        style={{
+          width: maxWidth,
+          height: 200,
+          alignSelf: "center",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: bgColor,
+          borderRadius: 12,
+        }}
+      >
+        <ActivityIndicator size="small" color="#999" />
+        <Text style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
+          Loading...
+        </Text>
+      </View>
+    );
+  }
+
+  // ✅ 2) 이미지 없음 → 광고
+  if (status === "no-image") {
     return (
       <View
         style={{
@@ -2106,15 +2125,15 @@ function WikipediaBanner({
         <BannerAd
           unitId={TestIds.BANNER}
           size={BannerAdSize.MEDIUM_RECTANGLE}
-          requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
-          }}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         />
       </View>
     );
   }
 
-  if (!imageSize || !displayUrl) {
+  // ✅ 3) ready인데 내부 계산/로드 준비 중 (짧게 로딩)
+  if (status === "ready" && (!imageSize || !displayUrl || imageFailed)) {
+    // imageFailed면 여기서 광고로 넘기고 싶으면 status를 no-image로 올리면 됨.
     return (
       <View
         style={{
@@ -2131,7 +2150,25 @@ function WikipediaBanner({
       </View>
     );
   }
+  if (!imageSize) {
+  return (
+    <View
+      style={{
+        width: maxWidth,
+        height: 200,
+        alignSelf: "center",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: bgColor,
+        borderRadius: 12,
+      }}
+    >
+      <ActivityIndicator size="small" color="#999" />
+    </View>
+  );
+}
 
+  // ✅ 4) 이미지 렌더
   const { width: imgWidth, height: imgHeight } = imageSize;
   const aspectRatio = imgWidth / imgHeight;
   const isLandscape = aspectRatio > 1;
@@ -2141,18 +2178,17 @@ function WikipediaBanner({
     const displayHeight = displayWidth / aspectRatio;
 
     return (
-      <View style={{ position: 'relative' }}>
-        {/* 로딩 인디케이터 오버레이 */}
+      <View style={{ position: "relative" }}>
         {loading && (
           <View
             style={{
-              position: 'absolute',
+              position: "absolute",
               top: 0,
               left: 0,
               right: 0,
               bottom: 0,
-              alignItems: 'center',
-              justifyContent: 'center',
+              alignItems: "center",
+              justifyContent: "center",
               backgroundColor: bgColor,
               zIndex: 10,
             }}
@@ -2161,24 +2197,18 @@ function WikipediaBanner({
           </View>
         )}
 
-        {/* 🔹 이미지는 항상 렌더링 (opacity로 숨김) */}
         <ScrollView
           horizontal={false}
           showsVerticalScrollIndicator={true}
-          style={{
-            width: displayWidth,
-            maxHeight: screenWidth * 1.2,
-          }}
-          contentContainerStyle={{
-            alignItems: "center",
-          }}
+          style={{ width: displayWidth, maxHeight: screenWidth * 1.2 }}
+          contentContainerStyle={{ alignItems: "center" }}
         >
           <Animated.View
             style={{
               width: displayWidth,
               height: displayHeight,
               backgroundColor: bgColor,
-              opacity: fadeAnim, // 🔹 0에서 시작 → onLoad 후 1로
+              opacity: fadeAnim,
             }}
           >
             <ExpoImage
@@ -2186,86 +2216,11 @@ function WikipediaBanner({
               source={{
                 uri: displayUrl,
                 headers: {
-                  'User-Agent': 'Histree/1.0 (Educational History App)',
-                  'Referer': 'https://en.wikipedia.org/',
-                }
+                  "User-Agent": "Histree/1.0 (Educational History App)",
+                  Referer: "https://en.wikipedia.org/",
+                },
               }}
-              style={{
-                width: "100%",
-                height: "100%",
-              }}
-              contentFit="contain"
-              cachePolicy="disk"
-              transition={0}
-              onLoad={handleImageLoad}
-              onError={handleImageError}
-            />
-          </Animated.View>
-        </ScrollView>
-      </View>
-    );
-  } else {
-    const displayWidth = Math.min(maxWidth, imgWidth);
-    const displayHeight = displayWidth / aspectRatio;
-
-    return (
-      <View style={{ position: 'relative' }}>
-        {/* 🔹 로딩 인디케이터 오버레이 */}
-        {loading && (
-          <View
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: bgColor,
-              zIndex: 10,
-              borderRadius: 12,
-            }}
-          >
-            <ActivityIndicator size="small" color="#999" />
-          </View>
-        )}
-
-        {/* 🔹 이미지는 항상 렌더링 (opacity로 숨김) */}
-        <ScrollView
-          horizontal={false}
-          showsVerticalScrollIndicator={true}
-          style={{
-            width: displayWidth,
-            maxHeight: maxWidth * 1.5,
-            alignSelf: "center",
-          }}
-          contentContainerStyle={{
-            alignItems: "center",
-          }}
-        >
-          <Animated.View
-            style={{
-              width: displayWidth,
-              height: displayHeight,
-              borderRadius: 12,
-              backgroundColor: bgColor,
-              overflow: "hidden",
-              opacity: fadeAnim, // 🔹 0에서 시작 → onLoad 후 1로
-            }}
-          >
-            <ExpoImage
-              key={displayUrl}
-              source={{
-                uri: displayUrl,
-                headers: {
-                  'User-Agent': 'Histree/1.0 (Educational History App)',
-                  'Referer': 'https://en.wikipedia.org/',
-                }
-              }}
-              style={{
-                width: "100%",
-                height: "100%",
-              }}
+              style={{ width: "100%", height: "100%" }}
               contentFit="contain"
               cachePolicy="disk"
               transition={0}
@@ -2277,7 +2232,74 @@ function WikipediaBanner({
       </View>
     );
   }
+
+  // portrait
+  const displayWidth = Math.min(maxWidth, imgWidth);
+  const displayHeight = displayWidth / aspectRatio;
+
+  return (
+    <View style={{ position: "relative" }}>
+      {loading && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: bgColor,
+            zIndex: 10,
+            borderRadius: 12,
+          }}
+        >
+          <ActivityIndicator size="small" color="#999" />
+        </View>
+      )}
+
+      <ScrollView
+        horizontal={false}
+        showsVerticalScrollIndicator={true}
+        style={{
+          width: displayWidth,
+          maxHeight: maxWidth * 1.5,
+          alignSelf: "center",
+        }}
+        contentContainerStyle={{ alignItems: "center" }}
+      >
+        <Animated.View
+          style={{
+            width: displayWidth,
+            height: displayHeight,
+            borderRadius: 12,
+            backgroundColor: bgColor,
+            overflow: "hidden",
+            opacity: fadeAnim,
+          }}
+        >
+          <ExpoImage
+            key={displayUrl}
+            source={{
+              uri: displayUrl,
+              headers: {
+                "User-Agent": "Histree/1.0 (Educational History App)",
+                Referer: "https://en.wikipedia.org/",
+              },
+            }}
+            style={{ width: "100%", height: "100%" }}
+            contentFit="contain"
+            cachePolicy="disk"
+            transition={0}
+            onLoad={handleImageLoad}
+            onError={handleImageError}
+          />
+        </Animated.View>
+      </ScrollView>
+    </View>
+  );
 }
+
 
 // 기타 UI
 function FullBleedCard({
@@ -2674,72 +2696,72 @@ const BANNER_KEY = (dateISO, cid) =>
 // pick → 배너 URL 계산
 // home.js의 computeBannerUrlForPick 함수 수정
 
-async function computeBannerUrlForPick(pick, uiLang) {
-  const nativeLang = COUNTRY_CFG[pick.cid]?.lang || "en";
+// async function computeBannerUrlForPick(pick, uiLang) {
+//   const nativeLang = COUNTRY_CFG[pick.cid]?.lang || "en";
 
-  const anchors = getAnchorsForLang(pick.row, nativeLang);
-  console.log('🔍 [IMAGE] Found anchors:', anchors.length);
+//   const anchors = getAnchorsForLang(pick.row, nativeLang);
+//   console.log('🔍 [IMAGE] Found anchors:', anchors.length);
 
-  let imageUrl = null;
+//   let imageUrl = null;
 
-  // ✅ 각 앵커를 순차적으로 시도 (최대 2개)
-  for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-    const anchorText = anchors[i]?.text;
-    if (!anchorText) continue;
+//   // ✅ 각 앵커를 순차적으로 시도 (최대 2개)
+//   for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+//     const anchorText = anchors[i]?.text;
+//     if (!anchorText) continue;
 
-    console.log(`🔍 [IMAGE] Trying anchor ${i + 1}:`, anchorText);
+//     console.log(`🔍 [IMAGE] Trying anchor ${i + 1}:`, anchorText);
 
-    try {
-      const result = await withTimeout(
-        fetchWikipediaImageFromAnchors([anchorText], nativeLang),
-        3000 // 각 앵커당 3초
-      );
+//     try {
+//       const result = await withTimeout(
+//         fetchWikipediaImageFromAnchors([anchorText], nativeLang),
+//         3000 // 각 앵커당 3초
+//       );
 
-      if (result) {
-        console.log(`✅ [IMAGE] Found image from anchor ${i + 1}`);
-        imageUrl = result;
-        break; // 성공하면 즉시 종료
-      }
-    } catch (e) {
-      console.warn(`⚠️ [IMAGE] Anchor ${i + 1} failed:`, e.message);
-      // 다음 앵커 시도
-    }
-  }
+//       if (result) {
+//         console.log(`✅ [IMAGE] Found image from anchor ${i + 1}`);
+//         imageUrl = result;
+//         break; // 성공하면 즉시 종료
+//       }
+//     } catch (e) {
+//       console.warn(`⚠️ [IMAGE] Anchor ${i + 1} failed:`, e.message);
+//       // 다음 앵커 시도
+//     }
+//   }
 
-  // ✅ 앵커에서 실패하면 Google Search 시도
-  if (!imageUrl) {
-    console.log('🔍 [IMAGE] No image from anchors, trying Google Search');
-    const y = getYearFromRow(pick.row);
-    const nativeBody = bodyOfRowByLang(pick.row, nativeLang, pick.cid);
+//   // ✅ 앵커에서 실패하면 Google Search 시도
+//   if (!imageUrl) {
+//     console.log('🔍 [IMAGE] No image from anchors, trying Google Search');
+//     const y = getYearFromRow(pick.row);
+//     const nativeBody = bodyOfRowByLang(pick.row, nativeLang, pick.cid);
 
-    try {
-      imageUrl = await withTimeout(
-        fetchImageForContent(nativeBody || pick.body, y, pick.cid),
-        3000
-      );
+//     try {
+//       imageUrl = await withTimeout(
+//         fetchImageForContent(nativeBody || pick.body, y, pick.cid),
+//         3000
+//       );
 
-      if (imageUrl) {
-        console.log('✅ [IMAGE] Found image from Google Search');
-      }
-    } catch (e) {
-      console.warn('⚠️ [IMAGE] Google Search failed:', e.message);
-    }
-  }
+//       if (imageUrl) {
+//         console.log('✅ [IMAGE] Found image from Google Search');
+//       }
+//     } catch (e) {
+//       console.warn('⚠️ [IMAGE] Google Search failed:', e.message);
+//     }
+//   }
 
-  // ✅ 이미지 최적화
-  if (imageUrl) {
-    try {
-      const best = await bestWikiThumb(imageUrl, 640);
-      imageUrl = best || sanitizeImageUrl(imageUrl);
-      console.log('✅ [IMAGE] Final optimized URL:', imageUrl ? 'success' : 'failed');
-    } catch (e) {
-      console.warn('⚠️ [IMAGE] Optimization failed:', e.message);
-      imageUrl = sanitizeImageUrl(imageUrl);
-    }
-  }
+//   // ✅ 이미지 최적화
+//   if (imageUrl) {
+//     try {
+//       const best = await bestWikiThumb(imageUrl, 640);
+//       imageUrl = best || sanitizeImageUrl(imageUrl);
+//       console.log('✅ [IMAGE] Final optimized URL:', imageUrl ? 'success' : 'failed');
+//     } catch (e) {
+//       console.warn('⚠️ [IMAGE] Optimization failed:', e.message);
+//       imageUrl = sanitizeImageUrl(imageUrl);
+//     }
+//   }
 
-  return imageUrl || null;
-}
+//   return imageUrl || null;
+// }
 
 // 오늘 캐시 워밍
 async function warmCacheAndBanner({
@@ -3705,6 +3727,9 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [headerImageUrl, setHeaderImageUrl] = useState(null);
+  const [bannerStatus, setBannerStatus] = useState("loading"); 
+  const [bannerImageUrl, setBannerImageUrl] = useState(undefined);
+
 
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyTime, setNotifyTime] = useState("09:00");
@@ -4140,6 +4165,83 @@ export default function Home() {
 
 
   const fetchingRef = useRef(false);
+ const loadBannerImage = useCallback(
+  async ({ row, uiLang }) => {
+    console.log('🖼️ [LOAD BANNER] Starting...');
+    
+    // 0️⃣ 캐시 확인 (선택사항 - 원하면 추가)
+    // const cacheKey = `@banner:${row 식별자}`;
+    // const cached = await AsyncStorage.getItem(cacheKey);
+    // if (cached) { setBannerStatus("ready"); setBannerImageUrl(cached); return; }
+    
+    // 1️⃣ 항상 loading부터 시작
+    setBannerStatus("loading");
+    setBannerImageUrl(null);
+
+    try {
+      const nativeLang = COUNTRY_CFG[row?.cid]?.lang || uiLang || "en";
+      const anchors = getAnchorsForLang(row, nativeLang);
+      
+      console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
+
+      let imageUrl = null;
+
+      // 앵커 1, 2 순차 시도
+      for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+        const anchor = anchors[i];
+        if (!anchor || !anchor.text) continue;
+
+        console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
+        
+        try {
+          const result = await withTimeout(
+            fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+            5000
+          );
+          
+          if (result) {
+            console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
+            imageUrl = result;
+            break;
+          }
+        } catch (e) {
+          console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
+        }
+      }
+
+      // 이미지 최적화
+      if (imageUrl) {
+        try {
+          const best = await bestWikiThumb(imageUrl, 640);
+          imageUrl = best || sanitizeImageUrl(imageUrl);
+        } catch (e) {
+          console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
+          imageUrl = sanitizeImageUrl(imageUrl);
+        }
+      }
+
+      console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
+
+      // 2️⃣ 상태 업데이트
+      if (imageUrl) {
+        setBannerImageUrl(imageUrl);
+        setBannerStatus("ready");
+        
+        // 캐시 저장 (선택사항)
+        // await AsyncStorage.setItem(cacheKey, imageUrl);
+      } else {
+        setBannerImageUrl(null);
+        setBannerStatus("no-image");
+      }
+
+    } catch (e) {
+      console.error('❌ [LOAD BANNER] Error:', e);
+      setBannerStatus("no-image");
+      setBannerImageUrl(null);
+    }
+  },
+  []
+);
 
 
   const handlePullToRefresh = useCallback(() => {
@@ -4884,7 +4986,10 @@ export default function Home() {
 
         if (!onePick || !onePick.length) {
           console.log('❌ [IMAGE] No pick');
-          if (alive) setHeaderImageUrl(null);
+          if (alive) {
+            setBannerStatus("loading");
+            setBannerImageUrl(null);
+          }
           return;
         }
 
@@ -4892,39 +4997,22 @@ export default function Home() {
         const cid = first.cid;
         const pickKey = first.key;
 
-        console.log('🔍 [IMAGE] Checking cache for', { iso, cid, pickKey });
+        console.log('🔍 [IMAGE] Processing image for', { iso, cid, pickKey });
 
-
-        const cacheKey = `${BANNER_KEY(iso, cid)}:${pickKey}`;
-
-        try {
-          const cachedUrl = await AsyncStorage.getItem(cacheKey);
-          console.log('📦 [IMAGE] Cached URL:', cachedUrl);
-          if (cachedUrl && alive) {
-            setHeaderImageUrl(cachedUrl || null);
-            return;
-          }
-        } catch (e) {
-          console.log('⚠️ [IMAGE] Cache read error:', e);
-        }
-
-        // 새로 계산
-        console.log('🆕 [IMAGE] Computing new URL...');
-        const url = await computeBannerUrlForPick(first, uiLang);
-        console.log('✅ [IMAGE] Computed URL:', url);
-
+        // ✅ loadBannerImage만 호출 (상태 관리 포함)
         if (alive) {
-          setHeaderImageUrl(url || null);
-          try {
-            await AsyncStorage.setItem(cacheKey, url || "");
-            console.log('💾 [IMAGE] Saved to cache with key:', pickKey);
-          } catch (e) {
-            console.log('⚠️ [IMAGE] Cache save error:', e);
-          }
+          await loadBannerImage({
+            row: first.row,
+            uiLang: uiLang
+          });
         }
+
       } catch (e) {
         console.error('❌ [IMAGE] Error:', e);
-        if (alive) setHeaderImageUrl(null);
+        if (alive) {
+          setBannerStatus("no-image");
+          setBannerImageUrl(null);
+        }
       }
     })();
 
@@ -4932,7 +5020,7 @@ export default function Home() {
       console.log('🧹 [IMAGE EFFECT] Cleanup');
       alive = false;
     };
-  }, [onePick, uiLang, hydrated, isoDate]);
+  }, [onePick, uiLang, hydrated, isoDate, loadBannerImage]);
 
   // 자정 워밍
   useEffect(() => {
@@ -5500,12 +5588,12 @@ export default function Home() {
                           >
                             <WikipediaBanner
                               key={onePick[0]?.key || 'empty'}
-                              imageUrl={headerImageUrl}
+                              status={bannerStatus}  // ✅ 추가
+                              imageUrl={bannerStatus === "ready" ? bannerImageUrl : null}  // ✅ 수정
                               maxWidth={CONTENT_W}
                               screenWidth={screenW}
                               cardBg={cardBg}
                               customBgColor={customBgColor}
-                              resetKey={onePick[0]?.key || 'empty'} //
                             />
                           </View>
 
