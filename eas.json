@@ -6,20 +6,20 @@
   "build": {
     "apk": {
       "android": { "buildType": "apk" },
-      "env": { "NODE_ENV": "production" }
+      "env": { "NODE_ENV": "production","NODE_OPTIONS": "--dns-result-order=ipv4first" }
     },
     "production": {
       "android": { "buildType": "app-bundle" },
-      "env": { "NODE_ENV": "production" }
+      "env": { "NODE_ENV": "production","NODE_OPTIONS": "--dns-result-order=ipv4first" }
     },
     "preview": {
       "distribution": "internal",
-      "env": { "NODE_ENV": "production" }
+      "env": { "NODE_ENV": "production","NODE_OPTIONS": "--dns-result-order=ipv4first" }
     },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "env": { "NODE_ENV": "development" }
+      "env": { "NODE_ENV": "development","NODE_OPTIONS": "--dns-result-order=ipv4first" }
     }
   }
 }

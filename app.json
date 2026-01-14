@@ -12,18 +12,15 @@
     "icon": "./assets/Histree_icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "cover",
       "backgroundColor": "#111827"
     },
-
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sunnyinnolab.Histree"
     },
-
     "android": {
       "package": "com.todayhistory.todayhistory",
       "versionCode": 2,
@@ -33,15 +30,12 @@
         "backgroundColor": "#ffffff"
       },
       "splash": {
-        "image": "./assets/splash.png",
         "backgroundColor": "#111827"
       }
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "plugins": [
       [
         "expo-notifications",
@@ -57,9 +51,10 @@
           "iosAppId": "ca-app-pub-3506417530430977~8302225521"
         }
       ],
-      "expo-router"
+      "expo-router",
+      "expo-localization",
+      "expo-web-browser"
     ],
-
     "extra": {
       "router": {},
       "eas": {
