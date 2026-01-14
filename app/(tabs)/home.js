@@ -94,7 +94,7 @@ if (__DEV__) {
 }
 
 // 상수
-const YEAR_MAX_EVENTS_PER_COUNTRY = 8; 
+const YEAR_MAX_EVENTS_PER_COUNTRY = 11; 
 const STORAGE_KEY_SELECTED = "selectedCountries";
 const STORAGE_KEY_UI_LANG = "@app_language";
 const STORAGE_KEY_FONT = "@app_font";
@@ -4877,7 +4877,7 @@ export default function Home() {
               const countToPick = Math.min(pool.length, YEAR_MAX_EVENTS_PER_COUNTRY);
 
               // targetYear를 "정렬된 pool의 시작점"으로 잡아서 12개를 순차로 구성
-              playlist = buildYearOrder(pool, isoDate).slice(0, countToPick);
+              playlist = buildSequentialPlaylistFromPool(pool, targetYearForCid, countToPick);
 
               currentIndex = 0;
 
