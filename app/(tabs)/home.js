@@ -486,44 +486,44 @@ const FLAG_ICON = {
 // 나라별 헤더 배경 이미지 (각 7장씩)
 const HERO_BG_IMAGES = {
   korea: [
-    require("../../assets/bg-images/k-photo1.jpg"),
-    require("../../assets/bg-images/k-photo2.jpg"),
-    require("../../assets/bg-images/k-photo3.jpg"),
-    require("../../assets/bg-images/k-photo4.jpg"),
-    require("../../assets/bg-images/k-photo5.jpg"),
-    require("../../assets/bg-images/k-photo6.jpg"),
-    require("../../assets/bg-images/k-photo7.jpg"),
+    require("../../assets/bg-images/k-photo1(low).jpg"),
+    require("../../assets/bg-images/k-photo2(low).jpg"),
+    require("../../assets/bg-images/k-photo3(low).jpg"),
+    require("../../assets/bg-images/k-photo4(low).jpg"),
+    require("../../assets/bg-images/k-photo5(low).jpg"),
+    require("../../assets/bg-images/k-photo6(low).jpg"),
+    require("../../assets/bg-images/k-photo7(low).jpg"),
   ],
   japan: [
-    require("../../assets/bg-images/j-photo1.jpg"),
-    require("../../assets/bg-images/j-photo2.jpg"),
-    require("../../assets/bg-images/j-photo3.jpg"),
-    require("../../assets/bg-images/j-photo4.jpg"),
-    require("../../assets/bg-images/j-photo5.jpg"),
-    require("../../assets/bg-images/j-photo6.jpg"),
-    require("../../assets/bg-images/j-photo7.jpg"),
+    require("../../assets/bg-images/j-photo1(low).jpg"),
+    require("../../assets/bg-images/j-photo2(low).jpg"),
+    require("../../assets/bg-images/j-photo3(low).jpg"),
+    require("../../assets/bg-images/j-photo4(low).jpg"),
+    require("../../assets/bg-images/j-photo5(low).jpg"),
+    require("../../assets/bg-images/j-photo6(low).jpg"),
+    require("../../assets/bg-images/j-photo7(low).jpg"),
   ],
   world: [
-    require("../../assets/bg-images/uk-photo1.jpg"),
-    require("../../assets/bg-images/uk-photo2.jpg"),
-    require("../../assets/bg-images/uk-photo3.jpg"),
-    require("../../assets/bg-images/uk-photo4.jpg"),
-    require("../../assets/bg-images/uk-photo5.jpg"),
-    require("../../assets/bg-images/uk-photo6.jpg"),
-    require("../../assets/bg-images/uk-photo7.jpg"),
+    require("../../assets/bg-images/uk-photo1(low).jpg"),
+    require("../../assets/bg-images/uk-photo2(low).jpg"),
+    require("../../assets/bg-images/uk-photo3(low).jpg"),
+    require("../../assets/bg-images/uk-photo4(low).jpg"),
+    require("../../assets/bg-images/uk-photo5(low).jpg"),
+    require("../../assets/bg-images/uk-photo6(low).jpg"),
+    require("../../assets/bg-images/uk-photo7(low).jpg"),
   ],
   china: [
-    require("../../assets/bg-images/c-photo1.jpg"),
-    require("../../assets/bg-images/c-photo2.jpg"),
-    require("../../assets/bg-images/c-photo3.jpg"),
-    require("../../assets/bg-images/c-photo4.jpg"),
-    require("../../assets/bg-images/c-photo5.jpg"),
-    require("../../assets/bg-images/c-photo6.jpg"),
-    require("../../assets/bg-images/c-photo7.jpg"),
+    require("../../assets/bg-images/c-photo1(low).png"),
+    require("../../assets/bg-images/c-photo2(low).png"),
+    require("../../assets/bg-images/c-photo3(low).png"),
+    require("../../assets/bg-images/c-photo4(low).png"),
+    require("../../assets/bg-images/c-photo5(low).png"),
+    require("../../assets/bg-images/c-photo6(low).png"),
+    require("../../assets/bg-images/c-photo7(low).png"),
   ],
 };
 
-const DEFAULT_HERO_BG = require("../../assets/bg-images/k-photo1.jpg");
+const DEFAULT_HERO_BG = require("../../assets/bg-images/k-photo1(low).jpg");
 function getWeekdayIndexInTz(date, tz) {
   try {
     const wd = new Intl.DateTimeFormat("en-US", {
