@@ -94,7 +94,7 @@ if (__DEV__) {
 }
 
 // 상수
-const YEAR_MAX_EVENTS_PER_COUNTRY = 11; 
+const YEAR_MAX_EVENTS_PER_COUNTRY = 11;
 const STORAGE_KEY_SELECTED = "selectedCountries";
 const STORAGE_KEY_UI_LANG = "@app_language";
 const STORAGE_KEY_FONT = "@app_font";
@@ -1801,8 +1801,8 @@ function WebViewModal({ visible, url, title, onClose }) {
         </View>
 
         {/* Actual content */}
-        <View style={{ 
-          flex: 1, 
+        <View style={{
+          flex: 1,
           // opacity: showContent ? 1 : 0 
         }}>
           {/* Background Image (if set) */}
@@ -2151,22 +2151,22 @@ function WikipediaBanner({
     );
   }
   if (!imageSize) {
-  return (
-    <View
-      style={{
-        width: maxWidth,
-        height: 200,
-        alignSelf: "center",
-        alignItems: "center",
-        justifyContent: "center",
-        backgroundColor: bgColor,
-        borderRadius: 12,
-      }}
-    >
-      <ActivityIndicator size="small" color="#999" />
-    </View>
-  );
-}
+    return (
+      <View
+        style={{
+          width: maxWidth,
+          height: 200,
+          alignSelf: "center",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: bgColor,
+          borderRadius: 12,
+        }}
+      >
+        <ActivityIndicator size="small" color="#999" />
+      </View>
+    );
+  }
 
   // ✅ 4) 이미지 렌더
   const { width: imgWidth, height: imgHeight } = imageSize;
@@ -3154,6 +3154,28 @@ export default function Home() {
   }
 
 
+  // ✅ ads init을 한 번만 하도록 보장
+  const adsInitRef = useRef(false);
+  const adsInitPromiseRef = useRef(null);
+
+  function ensureAdsInitialized() {
+    if (adsInitRef.current) return Promise.resolve(true);
+    if (adsInitPromiseRef.current) return adsInitPromiseRef.current;
+
+    adsInitPromiseRef.current = mobileAds()
+      .initialize()
+      .then(() => {
+        adsInitRef.current = true;
+        return true;
+      })
+      .catch((e) => {
+        adsInitRef.current = false;
+        adsInitPromiseRef.current = null;
+        throw e;
+      });
+
+    return adsInitPromiseRef.current;
+  }
 
 
   // 광고 보상 처리 (연도 모드)
@@ -3239,6 +3261,8 @@ export default function Home() {
       await new Promise((r) => setTimeout(r, 250));
       await InteractionManager.runAfterInteractions(() => Promise.resolve());
 
+      await ensureAdsInitialized();
+
       if (!rewardedAd.loaded) {
         await waitForRewardedLoaded();
       }
@@ -3266,6 +3290,8 @@ export default function Home() {
 
       await new Promise((r) => setTimeout(r, 250));
       await InteractionManager.runAfterInteractions(() => Promise.resolve());
+
+      await ensureAdsInitialized();
 
       if (!rewardedAd.loaded) {
         await waitForRewardedLoaded();
@@ -3727,7 +3753,7 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const [headerImageUrl, setHeaderImageUrl] = useState(null);
-  const [bannerStatus, setBannerStatus] = useState("loading"); 
+  const [bannerStatus, setBannerStatus] = useState("loading");
   const [bannerImageUrl, setBannerImageUrl] = useState(undefined);
 
 
@@ -3957,13 +3983,13 @@ export default function Home() {
     });
 
     // iOS 포함 전체에서 SDK 먼저 초기화 후 로드
-    mobileAds()
-      .initialize()
+    ensureAdsInitialized()
       .then(() => {
         if (!isMounted) return;
         console.log("[AD] mobileAds initialized, load rewarded");
         rewardedAd.load();
-      });
+      })
+      .catch((e) => console.warn("[AD] init failed", e));
 
     return () => {
       isMounted = false;
@@ -3997,7 +4023,7 @@ export default function Home() {
           }
         },
       }),
-    [handlePrevDay, handleNextDay]   // ⭐ 요게 포인트
+    [handlePrevDay, handleNextDay]
   );
 
 
@@ -4165,83 +4191,83 @@ export default function Home() {
 
 
   const fetchingRef = useRef(false);
- const loadBannerImage = useCallback(
-  async ({ row, uiLang }) => {
-    console.log('🖼️ [LOAD BANNER] Starting...');
-    
-    // 0️⃣ 캐시 확인 (선택사항 - 원하면 추가)
-    // const cacheKey = `@banner:${row 식별자}`;
-    // const cached = await AsyncStorage.getItem(cacheKey);
-    // if (cached) { setBannerStatus("ready"); setBannerImageUrl(cached); return; }
-    
-    // 1️⃣ 항상 loading부터 시작
-    setBannerStatus("loading");
-    setBannerImageUrl(null);
+  const loadBannerImage = useCallback(
+    async ({ row, uiLang }) => {
+      console.log('🖼️ [LOAD BANNER] Starting...');
 
-    try {
-      const nativeLang = COUNTRY_CFG[row?.cid]?.lang || uiLang || "en";
-      const anchors = getAnchorsForLang(row, nativeLang);
-      
-      console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
+      // 0️⃣ 캐시 확인 (선택사항 - 원하면 추가)
+      // const cacheKey = `@banner:${row 식별자}`;
+      // const cached = await AsyncStorage.getItem(cacheKey);
+      // if (cached) { setBannerStatus("ready"); setBannerImageUrl(cached); return; }
 
-      let imageUrl = null;
-
-      // 앵커 1, 2 순차 시도
-      for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-        const anchor = anchors[i];
-        if (!anchor || !anchor.text) continue;
-
-        console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
-        
-        try {
-          const result = await withTimeout(
-            fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
-            5000
-          );
-          
-          if (result) {
-            console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
-            imageUrl = result;
-            break;
-          }
-        } catch (e) {
-          console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
-        }
-      }
-
-      // 이미지 최적화
-      if (imageUrl) {
-        try {
-          const best = await bestWikiThumb(imageUrl, 640);
-          imageUrl = best || sanitizeImageUrl(imageUrl);
-        } catch (e) {
-          console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
-          imageUrl = sanitizeImageUrl(imageUrl);
-        }
-      }
-
-      console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
-
-      // 2️⃣ 상태 업데이트
-      if (imageUrl) {
-        setBannerImageUrl(imageUrl);
-        setBannerStatus("ready");
-        
-        // 캐시 저장 (선택사항)
-        // await AsyncStorage.setItem(cacheKey, imageUrl);
-      } else {
-        setBannerImageUrl(null);
-        setBannerStatus("no-image");
-      }
-
-    } catch (e) {
-      console.error('❌ [LOAD BANNER] Error:', e);
-      setBannerStatus("no-image");
+      // 1️⃣ 항상 loading부터 시작
+      setBannerStatus("loading");
       setBannerImageUrl(null);
-    }
-  },
-  []
-);
+
+      try {
+        const nativeLang = COUNTRY_CFG[row?.cid]?.lang || uiLang || "en";
+        const anchors = getAnchorsForLang(row, nativeLang);
+
+        console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
+
+        let imageUrl = null;
+
+        // 앵커 1, 2 순차 시도
+        for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+          const anchor = anchors[i];
+          if (!anchor || !anchor.text) continue;
+
+          console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
+
+          try {
+            const result = await withTimeout(
+              fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+              5000
+            );
+
+            if (result) {
+              console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
+              imageUrl = result;
+              break;
+            }
+          } catch (e) {
+            console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
+          }
+        }
+
+        // 이미지 최적화
+        if (imageUrl) {
+          try {
+            const best = await bestWikiThumb(imageUrl, 640);
+            imageUrl = best || sanitizeImageUrl(imageUrl);
+          } catch (e) {
+            console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
+            imageUrl = sanitizeImageUrl(imageUrl);
+          }
+        }
+
+        console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
+
+        // 2️⃣ 상태 업데이트
+        if (imageUrl) {
+          setBannerImageUrl(imageUrl);
+          setBannerStatus("ready");
+
+          // 캐시 저장 (선택사항)
+          // await AsyncStorage.setItem(cacheKey, imageUrl);
+        } else {
+          setBannerImageUrl(null);
+          setBannerStatus("no-image");
+        }
+
+      } catch (e) {
+        console.error('❌ [LOAD BANNER] Error:', e);
+        setBannerStatus("no-image");
+        setBannerImageUrl(null);
+      }
+    },
+    []
+  );
 
 
   const handlePullToRefresh = useCallback(() => {
