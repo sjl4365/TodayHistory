@@ -19,7 +19,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sunnyinnolab.Histree"
+      "bundleIdentifier": "com.sunnyinnolab.Histree",
+      "buildNumber": "4"
     },
     "android": {
       "package": "com.todayhistory.todayhistory",
