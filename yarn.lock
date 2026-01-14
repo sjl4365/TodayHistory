@@ -3334,7 +3334,7 @@ execa@^5.0.0:
     signal-exit "^3.0.3"
     strip-final-newline "^2.0.0"
 
-expo-application@~7.0.8:
+expo-application@^7.0.8, expo-application@~7.0.8:
   version "7.0.8"
   resolved "https://registry.npmjs.org/expo-application/-/expo-application-7.0.8.tgz"
   integrity sha512-qFGyxk7VJbrNOQWBbE09XUuGuvkOgFS9QfToaK2FdagM2aQ+x3CvGV2DuVgl/l4ZxPgIf3b/MNh9xHpwSwn74Q==
@@ -3478,9 +3478,9 @@ expo-modules-core@3.0.29:
     invariant "^2.2.4"
 
 expo-navigation-bar@~5.0.8:
-  version "5.0.9"
-  resolved "https://registry.npmjs.org/expo-navigation-bar/-/expo-navigation-bar-5.0.9.tgz"
-  integrity sha512-xqry+MW12atuzYLtvck4fBCv0vqmo8q2Xap1ZeQRdjEm6m6Z35S6A09kRMY4NT7Y5Iaw+FI8YrUTNWSKvSXaDw==
+  version "5.0.10"
+  resolved "https://registry.npmjs.org/expo-navigation-bar/-/expo-navigation-bar-5.0.10.tgz"
+  integrity sha512-r9rdLw8mY6GPMQmVVOY/r1NBBw74DZefXHF60HxhRsdNI2kjc1wLdfWfR2rk4JVdOvdMDujnGrc9HQmqM3n8Jg==
   dependencies:
     "@react-native/normalize-colors" "0.81.5"
     debug "^4.3.2"

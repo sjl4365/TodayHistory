@@ -113,22 +113,22 @@ const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
 const STORAGE_KEY_YEAR_BASE = "@year_base_v1:";
 
 const fontColorOptions = [
-  { name: 'Black', value: '#000000', useStroke: true, strokeColor: '#FFFFFF', strokeWidth: 3 },
-  { name: 'White', value: '#FFFFFF', useStroke: true, strokeColor: '#000000', strokeWidth: 3 },
-  { name: 'Red', value: '#FF0000' },
-  { name: 'Orange', value: '#FF8000' },
-  { name: 'Yellow', value: '#FFFF00' },
-  { name: 'Green', value: '#00FF00' },
-  { name: 'Blue', value: '#0000FF' },
-  { name: 'Indigo', value: '#4B0082' },
-  { name: 'Violet', value: '#8A2BE2' },
-  { name: 'Pink', value: '#FF69B4' },
-  { name: 'Cyan', value: '#00FFFF' },
-  { name: 'Magenta', value: '#FF00FF' },
-  { name: 'Lime', value: '#32CD32' },
-  { name: 'Brown', value: '#8B4513' },
+  { name: 'Black', value: '#000000', useStroke: false },
+  { name: 'White', value: '#FFFFFF', useStroke: false },
+  { name: 'Red', value: '#FF0000', useStroke: false },
+  { name: 'Orange', value: '#FF8000', useStroke: false },
+  { name: 'Yellow', value: '#FFFF00', useStroke: false },
+  { name: 'Green', value: '#00FF00', useStroke: false },
+  { name: 'Blue', value: '#0000FF', useStroke: false },
+  // ⭐ These must match look-and-feels.js exactly:
+  { name: 'Black with White Outline', value: 'BLACK_WHITE_OUTLINE', useStroke: true, strokeColor: '#FFFFFF', strokeWidth: 3, fillColor: '#000000' },
+  { name: 'White with Black Outline', value: 'WHITE_BLACK_OUTLINE', useStroke: true, strokeColor: '#000000', strokeWidth: 3, fillColor: '#FFFFFF' },
+  { name: 'Pink', value: '#FF69B4', useStroke: false },
+  { name: 'Cyan', value: '#00FFFF', useStroke: false },
+  { name: 'Magenta', value: '#FF00FF', useStroke: false },
+  { name: 'Lime', value: '#32CD32', useStroke: false },
+  { name: 'Brown', value: '#8B4513', useStroke: false },
 ];
-
 function getYearPlaylistKey(cid) {
   return `@year_playlist_v5:${cid}`;
 }
@@ -1479,33 +1479,53 @@ async function bestWikiThumb(rawUrl, desiredPx = 640) {
 
 
 function getCurrentFontColorOption(fontColor) {
-  return fontColorOptions.find(option => option.value === fontColor) || fontColorOptions[0];
+  const option = fontColorOptions.find(opt => opt.value === fontColor);
+  if (option) return option;
+  
+  // Fallback: if the saved color is a hex code that matches an outline option's fillColor
+  // (for backward compatibility with old saved data)
+  const legacyOption = fontColorOptions.find(opt => 
+    opt.useStroke && opt.fillColor === fontColor
+  );
+  if (legacyOption) return legacyOption;
+  
+  return fontColorOptions[0]; // Default to Black
 }
 
-
 function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, customBgImage) {
+  console.log('📝 [RENDER] fontColor received:', fontColor);
+  
   const currentOption = getCurrentFontColorOption(fontColor);
+  
+  console.log('📝 [RENDER] currentOption:', {
+    name: currentOption.name,
+    value: currentOption.value,
+    useStroke: currentOption.useStroke,
+    strokeColor: currentOption.strokeColor,
+    strokeWidth: currentOption.strokeWidth
+  });
 
-  if (currentOption.useStroke && customBgImage) {
+  if (currentOption.useStroke) {
+    console.log('✅ [RENDER] Using StrokeText');
     return (
       <StrokeText
         text={text}
         strokeColor={currentOption.strokeColor}
         strokeWidth={currentOption.strokeWidth}
-        style={{
+        style={[{
           marginTop: 4,
           marginBottom: 14,
           fontSize: fontSize,
           lineHeight: lineHeight,
           fontFamily: fontFamily,
-          color: currentOption.value,
+          color: currentOption.fillColor || currentOption.value, // ⭐ Use fillColor
           textAlign: 'left',
-        }}
+        }]}
       />
     );
   }
 
-  // Regular text for solid backgrounds or other colors
+  console.log('❌ [RENDER] Using regular Text');
   return (
     <Text
       style={{
@@ -1515,13 +1535,13 @@ function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, cu
         lineHeight: lineHeight,
         fontFamily: fontFamily,
         color: fontColor,
+        textAlign: 'left',
       }}
     >
       {text}
     </Text>
   );
 }
-
 
 // ui
 function useUIScale() {

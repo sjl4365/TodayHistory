@@ -35,16 +35,15 @@ export default function LookAndFeel() {
   const { scale } = useUIScale();
   const { t, currentLanguage } = useTranslation();
   const navigation = useNavigation();
+  
   const [selectedFont, setSelectedFont] = useState('Verdana');
   const [fontSize, setFontSize] = useState(18);
   const [fontColor, setFontColor] = useState('#000000');
   const [backgroundColor, setBackgroundColor] = useState('#FFFFFF');
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
-  
   const [showFontModal, setShowFontModal] = useState(false);
 
-  // Update header title when language changes
   useEffect(() => {
     navigation.setOptions({
       title: t('lookAndFeel'),
@@ -60,21 +59,22 @@ export default function LookAndFeel() {
     'Georgia',
   ];
 
+  // ⭐ Updated with unique identifiers for outline colors
   const fontcolorOptions = [
-    { name: 'Black', value: '#000000', useStroke: true, strokeColor: '#FFFFFF', strokeWidth: 3},
-    { name: 'White', value: '#FFFFFF', useStroke: true, strokeColor: '#000000', strokeWidth: 3},
-    { name: 'Red', value: '#FF0000' },
-    { name: 'Orange', value: '#FF8000' },
-    { name: 'Yellow', value: '#FFFF00' },
-    { name: 'Green', value: '#00FF00' },
-    { name: 'Blue', value: '#0000FF' },
-    { name: 'Indigo', value: '#4B0082' },
-    { name: 'Violet', value: '#8A2BE2' },
-    { name: 'Pink', value: '#FF69B4' },
-    { name: 'Cyan', value: '#00FFFF' },
-    { name: 'Magenta', value: '#FF00FF' },
-    { name: 'Lime', value: '#32CD32' },
-    { name: 'Brown', value: '#8B4513' },
+    { name: 'Black', value: '#000000', useStroke: false },
+    { name: 'White', value: '#FFFFFF', useStroke: false },
+    { name: 'Red', value: '#FF0000', useStroke: false },
+    { name: 'Orange', value: '#FF8000', useStroke: false },
+    { name: 'Yellow', value: '#FFFF00', useStroke: false },
+    { name: 'Green', value: '#00FF00', useStroke: false },
+    { name: 'Blue', value: '#0000FF', useStroke: false },
+    { name: 'Black with White Outline', value: 'BLACK_WHITE_OUTLINE', useStroke: true, strokeColor: '#FFFFFF', strokeWidth: 3, fillColor: '#000000' },
+    { name: 'White with Black Outline', value: 'WHITE_BLACK_OUTLINE', useStroke: true, strokeColor: '#000000', strokeWidth: 3, fillColor: '#FFFFFF' },
+    { name: 'Pink', value: '#FF69B4', useStroke: false },
+    { name: 'Cyan', value: '#00FFFF', useStroke: false },
+    { name: 'Magenta', value: '#FF00FF', useStroke: false },
+    { name: 'Lime', value: '#32CD32', useStroke: false },
+    { name: 'Brown', value: '#8B4513', useStroke: false },
   ];
 
   const backcolorOptions = [
@@ -94,17 +94,18 @@ export default function LookAndFeel() {
   ];
 
   const getCurrentFontColorOption = () => {
-    return fontcolorOptions.find(option => option.value === fontColor) || fontcolorOptions[1];
+    return fontcolorOptions.find(option => option.value === fontColor) || fontcolorOptions[0];
   };
-
+  
   const renderPreviewText = (text) => {
     const currentOption = getCurrentFontColorOption();
-    if (currentOption.useStroke && backgroundImage) {
+    
+    if (currentOption && currentOption.useStroke) {
       return (
         <StrokeText
           text={text}
           fontSize={fontSize}
-          color={currentOption.value}
+          color={currentOption.fillColor || currentOption.value}
           strokeColor={currentOption.strokeColor}
           strokeWidth={currentOption.strokeWidth}
           fontFamily={getFontFamily(selectedFont)}
@@ -112,6 +113,7 @@ export default function LookAndFeel() {
         />
       );
     }
+    
     return (
       <Text
         style={[
@@ -128,7 +130,6 @@ export default function LookAndFeel() {
     );
   };
 
-  // Font Dropdown Modal Component
   const FontDropdownModal = ({ visible, onClose, selectedFont, onFontSelect, fonts, getFontFamily }) => (
     <Modal
       visible={visible}
@@ -137,10 +138,7 @@ export default function LookAndFeel() {
     >
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent,{padding: scale(20),borderRadius: scale(16),}]}>
-          <View style={[
-            styles.modalHeader,
-            { marginBottom: scale(20) }
-          ]}>
+          <View style={[styles.modalHeader, { marginBottom: scale(20) }]}>
             <Text style={[styles.modalTitle, { fontSize: scale(18) }]}>
               {t('selectFont')}
             </Text>
@@ -207,38 +205,61 @@ export default function LookAndFeel() {
     }
   };
 
-  // Font Color Palette Component
-  const FontColorPalette = ({ title, selectedColor, onColorChange }) => (
+  const renderFontColorButton = (color, index) => {
+    const isSelected = fontColor === color.value;
+
+    return (
+      <TouchableOpacity
+        key={`${color.value}-${index}`}
+        style={[
+          styles.inlineColorOption,
+          {
+            width: scale(40),
+            height: scale(40),
+            borderRadius: scale(20),
+            marginHorizontal: scale(4),
+            marginVertical: scale(4),
+          },
+          { backgroundColor: color.fillColor || color.value },
+          isSelected && styles.selectedInlineColorOption,
+        ]}
+        onPress={() => setFontColor(color.value)}
+      >
+        {color.useStroke && (
+          <View style={[
+            styles.outlineIndicator,
+            {
+              width: scale(30),
+              height: scale(30),
+              borderRadius: scale(15),
+              borderWidth: scale(3),
+              borderColor: color.strokeColor,
+            }
+          ]} />
+        )}
+        {(color.fillColor === '#FFFFFF' || color.value === '#FFFFFF') && !color.useStroke && !isSelected && (
+          <View style={[styles.whiteColorBorder, {
+            width: scale(40),
+            height: scale(40),
+            borderRadius: scale(20),
+            position: 'absolute',
+          }]} />
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const FontColorPalette = ({ title, selectedColor }) => (
     <View style={[styles.section, { marginBottom: scale(24) }]}>
       <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
         {title}
       </Text>
       <View style={styles.inlineColorContainer}>
-        {fontcolorOptions.map((color) => (
-          <TouchableOpacity
-            key={color.value}
-            style={[
-              styles.inlineColorOption,
-              {
-                width: scale(40),
-                height: scale(40),
-                borderRadius: scale(20),
-                marginHorizontal: scale(4),
-                marginVertical: scale(4),
-              },
-              { backgroundColor: color.value },
-              (color.value === '#FFFFFF' && selectedColor !== color.value) && styles.whiteColorBorder,
-              selectedColor === color.value && styles.selectedInlineColorOption,
-            ]}
-            onPress={() => onColorChange(color.value)}
-          >
-          </TouchableOpacity>
-        ))}
+        {fontcolorOptions.map((color, index) => renderFontColorButton(color, index))}
       </View>
     </View>
   );
 
-  // Background Color Palette Component (with upload button)
   const BackColorPalette = ({ title, selectedColor, onColorChange }) => (
     <View style={[styles.section, { marginBottom: scale(24) }]}>
       <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
@@ -266,11 +287,9 @@ export default function LookAndFeel() {
               setBackgroundImage(null);
               AsyncStorage.removeItem(STORAGE_KEY_BG_IMAGE);
             }}
-          >
-          </TouchableOpacity>
+          />
         ))}
         
-        {/* Upload Image Button */}
         <TouchableOpacity
           style={[
             styles.inlineColorOption,
@@ -397,7 +416,6 @@ export default function LookAndFeel() {
         ]} 
         showsVerticalScrollIndicator={false}
       >
-        {/* Font Selection */}
         <View style={[styles.section, { marginBottom: scale(24) }]}>
           <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
             {t('font')}
@@ -465,7 +483,6 @@ export default function LookAndFeel() {
         <FontColorPalette 
           title={t('fontColor')}
           selectedColor={fontColor}
-          onColorChange={setFontColor}
         />
 
         {/* Background Color Palette with Image Upload */}
@@ -565,6 +582,10 @@ const styles = StyleSheet.create({
   whiteColorBorder: {
     borderColor: '#ddd',
     borderWidth: 2,
+  },
+  outlineIndicator: {
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   uploadImageButton: {
     backgroundColor: '#f0f0f0',

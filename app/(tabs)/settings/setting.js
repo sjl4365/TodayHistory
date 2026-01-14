@@ -12,6 +12,7 @@ import {
   Alert,
   Image,
   useWindowDimensions,
+  Platform,
 } from 'react-native';
 import mobileAds, {
   BannerAd,
@@ -25,6 +26,7 @@ import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
 import * as Notifications from 'expo-notifications';
+import * as NavigationBar from 'expo-navigation-bar';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 const TAG = 'DAILY_REMINDER';
@@ -48,7 +50,21 @@ export default function SettingsIndex() {
   useEffect(() => {
     navigation.setOptions({
       title: t('settings'),
+      headerShown: true,
     });
+    
+    // Hide navigation bar on Android when this screen is shown
+    if (Platform.OS === 'android') {
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
+    }
+    
+    // Show navigation bar again when leaving this screen
+    return () => {
+      if (Platform.OS === 'android') {
+        NavigationBar.setVisibilityAsync('visible');
+      }
+    };
   }, [currentLanguage, navigation, t]);
 
   // Load notification time when screen comes into focus
@@ -72,10 +88,6 @@ export default function SettingsIndex() {
     { name: '日本語', code: 'ja' },
     { name: '簡体中文', code: 'zh' },
     { name: '繁體中文', code: 'ch' },
-    // {name:'Français',code:'fr'},
-    // {name:'Español',code:'sp'},
-    // {name:'हिन्दी',code:'hin'},
-    // {name:'แบบไทย',code:'th'},
   ];
 
   useEffect(() => {
@@ -149,7 +161,6 @@ export default function SettingsIndex() {
     }
   };
  
-
   const openTwitter = async () => {
     const twitterAppUrl = 'twitter://user?screen_name=Sunnyinnolab';
     const webUrl = 'https://x.com/Sunnyinnolab';
@@ -208,7 +219,6 @@ export default function SettingsIndex() {
       </View>
     </TouchableOpacity>
   );
-
 
   return (
     <View style={styles.container}>
@@ -361,82 +371,82 @@ export default function SettingsIndex() {
             showArrow={false}
           />
         </View>
-      </ScrollView>
 
-      {/* Footer */}
-      <View style={[
-        styles.footerContainer,
-        {
-          paddingTop: scale(12),
-          paddingBottom: scale(16),
-          paddingHorizontal: scale(4),          
-        }
-      ]}>
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: scale(12),
-          width: '100%',
-          paddingHorizontal: scale(4),
-        }}>
-          <Image
-            source={require('../../../assets/images/logo_mini.png')}
-            style={[
-              styles.footerLogo, 
-              { 
-                width: scale(120),
-                height: scale(35),
-              }
-            ]}
-            resizeMode="contain"
-          />
+        {/* Footer - Now inside ScrollView */}
+        <View style={[
+          styles.footerContainer,
+          {
+            paddingTop: scale(16),
+            paddingBottom: scale(8),
+            paddingHorizontal: scale(4),
+          }
+        ]}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: scale(12),
+            width: '100%',
+            paddingHorizontal: scale(4),
+          }}>
+            <Image
+              source={require('../../../assets/images/logo_mini.png')}
+              style={[
+                styles.footerLogo, 
+                { 
+                  width: scale(120),
+                  height: scale(35),
+                }
+              ]}
+              resizeMode="contain"
+            />
+            
+            <View style={styles.footerLinksContainer}>
+              <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
+                <Text style={[
+                  styles.footerLink, 
+                  { 
+                    fontSize: scale(13),
+                    paddingHorizontal: scale(4),
+                  }
+                ]}>
+                  {t('termsOfService')}
+                </Text>
+              </TouchableOpacity>
+              
+              <Text style={[
+                styles.footerSeparator, 
+                { 
+                  fontSize: scale(13),
+                  marginHorizontal: scale(4),
+                }
+              ]}>
+                |
+              </Text>
+              
+              <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
+                <Text style={[
+                  styles.footerLink, 
+                  { 
+                    fontSize: scale(13),
+                    paddingHorizontal: scale(4),
+                  }
+                ]}>
+                  {t('privacyPolicy')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
           
-          <View style={styles.footerLinksContainer}>
-            <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
-              <Text style={[
-                styles.footerLink, 
-                { 
-                  fontSize: scale(13),
-                  paddingHorizontal: scale(4),
-                }
-              ]}>
-                {t('termsOfService')}
-              </Text>
-            </TouchableOpacity>
-            
-            <Text style={[
-              styles.footerSeparator, 
-              { 
-                fontSize: scale(13),
-                marginHorizontal: scale(4),
-              }
-            ]}>
-              |
-            </Text>
-            
-            <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
-              <Text style={[
-                styles.footerLink, 
-                { 
-                  fontSize: scale(13),
-                  paddingHorizontal: scale(4),
-                }
-              ]}>
-                {t('privacyPolicy')}
-              </Text>
-            </TouchableOpacity>
+          <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            <BannerAd
+              unitId={TestIds.BANNER}
+              size={BannerAdSize.FULL_BANNER}
+              requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+            />
           </View>
         </View>
-        
-        <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-          <BannerAd
-            unitId={TestIds.BANNER}
-            size={BannerAdSize.FULL_BANNER}
-            requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          />
-        </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
