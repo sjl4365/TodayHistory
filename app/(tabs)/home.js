@@ -76,11 +76,11 @@ import { BlurView } from "expo-blur";
 import * as Notifications from 'expo-notifications';
 import StrokeText from '../../lib/stroketext';
 
-// mobileAds()
-//   .initialize()
-//   .then(() => {
-//     console.log('[AD] mobileAds initialized');
-//   });
+mobileAds()
+  .initialize()
+  .then(() => {
+    console.log('[AD] mobileAds initialized');
+  });
 
 // 콘솔
 if (__DEV__) {
@@ -3174,158 +3174,180 @@ export default function Home() {
   }
 
 
-  // ✅ ads init을 한 번만 하도록 보장
-  const adsInitRef = useRef(false);
-  const adsInitPromiseRef = useRef(null);
+  // // ✅ ads init을 한 번만 하도록 보장
+  // const adsInitRef = useRef(false);
+  // const adsInitPromiseRef = useRef(null);
 
-  function ensureAdsInitialized() {
-    if (adsInitRef.current) return Promise.resolve(true);
-    if (adsInitPromiseRef.current) return adsInitPromiseRef.current;
+  // function ensureAdsInitialized() {
+  //   if (adsInitRef.current) return Promise.resolve(true);
+  //   if (adsInitPromiseRef.current) return adsInitPromiseRef.current;
 
-    adsInitPromiseRef.current = mobileAds()
-      .initialize()
-      .then(() => {
-        adsInitRef.current = true;
-        return true;
-      })
-      .catch((e) => {
-        adsInitRef.current = false;
-        adsInitPromiseRef.current = null;
-        throw e;
-      });
+  //   adsInitPromiseRef.current = mobileAds()
+  //     .initialize()
+  //     .then(() => {
+  //       adsInitRef.current = true;
+  //       return true;
+  //     })
+  //     .catch((e) => {
+  //       adsInitRef.current = false;
+  //       adsInitPromiseRef.current = null;
+  //       throw e;
+  //     });
 
-    return adsInitPromiseRef.current;
-  }
-
-
-  // 광고 보상 처리 (연도 모드)
-  async function onRewardedForYear() {
-    const now = Date.now();
-    const until = now + REWARD_PASS_DURATION_MS;
-
-    setYearAdUnlockedUntil(until);
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until));
-    } catch (e) { }
-
-    setYearAdPromptVisible(false);
-
-    if (!currentCid || currentCid === "world") return;
-    if (!currentYearPlaylist || !currentYearPlaylist.length) return;
-
-    const nextIdx = (yearCurrentIndex + 1) % currentYearPlaylist.length;
-    applyYearIndex(currentCid, nextIdx);
-    await persistYearIndex(currentCid, nextIdx);
-  }
+  //   return adsInitPromiseRef.current;
+  // }
 
 
-  // 보상형 광고가 로드될 때까지 기다렸다가 show() (로드 전 show 에러 방지)
-  function waitForRewardedLoaded(timeoutMs = 8000) {
-    return new Promise((resolve, reject) => {
-      if (rewardedAd.loaded) {
-        resolve(true);
-        return;
-      }
+  // // 광고 보상 처리 (연도 모드)
+  // async function onRewardedForYear() {
+  //   const now = Date.now();
+  //   const until = now + REWARD_PASS_DURATION_MS;
 
-      let done = false;
-      let unsubLoaded = null;
-      let unsubErr = null;
+  //   setYearAdUnlockedUntil(until);
+  //   try {
+  //     await AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until));
+  //   } catch (e) { }
 
-      const finish = (ok, val) => {
-        if (done) return;
-        done = true;
-        try { unsubLoaded && unsubLoaded(); } catch { }
-        try { unsubErr && unsubErr(); } catch { }
-        if (ok) resolve(val);
-        else reject(val);
-      };
+  //   setYearAdPromptVisible(false);
 
-      const timer = setTimeout(() => {
-        clearTimeout(timer);
-        finish(false, new Error("rewarded_load_timeout"));
-      }, timeoutMs);
+  //   if (!currentCid || currentCid === "world") return;
+  //   if (!currentYearPlaylist || !currentYearPlaylist.length) return;
 
-      unsubLoaded = rewardedAd.addAdEventListener(
-        RewardedAdEventType.LOADED,
-        () => {
-          clearTimeout(timer);
-          finish(true, true);
-        }
-      );
+  //   const nextIdx = (yearCurrentIndex + 1) % currentYearPlaylist.length;
+  //   applyYearIndex(currentCid, nextIdx);
+  //   await persistYearIndex(currentCid, nextIdx);
+  // }
 
-      unsubErr = rewardedAd.addAdEventListener(
-        AdEventType.ERROR,
-        (e) => {
-          clearTimeout(timer);
-          finish(false, e);
-        }
-      );
 
-      try {
-        rewardedAd.load();
-      } catch (e) {
-        clearTimeout(timer);
-        finish(false, e);
-      }
-    });
-  }
+  // // 보상형 광고가 로드될 때까지 기다렸다가 show() (로드 전 show 에러 방지)
+  // function waitForRewardedLoaded(timeoutMs = 8000) {
+  //   return new Promise((resolve, reject) => {
+  //     if (rewardedAd.loaded) {
+  //       resolve(true);
+  //       return;
+  //     }
+
+  //     let done = false;
+  //     let unsubLoaded = null;
+  //     let unsubErr = null;
+
+  //     const finish = (ok, val) => {
+  //       if (done) return;
+  //       done = true;
+  //       try { unsubLoaded && unsubLoaded(); } catch { }
+  //       try { unsubErr && unsubErr(); } catch { }
+  //       if (ok) resolve(val);
+  //       else reject(val);
+  //     };
+
+  //     const timer = setTimeout(() => {
+  //       clearTimeout(timer);
+  //       finish(false, new Error("rewarded_load_timeout"));
+  //     }, timeoutMs);
+
+  //     unsubLoaded = rewardedAd.addAdEventListener(
+  //       RewardedAdEventType.LOADED,
+  //       () => {
+  //         clearTimeout(timer);
+  //         finish(true, true);
+  //       }
+  //     );
+
+  //     unsubErr = rewardedAd.addAdEventListener(
+  //       AdEventType.ERROR,
+  //       (e) => {
+  //         clearTimeout(timer);
+  //         finish(false, e);
+  //       }
+  //     );
+
+  //     try {
+  //       rewardedAd.load();
+  //     } catch (e) {
+  //       clearTimeout(timer);
+  //       finish(false, e);
+  //     }
+  //   });
+  // }
+
+  // ... 기존 코드 ...
 
   async function showRewardedAdForYear() {
+    console.log("📺 [AD] showRewardedAdForYear called");
+    
     if (adShowLockRef.current) return;
+
+    if (!rewardedAd.loaded) {
+      rewardedAd.load();
+      if (Platform.OS === "android") {
+        ToastAndroid.show("광고를 준비 중입니다. 잠시 후 다시 시도해주세요.", ToastAndroid.SHORT);
+      }
+      return;
+    }
+
     adShowLockRef.current = true;
 
-    try {
-      setYearAdPromptVisible(false);
+    // 1. 연도 보상임을 명시
+    pendingNavRef.current = "year_reward";
 
-      // 모달 dismiss + UI 안정화 시간
-      await new Promise((r) => setTimeout(r, 250));
-      await InteractionManager.runAfterInteractions(() => Promise.resolve());
+    // 2. 플래그를 true로 설정
+    shouldShowAdRef.current = true;
 
-      await ensureAdsInitialized();
+    // 3. 연도 전용 모달 닫기
+    setYearAdPromptVisible(false);
 
-      if (!rewardedAd.loaded) {
-        await waitForRewardedLoaded();
-      }
-
-      pendingNavRef.current = "year_reward";
-
-      rewardedAd.show();
-    } catch (e) {
-      console.warn("[AD] showRewardedAdForYear failed", e);
-      pendingNavRef.current = null;
-      try { rewardedAd.load(); } catch { }
-    } finally {
-      adShowLockRef.current = false;
-    }
+    // // 3️⃣ [중요] 모달이 완전히 사라질 시간을 준 뒤 광고를 실행합니다.
+    // setTimeout(() => {
+    //   console.log("🎬 [AD] Showing rewarded ad now (after delay)");
+    //   try {
+    //     rewardedAd.show();
+    //   } catch (e) {
+    //     console.error("❌ [AD] Show failed:", e);
+    //     adShowLockRef.current = false;
+    //     pendingNavRef.current = null;
+    //   }
+    // }, 1000); // 0.5초 지연
   }
 
 
-  // 월드 모드용 광고 보여주기 함수
   async function showRewardedAdForWorld() {
+    console.log("📺 [AD] showRewardedAdForWorld called");
+    
     if (adShowLockRef.current) return;
-    adShowLockRef.current = true;
 
-    try {
+    if (!rewardedAd.loaded) {
+      rewardedAd.load();
+      if (Platform.OS === "android") {
+        ToastAndroid.show("광고를 준비 중입니다. 잠시 후 다시 시도해주세요.", ToastAndroid.SHORT);
+      }
+      return;
+    }
+    // 작업 시작: 락(Lock) 걸기
+      adShowLockRef.current = true;
+      
+      // 1. 보상 타입 설정 (이미 이전에 설정되었다면 생략 가능하지만 명시하면 안전함)
+      // 예: pendingNavRef.current = "world_today_more"; 
+
+      // 2. 플래그를 true로 설정 (onDismiss에서 광고를 띄우게 함)
+      shouldShowAdRef.current = true; 
+      
+      // 3. 모달 닫기
       setAdPromptVisible(false);
 
-      await new Promise((r) => setTimeout(r, 250));
-      await InteractionManager.runAfterInteractions(() => Promise.resolve());
+    // 2️⃣ pendingNavRef는 이미 설정됨 (-1, 1, 'world_today_more')
 
-      await ensureAdsInitialized();
-
-      if (!rewardedAd.loaded) {
-        await waitForRewardedLoaded();
-      }
-
-      rewardedAd.show();
-    } catch (e) {
-      console.warn("[AD] showWorld failed", e);
-      try { rewardedAd.load(); } catch { }
-    } finally {
-      adShowLockRef.current = false;
-    }
+    // 3️⃣ [중요] 모달이 완전히 사라질 시간을 준 뒤 광고를 실행합니다.
+    // setTimeout(() => {
+    //   console.log("🎬 [AD] Showing rewarded ad for:", pendingNavRef.current);
+    //   try {
+    //     rewardedAd.show();
+    //   } catch (e) {
+    //     console.error("❌ [AD] Show failed:", e);
+    //     adShowLockRef.current = false;
+    //     pendingNavRef.current = null;
+    //   }
+    // }, 1000); // 0.5초 지연
   }
-
 
 
   const STORAGE_KEY_SEEN_YEAR_PREFIX = "@seen_year_v1:";
@@ -3838,6 +3860,8 @@ export default function Home() {
   const [adPromptVisible, setAdPromptVisible] = useState(false); // "광고 시청 후 이용 가능" 알림창
   const [rewardedLoaded, setRewardedLoaded] = useState(false);   // 광고 로딩 여부
   const pendingNavRef = useRef(null); // -1(어제), +1(내일) 저장
+  const rewardEarnedRef = useRef(false);
+  const shouldShowAdRef = useRef(false); // ✅ 이 줄을 추가하세요
   const [rewardPassUntil, setRewardPassUntil] = useState(0);
   const [worldTodayFreeCount, setWorldTodayFreeCount] = useState(0);
   const worldTodayFreeKeyRef = useRef(null);
@@ -3874,6 +3898,11 @@ export default function Home() {
     },
     [isWorldMode, isYearMode, yearYears]
   );
+  // ⭐ goBy를 ref로 감싸기
+  const goByRef = useRef(goBy);
+  useEffect(() => {
+    goByRef.current = goBy;
+  }, [goBy]);
 
 
 
@@ -3932,92 +3961,119 @@ export default function Home() {
     };
   }, [isYearMode, todayParts?.y, todayParts?.m, todayParts?.d]);
 
-  useEffect(() => {
-    let isMounted = true;
+useEffect(() => {
+    console.log("[AD] Setting up rewarded listener");
 
-    console.log("[AD] setup rewarded listener");
+    rewardedAd.load();
 
-    const unsubscribe = rewardedAd.addAdEventsListener(({ type, payload }) => {
-      console.log("[AD] event =", type);
-
-      // 광고 로드 완료
-      if (type === RewardedAdEventType.LOADED) {
+    const unsubLoaded = rewardedAd.addAdEventListener(
+      RewardedAdEventType.LOADED,
+      () => {
+        console.log("[AD] ✅ Rewarded ad loaded");
         setRewardedLoaded(true);
       }
+    );
 
-      // 광고 끝까지 시청 → 날짜 이동 + 12시간 패스 부여
-      // 광고 시청 완료 시 보상 처리 로직 통합
-      if (type === RewardedAdEventType.EARNED_REWARD) {
+    // 1️⃣ EARNED_REWARD: 여기서는 무거운 UI 작업(setState, fetch)을 하지 않고 플래그만 세웁니다.
+    const unsubEarn = rewardedAd.addAdEventListener(
+      RewardedAdEventType.EARNED_REWARD,
+      async () => {
+        console.log("===========================================");
+        console.log("[AD] 🎁 REWARD EARNED! (Flag set)");
+        console.log("===========================================");
+        
+        // 보상을 받았음을 표시
+        rewardEarnedRef.current = true;
+        
+        // AsyncStorage 저장은 UI 스레드를 막지 않으므로 여기서 해도 괜찮습니다.
         const pending = pendingNavRef.current;
+        const now = Date.now();
+        const duration = 12 * 60 * 60 * 1000; // REWARD_PASS_DURATION_MS
 
-        // 1. 월드 모드: 어제(-1) 또는 내일(+1) 이동 예약인 경우
-        if (pending === -1 || pending === 1) {
-          const until = Date.now() + REWARD_PASS_DURATION_MS; // 12시간 패스 부여
-          setRewardPassUntil(until);
-          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
-
-          goBy(pending); // 예약된 방향으로 자동 이동
+        if (pending === -1 || pending === 1 || pending === "world_today_more") {
+             const until = now + duration;
+             setRewardPassUntil(until); // State 업데이트는 예약되지만 렌더링은 광고 뒤로 밀릴 수 있음
+             AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(()=>{});
+        } else if (pending === "year_reward") {
+             const until = now + duration;
+             setYearAdUnlockedUntil(until);
+             AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until)).catch(()=>{});
         }
-
-        // 1-2. 월드 모드: "오늘 3회 이후" 더 보기(새로고침) 잠금 해제
-        else if (pending === "world_today_more") {
-          const until = Date.now() + REWARD_PASS_DURATION_MS; // 12시간 패스 부여
-          setRewardPassUntil(until);
-          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
-
-          // 광고 시청 직후, 현재 화면(오늘)에서 바로 1회 새로고침 수행
-          setIsRefreshing(true);
-          setRefreshTick((t) => t + 1);
-        }
-
-        else if (pending === "year_reward") {
-          onRewardedForYear();
-        }
-
-        // 공통 정리
-        pendingNavRef.current = null;
-        setAdPromptVisible(false);     // 월드 모달 닫기
-        setYearAdPromptVisible(false); // 연도 모달 닫기 (확실히 하기 위해 추가)
-        setRewardedLoaded(false);
       }
+    );
 
-      // 광고 닫힘 (중간에 닫은 경우 포함)
-      if (type === AdEventType.CLOSED) {
-        console.log("[AD] closed");
+    // 2️⃣ CLOSED: 광고가 닫힌 후, UI를 업데이트하고 화면을 이동합니다. (Freeze 방지 핵심)
+    const unsubClose = rewardedAd.addAdEventListener(
+      AdEventType.CLOSED,
+      () => {
+        console.log("[AD] 🚪 Ad closed");
+
+        // 광고가 닫힌 직후 안전하게 실행
+        InteractionManager.runAfterInteractions(() => {
+          
+          // 보상을 받은 상태라면 여기서 실제 네비게이션/새로고침 수행
+          if (rewardEarnedRef.current) {
+            console.log("[AD] ⚡ Executing deferred action for:", pendingNavRef.current);
+            const pending = pendingNavRef.current;
+
+            if (pending === -1 || pending === 1) {
+              goByRef.current(pending); 
+            } 
+            else if (pending === "world_today_more") {
+              setIsRefreshing(true);
+              setRefreshTick((t) => t + 1);
+            } 
+            else if (pending === "year_reward") {
+              if (currentCid && currentCid !== "world" && currentYearPlaylist?.length) {
+                 const nextIdx = (yearCurrentIndex + 1) % currentYearPlaylist.length;
+                 applyYearIndex(currentCid, nextIdx);
+                 persistYearIndex(currentCid, nextIdx);
+              }
+            }
+            
+            // 플래그 초기화
+            rewardEarnedRef.current = false;
+          }
+
+          // 상태 초기화 및 다음 광고 로드
+          setRewardedLoaded(false);
+          setAdPromptVisible(false);
+          setYearAdPromptVisible(false);
+          pendingNavRef.current = null;
+          adShowLockRef.current = false; 
+          
+          console.log("[AD] 🔄 Loading next ad");
+          rewardedAd.load();
+        });
+      }
+    );
+
+    const unsubError = rewardedAd.addAdEventListener(
+      AdEventType.ERROR,
+      (error) => {
+        console.error("[AD] ❌ Error:", error);
+        setRewardedLoaded(false);
         setAdPromptVisible(false);
         setYearAdPromptVisible(false);
         pendingNavRef.current = null;
-        setRewardedLoaded(false);
-
-        // 광고 완전히 닫힌 시점에서만 다음 광고 미리 로드
-        rewardedAd.load();
+        adShowLockRef.current = false;
+        rewardEarnedRef.current = false; // 에러 시 플래그 초기화
+        
+        // 재시도 로직
+        setTimeout(() => {
+            rewardedAd.load();
+        }, 2000);
       }
-
-      // 에러
-      if (type === AdEventType.ERROR) {
-        console.warn("[AD] error:", payload);
-        setAdPromptVisible(false);
-        pendingNavRef.current = null;
-        setRewardedLoaded(false);
-      }
-    });
-
-    // iOS 포함 전체에서 SDK 먼저 초기화 후 로드
-    ensureAdsInitialized()
-      .then(() => {
-        if (!isMounted) return;
-        console.log("[AD] mobileAds initialized, load rewarded");
-        rewardedAd.load();
-      })
-      .catch((e) => console.warn("[AD] init failed", e));
+    );
 
     return () => {
-      isMounted = false;
-      console.log("[AD] cleanup rewarded listener");
-      unsubscribe();
-      rewardedAd.removeAllListeners();
+      console.log("[AD] Cleanup");
+      unsubLoaded();
+      unsubEarn();
+      unsubClose();
+      unsubError();
     };
-  }, [goBy]);
+  }, []);
 
 
 
@@ -5696,6 +5752,13 @@ export default function Home() {
           {/* 연도 모드용 광고 모달 */}
           <Modal
             visible={adPromptVisible}
+            onDismiss={() => {
+              // 모달이 화면에서 완전히 사라진 "직후"에 실행됨
+              if (shouldShowAdRef.current) {
+                shouldShowAdRef.current = false;
+                rewardedAd.show();
+              }
+            }}
             transparent
             animationType="fade"
             onRequestClose={() => setAdPromptVisible(false)}
@@ -5735,7 +5798,16 @@ export default function Home() {
             visible={yearAdPromptVisible}
             transparent
             animationType="fade"
-            onRequestClose={handleCloseYearAdPrompt}
+            onDismiss={() => {
+              // 모달이 완전히 사라진 후 광고 실행
+              if (shouldShowAdRef.current) {
+                shouldShowAdRef.current = false; // 플래그 초기화
+                console.log("🎬 [AD] Showing year reward ad via onDismiss");
+                rewardedAd.show();
+              }
+            }}
+            onRequestClose={() => setYearAdPromptVisible(false)}
+            
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
               <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
