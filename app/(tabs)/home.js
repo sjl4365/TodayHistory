@@ -348,55 +348,76 @@ const UI_STR = {
 
 const AD_MODAL_TEXT = {
   en: {
-    title: "Use the history of yesterday and tomorrow",
+    title: "Enjoy Histree Pro for 12 Hours",
     description:
-      "Watch one ad to enjoy 12 hours of ad-free access to 'Yesterday, Today & Tomorrow' and 'Random Year History'.",
-    badge: "Enjoy all features · No ads",
-    cta: "Watch Ad for Free Access",
+      "Watch one ad and get:\n" +
+      "- No video ads\n" +
+      "- Explore more historical events\n" +
+      "- Access to Yesterday and Tomorrow in World History",
+    cta: "Watch Ad",
   },
+
   ko: {
-    title: "어제와 내일의 역사 사용",
+    title: "Histree Pro 12시간 무료 이용",
     description:
-      "광고를 한번 시청하면, ‘어제와 오늘과 내일의 역사’및 '랜덤 연도 역사'를 12시간 동안 동영상 광고 없이 자유롭게 이용할 수 있습니다.",
-    badge: "모든 기능 이용 · 광고 없음",
-    cta: "광고 보고 무료 이용",
+      "광고 1회 시청 시 다음 혜택을 제공합니다:\n" +
+      "- 동영상 광고 없이 이용\n" +
+      "- 한·중·일의 더 많은 역사 이벤트 탐색\n" +
+      "- 세계 역사 ‘어제·내일’ 이용 가능",
+    cta: "광고 보기",
   },
+
   ja: {
-    title: "昨日と明日の歴史を利用",
+    title: "Histree Pro を12時間無料で利用",
     description:
-      "広告を1回視聴すると、12時間『昨日・今日・明日の歴史』および『ランダム年表』を動画広告なしで自由にご利用いただけます。",
-    badge: "全機能利用 · 広告なし",
-    cta: "広告視聴で無料利用",
+      "広告を1回視聴すると、以下の特典があります。\n" +
+      "- 動画広告なしで利用可能\n" +
+      "- 日・韓・中のより多くの歴史的出来事を探索\n" +
+      "- 世界史の「昨日・明日」を利用可能",
+    cta: "広告を見る",
   },
+
   sc: {
-    title: "使用“昨日与明日的历史”",
+    title: "免费使用 Histree Pro 12 小时",
     description:
-      "观看一次广告，即可在 12 小时内无视频广告体验“昨日、今日与明日的历史”及“随机年份历史”。",
-    badge: "全部功能 · 无广告",
-    cta: "看广告免费使用",
+      "观看 1 次广告即可获得以下权益：\n" +
+      "- 无视频广告\n" +
+      "- 探索更多日韩中的历史事件\n" +
+      "- 可查看世界历史的昨天与明天",
+    cta: "看广告",
   },
+
   tc: {
-    title: "使用「昨日與明日的歷史」",
+    title: "免費使用 Histree Pro 12 小時",
     description:
-      "觀看一次廣告，即可在 12 小時內無影片廣告體驗「昨日、今日與明日的歷史」及「隨機年份歷史」。",
-    badge: "全部功能 · 無廣告",
-    cta: "看廣告免費使用",
+      "觀看 1 次廣告即可獲得以下權益：\n" +
+      "- 無影片廣告\n" +
+      "- 探索更多日韓中的歷史事件\n" +
+      "- 可查看世界歷史的昨天與明天",
+    cta: "看廣告",
   },
+
   es: {
-    title: "Usar la historia de ayer y de mañana.",
+    title: "Disfruta de Histree Pro durante 12 horas",
     description:
-      "Mira un anuncio para disfrutar de 12 horas de acceso sin publicidad a 'Ayer, Hoy y Mañana' y 'Historia de un Año Aleatorio'.",
-    badge: "Todas las funciones · Sin anuncios",
-    cta: "Uso gratuito al ver un anuncio",
+      "Mira un anuncio y obtén:\n" +
+      "- Sin anuncios de video\n" +
+      "- Explora más eventos históricos\n" +
+      "- Accede al ayer y al mañana de la historia mundial",
+    cta: "Ver anuncio",
   },
+
   fr: {
-    title: "Utiliser l’histoire d’hier et de demain.",
+    title: "Profitez de Histree Pro pendant 12 heures",
     description:
-      "Regardez une publicité pour profiter de 12 heures d'accès sans publicité à 'Hier, Aujourd'hui et Demain' et 'Histoire d'une Année Aléatoire'.",
-    badge: "Toutes les fonctions · Sans pub",
-    cta: "Usage gratuit après publicité",
+      "Regardez une publicité et profitez de :\n" +
+      "- Sans publicité vidéo\n" +
+      "- Explorez davantage d’événements historiques\n" +
+      "- Accès au passé et au futur de l’histoire mondiale",
+    cta: "Voir la publicité",
   },
 };
+
 
 const AD_YEAR_MODAL_TEXT = {
   en: {
