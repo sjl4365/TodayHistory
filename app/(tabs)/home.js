@@ -217,12 +217,20 @@ const COUNTRY_CFG = {
 
 
 
+
 const DEFAULT_COUNTRIES_BY_LANG = {
   en: ["world"],
   ko: ["korea"],
   ja: ["japan"],
+
+  sc: ["china"],
+  tc: ["china"],
+
   "zh-Hans": ["china"],
   "zh-Hant": ["china"],
+  "zh-hans": ["china"],
+  "zh-hant": ["china"],
+
   es: ["world"],
   fr: ["world"],
   default: ["world"],
@@ -638,30 +646,45 @@ function safeFormatParts(date, tz) {
 
 
 // 유틸
+// 유틸
 function resolveUiLangFromDevice() {
   try {
     const locales = Localization.getLocales?.();
     if (Array.isArray(locales) && locales.length > 0) {
-      const code = String(locales[0].languageCode || "").toLowerCase();
-      if (code === "ko") return "ko";
-      if (code === "ja") return "ja";
-      if (code === "en") return "en";
-      if (code === "zh") return "sc"; // 기본은 간체
+      const l0 = locales[0] || {};
+      const languageCode = String(l0.languageCode || "").toLowerCase(); // ko/ja/en/zh
+      const scriptCode = String(l0.scriptCode || "").toLowerCase();     // hans/hant
+      const languageTag = String(l0.languageTag || l0.localeIdentifier || "").toLowerCase(); // zh-hant, zh-tw...
+
+      if (languageCode === "ko") return "ko";
+      if (languageCode === "ja") return "ja";
+      if (languageCode === "en") return "en";
+
+      if (languageCode === "zh") {
+        if (scriptCode === "hant") return "tc";
+        if (scriptCode === "hans") return "sc";
+
+        if (languageTag.includes("hant")) return "tc";
+        if (languageTag.includes("hans")) return "sc";
+
+        if (
+          languageTag.includes("-tw") || languageTag.includes("_tw") ||
+          languageTag.includes("-hk") || languageTag.includes("_hk") ||
+          languageTag.includes("-mo") || languageTag.includes("_mo")
+        ) return "tc";
+
+        return "sc";
+      }
+
       return "en";
     }
   } catch (e) {
     console.log("[LOCALIZATION] getLocales error:", e);
   }
 
+  // fallback
   const raw = Localization.locale || "en";
-  const tag = String(raw).toLowerCase();
-  const base = tag.split(/[-_]/)[0];
-
-  if (base === "ko") return "ko";
-  if (base === "ja") return "ja";
-  if (base === "en") return "en";
-  if (base === "zh") return "sc";
-  return "en";
+  return normalizeUiLang(raw, "en");
 }
 
 
@@ -678,25 +701,25 @@ function normalizeUiLang(value, fallback = "en") {
   if (v === "tc") return "tc";
   if (v === "es") return "es";
   if (v === "fr") return "fr";
+  if (v === "zh-hant") return "tc";
+  if (v === "zh-hans") return "sc";
 
   // 2) 중국어 변형들: 값 전체에서 판단
   //   - zh-Hant / zh_TW / zh-HK 등 → 번체(tc)
+  // 번체(tc)
   if (
     v.includes("zh-hant") ||
-    v.includes("zh_tw") ||
-    v.includes("zh-hk")
-  ) {
-    return "tc";
-  }
+    v.includes("zh_tw") || v.includes("zh-tw") ||
+    v.includes("zh_hk") || v.includes("zh-hk") ||
+    v.includes("zh_mo") || v.includes("zh-mo")
+  ) return "tc";
 
-  //   - zh-Hans / zh_CN / zh-SG 등 → 간체(sc)
+  // 간체(sc)
   if (
     v.includes("zh-hans") ||
-    v.includes("zh_cn") ||
-    v.includes("zh-sg")
-  ) {
-    return "sc";
-  }
+    v.includes("zh_cn") || v.includes("zh-cn") ||
+    v.includes("zh_sg") || v.includes("zh-sg")
+  ) return "sc";
 
   //   - 그냥 zh 만 들어오면 기본은 간체(sc)
   if (v === "zh") return "sc";
@@ -711,7 +734,6 @@ function normalizeUiLang(value, fallback = "en") {
 
   return fallback;
 }
-
 
 
 
@@ -764,21 +786,24 @@ function bodyOfRowByLang(raw, uiLang, cid) {
 
   let order;
 
-  if (base === "sc" || base === "tc" || base === "zh") {
-    // 중국어 UI → 간체/번체 우선, 없으면 영어 → 한 → 일
+  if (base === "tc") {
+    order = ["tc", "sc", "English", "한국어", "日本語"];
+  }
+  else if (base === "sc" || base === "zh") {
     order = ["sc", "tc", "English", "한국어", "日本語"];
-  } else if (base === "ko") {
+  }
+  else if (base === "ko") {
     order = ["한국어", "English", "日本語", "sc", "tc"];
-  } else if (base === "ja") {
+  }
+  else if (base === "ja") {
     order = ["日本語", "English", "한국어", "sc", "tc"];
-  } else {
-    // 기본 영어
+  }
+  else {
     order = ["English", "한국어", "日本語", "sc", "tc"];
   }
 
   return pickFirstNonEmpty(raw, order);
 }
-
 
 // 앵커(언어별, URL 없으면 제외)
 function getAnchorsForLang(row, lang) {
@@ -1481,22 +1506,22 @@ async function bestWikiThumb(rawUrl, desiredPx = 640) {
 function getCurrentFontColorOption(fontColor) {
   const option = fontColorOptions.find(opt => opt.value === fontColor);
   if (option) return option;
-  
+
   // Fallback: if the saved color is a hex code that matches an outline option's fillColor
   // (for backward compatibility with old saved data)
-  const legacyOption = fontColorOptions.find(opt => 
+  const legacyOption = fontColorOptions.find(opt =>
     opt.useStroke && opt.fillColor === fontColor
   );
   if (legacyOption) return legacyOption;
-  
+
   return fontColorOptions[0]; // Default to Black
 }
 
 function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, customBgImage) {
   console.log('📝 [RENDER] fontColor received:', fontColor);
-  
+
   const currentOption = getCurrentFontColorOption(fontColor);
-  
+
   console.log('📝 [RENDER] currentOption:', {
     name: currentOption.name,
     value: currentOption.value,
@@ -2422,7 +2447,7 @@ function formatEventDateLabel(eventYearRaw, todayParts, uiLang, tz) {
     dateStr = `${yearNum}년 ${mNum}월 ${dNum}일`;
   } else if (uiLang === "ja") {
     dateStr = `${yearNum}年${mNum}月${dNum}日`;
-  } else if (uiLang === "zh") {
+  } else if (uiLang === "sc" || uiLang === "tc") {
     dateStr = `${yearNum}年${mNum}月${dNum}日`;
   } else {
     const monthNames = [
@@ -2565,8 +2590,8 @@ function normalizeItemsToRows(items, iso, parts) {
         English: it.en || it.English || "",
         "한국어": it.ko || it["한국어"] || "",
         "日本語": it.ja || it["日本語"] || "",
-        sc: it.sc || it.sc || "",
-        tc: it.tc || it.tc || "",
+        sc: it.sc || it["简体中文"] || it["zh-Hans"] || it["zh-hans"] || "",
+        tc: it.tc || it["繁體中文"] || it["zh-Hant"] || it["zh-hant"] || "",
 
         // 여기!
         enAnchors: cleanAnchors(it.enAnchors),
@@ -3274,7 +3299,7 @@ export default function Home() {
 
   async function showRewardedAdForYear() {
     console.log("📺 [AD] showRewardedAdForYear called");
-    
+
     if (adShowLockRef.current) return;
 
     if (!rewardedAd.loaded) {
@@ -3307,12 +3332,29 @@ export default function Home() {
     //     pendingNavRef.current = null;
     //   }
     // }, 1000); // 0.5초 지연
+
+
+    // ✅ 안드로이드는 onDismiss 믿지 말고 여기서 show()까지 실행
+    if (Platform.OS === "android") {
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => {
+          try {
+            console.log("🎬 [AD] Showing year reward ad (android)");
+            rewardedAd.show();
+          } catch (e) {
+            console.error("❌ [AD] Show failed:", e);
+            adShowLockRef.current = false;
+            pendingNavRef.current = null;
+          }
+        }, 250);
+      });
+    }
   }
 
 
   async function showRewardedAdForWorld() {
     console.log("📺 [AD] showRewardedAdForWorld called");
-    
+
     if (adShowLockRef.current) return;
 
     if (!rewardedAd.loaded) {
@@ -3323,16 +3365,16 @@ export default function Home() {
       return;
     }
     // 작업 시작: 락(Lock) 걸기
-      adShowLockRef.current = true;
-      
-      // 1. 보상 타입 설정 (이미 이전에 설정되었다면 생략 가능하지만 명시하면 안전함)
-      // 예: pendingNavRef.current = "world_today_more"; 
+    adShowLockRef.current = true;
 
-      // 2. 플래그를 true로 설정 (onDismiss에서 광고를 띄우게 함)
-      shouldShowAdRef.current = true; 
-      
-      // 3. 모달 닫기
-      setAdPromptVisible(false);
+    // 1. 보상 타입 설정 (이미 이전에 설정되었다면 생략 가능하지만 명시하면 안전함)
+    // 예: pendingNavRef.current = "world_today_more"; 
+
+    // 2. 플래그를 true로 설정 (onDismiss에서 광고를 띄우게 함)
+    shouldShowAdRef.current = true;
+
+    // 3. 모달 닫기
+    setAdPromptVisible(false);
 
     // 2️⃣ pendingNavRef는 이미 설정됨 (-1, 1, 'world_today_more')
 
@@ -3347,6 +3389,20 @@ export default function Home() {
     //     pendingNavRef.current = null;
     //   }
     // }, 1000); // 0.5초 지연
+    if (Platform.OS === "android") {
+      InteractionManager.runAfterInteractions(() => {
+        setTimeout(() => {
+          try {
+            console.log("🎬 [AD] Showing world reward ad (android)");
+            rewardedAd.show();
+          } catch (e) {
+            console.error("❌ [AD] Show failed:", e);
+            adShowLockRef.current = false;
+            pendingNavRef.current = null;
+          }
+        }, 250);
+      });
+    }
   }
 
 
@@ -3961,7 +4017,7 @@ export default function Home() {
     };
   }, [isYearMode, todayParts?.y, todayParts?.m, todayParts?.d]);
 
-useEffect(() => {
+  useEffect(() => {
     console.log("[AD] Setting up rewarded listener");
 
     rewardedAd.load();
@@ -3981,23 +4037,23 @@ useEffect(() => {
         console.log("===========================================");
         console.log("[AD] 🎁 REWARD EARNED! (Flag set)");
         console.log("===========================================");
-        
+
         // 보상을 받았음을 표시
         rewardEarnedRef.current = true;
-        
+
         // AsyncStorage 저장은 UI 스레드를 막지 않으므로 여기서 해도 괜찮습니다.
         const pending = pendingNavRef.current;
         const now = Date.now();
         const duration = 12 * 60 * 60 * 1000; // REWARD_PASS_DURATION_MS
 
         if (pending === -1 || pending === 1 || pending === "world_today_more") {
-             const until = now + duration;
-             setRewardPassUntil(until); // State 업데이트는 예약되지만 렌더링은 광고 뒤로 밀릴 수 있음
-             AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(()=>{});
+          const until = now + duration;
+          setRewardPassUntil(until); // State 업데이트는 예약되지만 렌더링은 광고 뒤로 밀릴 수 있음
+          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
         } else if (pending === "year_reward") {
-             const until = now + duration;
-             setYearAdUnlockedUntil(until);
-             AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until)).catch(()=>{});
+          const until = now + duration;
+          setYearAdUnlockedUntil(until);
+          AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until)).catch(() => { });
         }
       }
     );
@@ -4010,27 +4066,27 @@ useEffect(() => {
 
         // 광고가 닫힌 직후 안전하게 실행
         InteractionManager.runAfterInteractions(() => {
-          
+
           // 보상을 받은 상태라면 여기서 실제 네비게이션/새로고침 수행
           if (rewardEarnedRef.current) {
             console.log("[AD] ⚡ Executing deferred action for:", pendingNavRef.current);
             const pending = pendingNavRef.current;
 
             if (pending === -1 || pending === 1) {
-              goByRef.current(pending); 
-            } 
+              goByRef.current(pending);
+            }
             else if (pending === "world_today_more") {
               setIsRefreshing(true);
               setRefreshTick((t) => t + 1);
-            } 
+            }
             else if (pending === "year_reward") {
               if (currentCid && currentCid !== "world" && currentYearPlaylist?.length) {
-                 const nextIdx = (yearCurrentIndex + 1) % currentYearPlaylist.length;
-                 applyYearIndex(currentCid, nextIdx);
-                 persistYearIndex(currentCid, nextIdx);
+                const nextIdx = (yearCurrentIndex + 1) % currentYearPlaylist.length;
+                applyYearIndex(currentCid, nextIdx);
+                persistYearIndex(currentCid, nextIdx);
               }
             }
-            
+
             // 플래그 초기화
             rewardEarnedRef.current = false;
           }
@@ -4040,8 +4096,8 @@ useEffect(() => {
           setAdPromptVisible(false);
           setYearAdPromptVisible(false);
           pendingNavRef.current = null;
-          adShowLockRef.current = false; 
-          
+          adShowLockRef.current = false;
+
           console.log("[AD] 🔄 Loading next ad");
           rewardedAd.load();
         });
@@ -4058,10 +4114,10 @@ useEffect(() => {
         pendingNavRef.current = null;
         adShowLockRef.current = false;
         rewardEarnedRef.current = false; // 에러 시 플래그 초기화
-        
+
         // 재시도 로직
         setTimeout(() => {
-            rewardedAd.load();
+          rewardedAd.load();
         }, 2000);
       }
     );
@@ -5753,6 +5809,8 @@ useEffect(() => {
           <Modal
             visible={adPromptVisible}
             onDismiss={() => {
+              if (Platform.OS !== "ios") return;
+
               // 모달이 화면에서 완전히 사라진 "직후"에 실행됨
               if (shouldShowAdRef.current) {
                 shouldShowAdRef.current = false;
@@ -5807,7 +5865,7 @@ useEffect(() => {
               }
             }}
             onRequestClose={() => setYearAdPromptVisible(false)}
-            
+
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
               <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>

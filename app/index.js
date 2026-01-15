@@ -2,11 +2,12 @@
 import React, { useEffect } from "react";
 import { View, ImageBackground, StyleSheet } from "react-native";
 import { router } from "expo-router";
+import { Image } from "expo-image";
 
 export default function Index() {
   useEffect(() => {
     const t = setTimeout(() => {
-      router.replace("/(tabs)/home");
+router.push("/(tabs)/home");
     }, 2000); 
 
     return () => clearTimeout(t);
@@ -14,10 +15,10 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <ImageBackground
+      <Image
         source={require("../assets/splash.png")}
         style={styles.bg}
-        resizeMode="cover"
+        contentFit="cover"
       />
     </View>
   );
