@@ -419,59 +419,6 @@ const AD_MODAL_TEXT = {
 };
 
 
-const AD_YEAR_MODAL_TEXT = {
-  en: {
-    title: "See more history events",
-    description:
-      "Watch an ad to see more history events, without video ads, for the next 12 hours.",
-    badge: "More events · Fewer ads",
-    cta: "Watch Ad for Free Access",
-  },
-  ko: {
-    title: "더 많은 역사 이벤트 보기",
-    description:
-      "광고를 시청하면 다음 12시간 동안 동영상 광고 없이 더 많은 역사 이벤트를 볼 수 있습니다.",
-    badge: "더 많은 이벤트 · 광고 없음",
-    cta: "광고 보고 무료 이용",
-  },
-  ja: {
-    title: "より多くの歴史イベントを見る",
-    description:
-      "広告を視聴すると、次の12時間は動画広告なしで、より多くの歴史イベントを見ることができます。",
-    badge: "イベント追加 · 広告なし",
-    cta: "広告視聴で無料利用",
-  },
-  sc: {
-    title: "查看更多历史事件",
-    description:
-      "观看广告后，接下来的12小时内即可在无视频广告的情况下查看更多历史事件。",
-    badge: "更多事件 · 无广告",
-    cta: "看广告免费使用",
-  },
-  tc: {
-    title: "查看更多歷史事件",
-    description:
-      "觀看廣告後，接下來的12小時內即可在無影片廣告的情況下查看更多歷史事件。",
-    badge: "更多事件 · 無廣告",
-    cta: "看廣告免費使用",
-  },
-  es: {
-    title: "Ver más eventos históricos",
-    description:
-      "Al ver un anuncio, podrás ver más eventos históricos sin anuncios de video durante las próximas 12 horas.",
-    badge: "Más eventos · Sin anuncios",
-    cta: "Uso gratuito al ver un anuncio",
-  },
-  fr: {
-    title: "Voir plus d’événements historiques",
-    description:
-      "En regardant une publicité, vous pouvez consulter davantage d’événements historiques sans publicités vidéo pendant les 12 prochaines heures.",
-    badge: "Plus d’événements · Sans pub",
-    cta: "Usage gratuit après publicité",
-  },
-};
-
-
 
 
 const SOURCE_LABEL = { ko: "출처", en: "Source", ja: "出典" };
@@ -5955,13 +5902,13 @@ export default function Home() {
                   </Pressable>
                 </View>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: "#10B981", marginBottom: 4 }}>
-                  {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).badge}
+                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).badge}
                 </Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: "#111827", marginBottom: 8 }}>
-                  {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).title}
+                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
                 </Text>
                 <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
-                  {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).description}
+                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).description}
                 </Text>
                 <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
                   <Pressable
@@ -5969,7 +5916,7 @@ export default function Home() {
                     style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
                   >
                     <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
-                      {(AD_YEAR_MODAL_TEXT[uiLang] || AD_YEAR_MODAL_TEXT.en).cta}
+                      {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
                     </Text>
                   </Pressable>
                 </View>
