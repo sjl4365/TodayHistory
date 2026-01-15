@@ -3,7 +3,7 @@
     "name": "Histree",
     "slug": "todayhistory",
     "owner": "todayhistory",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -13,13 +13,14 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash_icon.png",
       "resizeMode": "cover",
       "backgroundColor": "#111827"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sunnyinnolab.Histree"
+      "bundleIdentifier": "com.sunnyinnolab.Histree",
+      "buildNumber": "1"
     },
     "android": {
       "package": "com.todayhistory.todayhistory",
@@ -29,9 +30,11 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "splash": {
-        "backgroundColor": "#111827"
-      }
+        "splash": {
+      "image": "./assets/splash_icon.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#111827"
+    }
     },
     "web": {
       "favicon": "./assets/favicon.png"
