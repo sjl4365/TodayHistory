@@ -5881,7 +5881,7 @@ export default function Home() {
                 <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
                   {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).description}
                 </Text>
-                <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+                <View style={{ flexDirection: "row",justifyContent: "center"}}>
                   <Pressable
                     onPress={showRewardedAdForWorld}
                     style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
@@ -5927,7 +5927,7 @@ export default function Home() {
                 <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
                   {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).description}
                 </Text>
-                <View style={{ flexDirection: "row", justifyContent: "flex-end" }}>
+                <View style={{ flexDirection: "row", justifyContent: "center" }}>
                   <Pressable
                     onPress={showRewardedAdForYear}
                     style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
