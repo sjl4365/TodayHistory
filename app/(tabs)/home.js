@@ -75,6 +75,7 @@ import mobileAds, {
 import { BlurView } from "expo-blur";
 import * as Notifications from 'expo-notifications';
 import StrokeText from '../../lib/stroketext';
+import { useCapsuleToast } from "../../components/CapsuleToastProvider";
 
 mobileAds()
   .initialize()
@@ -2898,6 +2899,7 @@ function scheduleMidnightWarmup({
 // 홈 화면
 export default function Home() {
 
+  const toast = useCapsuleToast();
 
   // 연도 모드 시청 카운트 & 패스
   // 나라별로 몇 개 봤는지 저장
@@ -2939,7 +2941,7 @@ export default function Home() {
         }
         // (선택) 한 번이라도 합쳐졌으면 통합 키로 다시 저장
         if (merged && merged > 0) {
-          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(merged)).catch(() => {});
+          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(merged)).catch(() => { });
         }
 
         if (seenRaw?.[1]) {
@@ -4371,11 +4373,16 @@ export default function Home() {
     if (midnightPassed) {
       // 사용자 요구: "다른 탭 터치/새로고침" 전에는 이전 이벤트 유지.
       // 여기(사용자 액션)에서만 새 날짜로 갱신 + 새 11개 로딩을 시작.
-      if (Platform.OS === "android") {
-        try {
-          ToastAndroid.show("데이터를 불러오는 중입니다…", ToastAndroid.SHORT);
-        } catch { }
-      }
+      toast.show(
+        {
+          ko: "새로운 데이터를 불러오는 중…",
+          en: "Loading new data…",
+          ja: "新しいデータを読み込み中…",
+          sc: "正在加载新数据…",
+          tc: "正在載入新資料…",
+        }[uiLang] || "Loading new data…",
+        { duration: 1500 }
+      );
       setLoading(true);
       setIsRefreshing(true);
       setRefreshTick((t) => t + 1);
@@ -4526,7 +4533,7 @@ export default function Home() {
           const n = parseInt(dict[STORAGE_KEY_YEAR_PASS_UNTIL], 10);
           if (!Number.isNaN(n) && n > Date.now()) {
             setRewardPassUntil((prev) => Math.max(prev || 0, n));
-            AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(n)).catch(() => {});
+            AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(n)).catch(() => { });
           }
         }
         // 3-2. 본 횟수 (날짜가 같을 때만 복원)
@@ -5181,11 +5188,16 @@ export default function Home() {
         // 자정이 지났다면(유저가 앱으로 돌아온 순간) 날짜 기준 갱신 + 다음 로딩을 위해 refreshTick 올림
         const midnightPassed = bumpDayAnchorIfMidnightPassed();
         if (midnightPassed) {
-          if (Platform.OS === "android") {
-            try {
-              ToastAndroid.show("데이터를 불러오는 중입니다…", ToastAndroid.SHORT);
-            } catch { }
-          }
+          toast.show(
+            {
+              ko: "새로운 데이터를 불러오는 중…",
+              en: "Loading new data…",
+              ja: "新しいデータを読み込み中…",
+              sc: "正在加载新数据…",
+              tc: "正在載入新資料…",
+            }[uiLang] || "Loading new data…",
+            { duration: 1500 }
+          );
           setLoading(true);
           setIsRefreshing(true);
           setRefreshTick((t) => t + 1);
@@ -5325,11 +5337,16 @@ export default function Home() {
     // 나라 탭을 눌렀을 때도(유저 액션) 자정이 지났으면 새 날짜로 갱신 + 새 11개 로딩
     const midnightPassed = bumpDayAnchorIfMidnightPassed();
     if (midnightPassed) {
-      if (Platform.OS === "android") {
-        try {
-          ToastAndroid.show("데이터를 불러오는 중입니다…", ToastAndroid.SHORT);
-        } catch { }
-      }
+      toast.show(
+        {
+          ko: "새로운 데이터를 불러오는 중…",
+          en: "Loading new data…",
+          ja: "新しいデータを読み込み中…",
+          sc: "正在加载新数据…",
+          tc: "正在載入新資料…",
+        }[uiLang] || "Loading new data…",
+        { duration: 1500 }
+      );
       setLoading(true);
       setIsRefreshing(true);
       setRefreshTick((t) => t + 1);

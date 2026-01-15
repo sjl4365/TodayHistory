@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Platform, LogBox } from "react-native";
+import  CapsuleToastProvider  from "../components/CapsuleToastProvider";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -54,11 +55,13 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" translucent backgroundColor="transparent" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      <CapsuleToastProvider>
+        <StatusBar style="light" translucent backgroundColor="transparent" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </CapsuleToastProvider>
     </SafeAreaProvider>
   );
 }
