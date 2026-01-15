@@ -2938,7 +2938,8 @@ export default function Home() {
     japan: 0,
     china: 0,
   });
-  const [yearAdUnlockedUntil, setYearAdUnlockedUntil] = useState(0);
+  // ✅ World/Year 공통 리워드 패스 (광고를 어디서 보든 동일하게 적용)
+  const [rewardPassUntil, setRewardPassUntil] = useState(0);
   const [yearAdPromptVisible, setYearAdPromptVisible] = useState(false);
   const [notificationEventKey, setNotificationEventKey] = useState(null);
 
@@ -2952,15 +2953,25 @@ export default function Home() {
 
     (async () => {
       try {
-        const [passRaw, seenRaw, cursorRaw] = await AsyncStorage.multiGet([
-          STORAGE_KEY_YEAR_PASS_UNTIL,
+        const [worldPassRaw, yearPassRaw, seenRaw, cursorRaw] = await AsyncStorage.multiGet([
+          STORAGE_KEY_REWARD_PASS_UNTIL,
+          STORAGE_KEY_YEAR_PASS_UNTIL, // 구버전(마이그레이션용)
           STORAGE_KEY_YEAR_SEEN_GROUPS,
           STORAGE_KEY_YEAR_CURSOR_SAVED,
         ]);
 
-        if (passRaw?.[1]) {
-          const n = parseInt(passRaw[1], 10);
-          if (!Number.isNaN(n)) setYearAdUnlockedUntil(n);
+        // ✅ 리워드 패스 통합: World/Year 어디서 광고를 봐도 동일한 패스 사용
+        // 구버전 Year 패스가 남아있으면 더 큰 값으로 통합해서 저장
+        const now = Date.now();
+        const worldTs = worldPassRaw?.[1] ? parseInt(worldPassRaw[1], 10) : 0;
+        const yearTs = yearPassRaw?.[1] ? parseInt(yearPassRaw[1], 10) : 0;
+        const merged = Math.max(Number.isFinite(worldTs) ? worldTs : 0, Number.isFinite(yearTs) ? yearTs : 0);
+        if (merged && merged > now) {
+          setRewardPassUntil(merged);
+        }
+        // (선택) 한 번이라도 합쳐졌으면 통합 키로 다시 저장
+        if (merged && merged > 0) {
+          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(merged)).catch(() => {});
         }
 
         if (seenRaw?.[1]) {
@@ -3023,7 +3034,7 @@ export default function Home() {
     if (!currentCid || currentCid === "world") return false;
     if (!yearYears || !yearYears.length) return false;
 
-    const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > Date.now();
+    const hasPass = rewardPassUntil && rewardPassUntil > Date.now();
     const seenForCid = yearSeenGroups[currentCid] ?? 0;
     const freeLimit = YEAR_FREE_REFRESH_LIMIT_BY_CID[currentCid] ?? 0;
 
@@ -3038,7 +3049,7 @@ export default function Home() {
     isYearMode,
     currentCid,
     yearYears,
-    yearAdUnlockedUntil,
+    rewardPassUntil,
     yearSeenGroups,
   ]);
 
@@ -3109,7 +3120,7 @@ export default function Home() {
     if (!currentYearPlaylist || !currentYearPlaylist.length) return;
 
     const now = Date.now();
-    const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > now;
+    const hasPass = rewardPassUntil && rewardPassUntil > now;
 
     const currentIdx = yearCurrentIndex;
     const maxLimit = currentYearPlaylist.length;
@@ -3135,7 +3146,7 @@ export default function Home() {
     currentCid,
     currentYearPlaylist,
     yearCurrentIndex,
-    yearAdUnlockedUntil,
+    rewardPassUntil,
     applyYearIndex,
   ]);
 
@@ -3146,7 +3157,7 @@ export default function Home() {
 
     // 이미 패스(광고 시청) 있으면 아무 것도 안 함
     const now = Date.now();
-    const hasPass = yearAdUnlockedUntil && yearAdUnlockedUntil > now;
+    const hasPass = rewardPassUntil && rewardPassUntil > now;
     if (hasPass) return;
 
     // 연도 모드가 아니거나, 나라/플레이리스트가 없으면 패스
@@ -3161,7 +3172,7 @@ export default function Home() {
     isYearMode,
     currentCid,
     currentYearPlaylist,
-    yearAdUnlockedUntil,
+    rewardPassUntil,
     applyYearIndex,
     persistYearIndex,
   ]);
@@ -3444,38 +3455,12 @@ export default function Home() {
   //  - baseYear >= 1600: 한/중/일이 baseYear와 같거나 가장 가까운 year 선택
   //  - 각 나라별로 선택된 year에서부터 pool을 정렬한 뒤 12개를 순차 playlist로 저장
   // =========================
-  const YEAR_SESSION_KEY_PREFIX = "@year_session_v1:";
-  const YEAR_SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-  const YEAR_PRE1600_CUTOFF = 1600;
 
-  function getUiLangBase(uiLang) {
-    return String(uiLang || "en").split(/[-_]/)[0];
-  }
+  // 🇰🇷🇯🇵🇨🇳 Year 모드: 나라별 '랜덤 시작 연도'를 뽑고, 그 연도부터 최대 11개를 순차로 보여줍니다.
+  // - 자정이 지나도 화면은 그대로 유지
+  // - 새로고침(또는 탭 전환 등으로 로딩이 다시 돌 때) isoDate가 바뀌어 있으면 새로운 11개로 갱신
 
-  function getYearSessionKey() {
-    // 12시간 윈도우 단위로 세션을 고정 (언어 무관)
-    const win = Math.floor(Date.now() / YEAR_SESSION_TTL_MS);
-    return `${YEAR_SESSION_KEY_PREFIX}WIN:${win}`;
-  }
-
-  function pickClosestYear(availableYears, targetYear, rnd) {
-    // availableYears: number[]
-    if (!availableYears || !availableYears.length) return null;
-    let best = availableYears[0];
-    let bestDiff = Math.abs(best - targetYear);
-    for (let i = 1; i < availableYears.length; i++) {
-      const y = availableYears[i];
-      const d = Math.abs(y - targetYear);
-      if (d < bestDiff) {
-        best = y;
-        bestDiff = d;
-      } else if (d === bestDiff) {
-        // tie-breaker: rng
-        if (rnd && rnd() < 0.5) best = y;
-      }
-    }
-    return best;
-  }
+  const STORAGE_KEY_YEAR_LAST_START_YEAR_PREFIX = "@year_last_start_year_v1:";
 
   function getYearListFromPool(pool) {
     const ys = [];
@@ -3492,6 +3477,7 @@ export default function Home() {
 
   function buildSequentialPlaylistFromPool(pool, startYear, count) {
     if (!Array.isArray(pool) || pool.length === 0) return [];
+
     const sorted = pool
       .slice()
       .sort((a, b) => {
@@ -3502,12 +3488,15 @@ export default function Home() {
         return String(a.key || "").localeCompare(String(b.key || ""));
       });
 
-    // start index: startYear가 있으면 그 year 첫 번째, 없으면 0
+    // start index: startYear가 있으면 그 year의 첫 번째, 없으면 0
     let startIdx = 0;
     if (startYear != null) {
       for (let i = 0; i < sorted.length; i++) {
         const y = parseInt(getYearFromRow(sorted[i].row), 10) || 0;
-        if (y === startYear) { startIdx = i; break; }
+        if (y === startYear) {
+          startIdx = i;
+          break;
+        }
       }
     }
 
@@ -3520,61 +3509,33 @@ export default function Home() {
     return keys;
   }
 
-  async function loadOrCreateYearSession({ uiLang, seedKey, poolsByCid }) {
-    const key = getYearSessionKey();
-    const now = Date.now();
+  async function pickRandomStartYearForDay(pool, isoDate, cid) {
+    const years = getYearListFromPool(pool);
+    if (!years.length) return null;
 
-    // 1) load
+    // 날짜 + 나라 기준으로 '하루에 한 번 고정되는' 랜덤
+    const rnd = xorshift(hash32(`yday:${isoDate}:${cid}`));
+    let idx = Math.floor(rnd() * years.length);
+    if (idx < 0) idx = 0;
+    if (idx >= years.length) idx = years.length - 1;
+
+    let picked = years[idx];
+
+    // 전날과 같은 연도면(가능하면) 한 칸 밀어서 다른 연도 선택
     try {
-      const raw = await AsyncStorage.getItem(key);
-      if (raw) {
-        const s = JSON.parse(raw);
-        if (s && s.expiresAt && s.expiresAt > now && s.baseYear) {
-          return s;
-        }
+      const lastRaw = await AsyncStorage.getItem(`${STORAGE_KEY_YEAR_LAST_START_YEAR_PREFIX}${cid}`);
+      const last = parseInt(lastRaw || "", 10);
+      if (!Number.isNaN(last) && years.length > 1 && last === picked) {
+        picked = years[(idx + 1) % years.length];
       }
     } catch { }
 
-    // 2) create
-    const cids = ["korea", "china", "japan"].filter((c) => (poolsByCid[c] || []).length > 0);
-    const baseYear = pickTargetYearFromUnion(poolsByCid, cids, seedKey) || null;
+    try {
+      await AsyncStorage.setItem(`${STORAGE_KEY_YEAR_LAST_START_YEAR_PREFIX}${cid}`, String(picked));
+    } catch { }
 
-    // 나라별 target year 결정
-    const picked = {};
-    for (const cid of cids) {
-      const pool = poolsByCid[cid] || [];
-      const years = getYearListFromPool(pool);
-      if (!years.length) { picked[cid] = null; continue; }
-
-      const rnd = xorshift(hash32(`ysess:${seedKey}:${cid}:${baseYear ?? 0}`));
-
-      if (baseYear != null && baseYear < YEAR_PRE1600_CUTOFF) {
-        const pre = years.filter((y) => y > 0 && y < YEAR_PRE1600_CUTOFF);
-        if (pre.length) {
-          picked[cid] = pre[Math.floor(rnd() * pre.length)];
-        } else {
-          picked[cid] = pickClosestYear(years, baseYear, rnd);
-        }
-      } else if (baseYear != null) {
-        picked[cid] = pickClosestYear(years, baseYear, rnd);
-      } else {
-        picked[cid] = years[Math.floor(rnd() * years.length)];
-      }
-    }
-
-    const expiresAt = now + YEAR_SESSION_TTL_MS;
-    const session = {
-      baseYear: baseYear,
-      expiresAt,
-      picked, // {korea, china, japan}
-      sessionId: `${getUiLangBase(uiLang)}:${baseYear ?? "null"}:${expiresAt}`,
-    };
-
-    try { await AsyncStorage.setItem(key, JSON.stringify(session)); } catch { }
-    return session;
+    return picked;
   }
-
-
 
   const STORAGE_KEY_YEAR_EVT_IDX = "@year_evt_idx_v1:";
 
@@ -3918,7 +3879,6 @@ export default function Home() {
   const pendingNavRef = useRef(null); // -1(어제), +1(내일) 저장
   const rewardEarnedRef = useRef(false);
   const shouldShowAdRef = useRef(false); // ✅ 이 줄을 추가하세요
-  const [rewardPassUntil, setRewardPassUntil] = useState(0);
   const [worldTodayFreeCount, setWorldTodayFreeCount] = useState(0);
   const worldTodayFreeKeyRef = useRef(null);
 
@@ -4051,9 +4011,12 @@ export default function Home() {
           setRewardPassUntil(until); // State 업데이트는 예약되지만 렌더링은 광고 뒤로 밀릴 수 있음
           AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
         } else if (pending === "year_reward") {
+          // ✅ Year/World 공통 패스
           const until = now + duration;
-          setYearAdUnlockedUntil(until);
-          AsyncStorage.setItem(STORAGE_KEY_YEAR_PASS_UNTIL, String(until)).catch(() => { });
+          setRewardPassUntil(until);
+          AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
+          // (마이그레이션) 구버전 키는 굳이 유지할 필요 없음
+          AsyncStorage.removeItem(STORAGE_KEY_YEAR_PASS_UNTIL).catch(() => { });
         }
       }
     );
@@ -4539,19 +4502,31 @@ export default function Home() {
         const { y, m, d } = getDayPartsFrom(today, tz);
         const isoDate = `${y}-${m}-${d}`;
 
-        // 3-1. 연도 패스
+        // 3-1. (마이그레이션) 구버전 연도 패스가 있으면 통합 패스로 흡수
         if (dict[STORAGE_KEY_YEAR_PASS_UNTIL]) {
           const n = parseInt(dict[STORAGE_KEY_YEAR_PASS_UNTIL], 10);
           if (!Number.isNaN(n) && n > Date.now()) {
-            setYearAdUnlockedUntil(n);
+            setRewardPassUntil((prev) => Math.max(prev || 0, n));
+            AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(n)).catch(() => {});
           }
         }
         // 3-2. 본 횟수 (날짜가 같을 때만 복원)
         if (dict[STORAGE_KEY_YEAR_SEEN_GROUPS]) {
           try {
             const obj = JSON.parse(dict[STORAGE_KEY_YEAR_SEEN_GROUPS]);
-            if (obj?.isoDate === isoDate && typeof obj.count === "number") {
-              setYearSeenGroups(obj.count);
+            if (obj?.isoDate === isoDate) {
+              // v1: { isoDate, count }
+              if (typeof obj.count === "number") {
+                setYearSeenGroups({ korea: obj.count, japan: obj.count, china: obj.count });
+              }
+              // v2: { isoDate, countByCid: { korea, japan, china } }
+              else if (obj.countByCid && typeof obj.countByCid === "object") {
+                setYearSeenGroups({
+                  korea: obj.countByCid.korea ?? 0,
+                  japan: obj.countByCid.japan ?? 0,
+                  china: obj.countByCid.china ?? 0,
+                });
+              }
             }
           } catch { }
         }
@@ -5002,18 +4977,12 @@ export default function Home() {
           const isoDate = `${todayParts.y}-${todayParts.m}-${todayParts.d}`;
           const stateKey = getYearPlaylistKey(cid);
 
-          // 3. (24h) Year Session 기반 플레이리스트 로드/생성
-          //    - uiLang별 session(baseYear) 유지
-          //    - session에 따라 나라별 targetYear를 고정
-          //    - targetYear 기준으로 pool을 정렬하고 12개를 순차로 저장
+
+          // 3) 날짜(isoDate) 단위로 나라별 플레이리스트 로드/생성
+          //    - isoDate가 바뀌면(자정 넘어감) 다음 "새로고침/탭 전환" 시점에 새로운 11개로 재생성
           let playlist = [];
           let currentIndex = 0;
-
-          const session = await loadOrCreateYearSession({ uiLang, seedKey, poolsByCid });
-          const sessionId = session?.sessionId || `${getUiLangBase(uiLang)}:fallback`;
-
-          // 이 나라에서 사용할 targetYear
-          const targetYearForCid = session?.picked?.[cid] ?? session?.baseYear ?? null;
+          let startYearForCid = null;
 
           try {
             const rawState = await AsyncStorage.getItem(stateKey);
@@ -5021,39 +4990,34 @@ export default function Home() {
 
             const isValid =
               state &&
-              state.sessionId === sessionId &&
-              state.playlist &&
+              state.isoDate === isoDate &&
               Array.isArray(state.playlist) &&
               state.playlist.length > 0;
 
             if (isValid) {
-              // 이미 만들어둔 리스트 복원
               playlist = state.playlist;
               currentIndex = state.currentIndex || 0;
+              startYearForCid = state.startYear ?? null;
             } else {
-              // 새로 생성
+              // 새 날짜(또는 처음) → 새로운 랜덤 시작 연도 + 순차 리스트 생성
               const countToPick = Math.min(pool.length, YEAR_MAX_EVENTS_PER_COUNTRY);
-
-              // targetYear를 "정렬된 pool의 시작점"으로 잡아서 12개를 순차로 구성
-              playlist = buildSequentialPlaylistFromPool(pool, targetYearForCid, countToPick);
-
+              startYearForCid = await pickRandomStartYearForDay(pool, isoDate, cid);
+              playlist = buildSequentialPlaylistFromPool(pool, startYearForCid, countToPick);
               currentIndex = 0;
 
               await AsyncStorage.setItem(
                 stateKey,
                 JSON.stringify({
-                  sessionId,
-                  isoDate, // 디버깅/표시용 (세션 기준은 sessionId)
+                  isoDate,
                   playlist,
                   currentIndex,
-                  targetYear: targetYearForCid,
-                  baseYear: session?.baseYear ?? null,
-                  expiresAt: session?.expiresAt ?? null,
+                  startYear: startYearForCid,
+                  createdAt: Date.now(),
                 })
               );
             }
           } catch (e) {
-            console.warn("Playlist init error", e);
+            console.warn("[YEAR] Playlist init error", e);
           }
 
           if (!canceled) {
