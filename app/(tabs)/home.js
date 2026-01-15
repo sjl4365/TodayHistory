@@ -3629,6 +3629,32 @@ export default function Home() {
   const [dayOffset, setDayOffset] = useState(0);
   const [ytPassUntil, setYtPassUntil] = useState(null); // number | null (ms)
 
+  // --- 날짜(자정) 변경 감지용 ---
+  // 앱을 켜둔 채로 자정을 넘기면 useMemo(screenDate)가 자동으로 다시 계산되지 않습니다.
+  // 그래서 focus / refresh / AppState(active) 시점에 dayAnchor를 올려 화면 날짜를 갱신합니다.
+  const [dayAnchor, setDayAnchor] = useState(0);
+  const lastIsoRef = useRef(null);
+
+  const getIsoTodayNow = useCallback(() => {
+    const todayStart = startOfDayInTz(new Date(), tz);
+    const p = safeFormatParts(todayStart, tz);
+    return `${p.year}-${p.month}-${p.day}`;
+  }, [tz]);
+
+  const bumpDayAnchorIfMidnightPassed = useCallback(() => {
+    const isoNow = getIsoTodayNow();
+    if (lastIsoRef.current == null) {
+      lastIsoRef.current = isoNow;
+      return false;
+    }
+    if (lastIsoRef.current !== isoNow) {
+      lastIsoRef.current = isoNow;
+      setDayAnchor((x) => x + 1);
+      return true;
+    }
+    return false;
+  }, [getIsoTodayNow]);
+
   const STORAGE_KEY_YT_PASS_UNTIL = "@histree:yt_pass_until";
   const YT_PASS_DURATION_MS = 12 * 60 * 60 * 1000;
 
@@ -3680,11 +3706,16 @@ export default function Home() {
       },
       iso,
     };
-  }, [tz, dayOffset]);
+  }, [tz, dayOffset, dayAnchor]);
 
   const today0 = screenDate.date;
   const todayParts = screenDate.parts;
   const isoDate = screenDate.iso;
+
+  // isoDate가 갱신되면 기준값도 같이 갱신
+  useEffect(() => {
+    if (isoDate) lastIsoRef.current = isoDate;
+  }, [isoDate]);
 
   const bannerHeight = Math.max(
     60,
@@ -4366,6 +4397,23 @@ export default function Home() {
 
 
   const handlePullToRefresh = useCallback(() => {
+    // 자정이 지났으면(로컬 타임존 기준) "다른 탭/새로고침"을 트리거로 날짜를 갱신하고
+    // 그 다음 로딩 useEffect가 새 isoDate로 데이터를 다시 뽑도록 만든다.
+    const midnightPassed = bumpDayAnchorIfMidnightPassed();
+    if (midnightPassed) {
+      // 사용자 요구: "다른 탭 터치/새로고침" 전에는 이전 이벤트 유지.
+      // 여기(사용자 액션)에서만 새 날짜로 갱신 + 새 11개 로딩을 시작.
+      if (Platform.OS === "android") {
+        try {
+          ToastAndroid.show("데이터를 불러오는 중입니다…", ToastAndroid.SHORT);
+        } catch { }
+      }
+      setLoading(true);
+      setIsRefreshing(true);
+      setRefreshTick((t) => t + 1);
+      return;
+    }
+
     // =========================
     // World 모드
     // =========================
@@ -4409,11 +4457,14 @@ export default function Home() {
     }
 
     // =========================
-    // 🇰🇷🇨🇳🇯🇵 연도 모드: "더 보기" 버튼과 동일한 동작
+    // 🇰🇷🇨🇳🇯🇵 연도 모드
+    //  - 같은 날: "더 보기"(순차)와 동일
+    //  - 자정이 지나 새 날짜면: 위에서 refreshTick으로 새 11개 로딩
     // =========================
     handlePressYearMore();
   }, [
     isYearMode,
+    bumpDayAnchorIfMidnightPassed,
     rewardPassUntil,
     dayOffset,
     worldTodayFreeCount,
@@ -5159,6 +5210,18 @@ export default function Home() {
   useEffect(() => {
     const sub = AppState.addEventListener("change", (s) => {
       if (s === "active") {
+        // 자정이 지났다면(유저가 앱으로 돌아온 순간) 날짜 기준 갱신 + 다음 로딩을 위해 refreshTick 올림
+        const midnightPassed = bumpDayAnchorIfMidnightPassed();
+        if (midnightPassed) {
+          if (Platform.OS === "android") {
+            try {
+              ToastAndroid.show("데이터를 불러오는 중입니다…", ToastAndroid.SHORT);
+            } catch { }
+          }
+          setLoading(true);
+          setIsRefreshing(true);
+          setRefreshTick((t) => t + 1);
+        }
         const today = startOfDayInTz(new Date(), tz);
 
         // 앱으로 돌아오면 항상 "오늘(0)" 기준으로 맞춰주기
@@ -5176,7 +5239,26 @@ export default function Home() {
     });
 
     return () => sub.remove();
-  }, [tz, uiLang, selectedCountries]);
+  }, [tz, uiLang, selectedCountries, bumpDayAnchorIfMidnightPassed]);
+
+  // 다른 탭을 눌렀다 돌아오는 "Focus" 타이밍에서도 자정 갱신 트리거
+  useFocusEffect(
+    useCallback(() => {
+      const midnightPassed = bumpDayAnchorIfMidnightPassed();
+      if (midnightPassed) {
+        if (Platform.OS === "android") {
+          try {
+            ToastAndroid.show("데이터를 불러오는 중입니다…", ToastAndroid.SHORT);
+          } catch { }
+        }
+        setLoading(true);
+        setIsRefreshing(true);
+        setRefreshTick((t) => t + 1);
+      }
+
+      return () => { };
+    }, [bumpDayAnchorIfMidnightPassed])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -5272,10 +5354,23 @@ export default function Home() {
   useEffect(() => {
     if (!currentCid) return;
 
+    // 나라 탭을 눌렀을 때도(유저 액션) 자정이 지났으면 새 날짜로 갱신 + 새 11개 로딩
+    const midnightPassed = bumpDayAnchorIfMidnightPassed();
+    if (midnightPassed) {
+      if (Platform.OS === "android") {
+        try {
+          ToastAndroid.show("데이터를 불러오는 중입니다…", ToastAndroid.SHORT);
+        } catch { }
+      }
+      setLoading(true);
+      setIsRefreshing(true);
+      setRefreshTick((t) => t + 1);
+    }
+
     emitCountriesChanged(currentCid);
 
     AsyncStorage.setItem(STORAGE_KEY_FOCUSED_CID, String(currentCid)).catch(() => { });
-  }, [currentCid]);
+  }, [currentCid, bumpDayAnchorIfMidnightPassed]);
 
 
 
