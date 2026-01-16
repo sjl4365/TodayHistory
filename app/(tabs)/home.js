@@ -4234,7 +4234,6 @@ export default function Home() {
     const bodyText = (p.body || "").trim();
 
     const lines = [
-      header,
       "",
       // 위치: 한국
       `${fieldLabels.location}: ${label}`,
@@ -4273,7 +4272,8 @@ export default function Home() {
 
       await NativeShare.share({
         message,
-        title: header || "Histree",
+               title: header || "Histree",
+
       });
     } catch (e) {
       console.warn("[SHARE] NativeShare.share failed:", e);
@@ -5866,15 +5866,12 @@ export default function Home() {
             onRequestClose={() => setAdPromptVisible(false)}
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
+              <View style={{ width: 310, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
                 <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
                   <Pressable onPress={() => setAdPromptVisible(false)} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
                 </View>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: "#10B981", marginBottom: 4 }}>
-                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).badge}
-                </Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: "#111827", marginBottom: 8 }}>
                   {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
                 </Text>
@@ -5912,15 +5909,12 @@ export default function Home() {
 
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 280, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
+              <View style={{ width: 310, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
                 <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
                   <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
                 </View>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: "#10B981", marginBottom: 4 }}>
-                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).badge}
-                </Text>
                 <Text style={{ fontSize: 16, fontWeight: '700', color: "#111827", marginBottom: 8 }}>
                   {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
                 </Text>
