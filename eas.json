@@ -5,12 +5,16 @@
   },
   "build": {
     "apk": {
-      "android": { "buildType": "apk" },
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
         "NODE_ENV": "production",
         "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
         "NPM_CONFIG_PRODUCTION": "false",
-        "YARN_PRODUCTION": "false"
+        "YARN_PRODUCTION": "false",
+        "EXPO_DEBUG": "1",
+        "EXPO_AUTOLINKING_DEBUG": "1"
       }
     },
     "preview": {
@@ -23,16 +27,22 @@
         "NODE_ENV": "production",
         "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
         "NPM_CONFIG_PRODUCTION": "false",
-        "YARN_PRODUCTION": "false"
+        "YARN_PRODUCTION": "false",
+        "EXPO_DEBUG": "1",
+        "EXPO_AUTOLINKING_DEBUG": "1"
       }
     },
     "production": {
-      "android": { "buildType": "app-bundle" },
+      "android": {
+        "buildType": "app-bundle"
+      },
       "env": {
         "NODE_ENV": "production",
         "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
         "NPM_CONFIG_PRODUCTION": "false",
-        "YARN_PRODUCTION": "false"
+        "YARN_PRODUCTION": "false",
+        "EXPO_DEBUG": "1",
+        "EXPO_AUTOLINKING_DEBUG": "1"
       },
       "autoIncrement": true
     },
