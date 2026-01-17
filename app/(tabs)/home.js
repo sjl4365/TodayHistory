@@ -3775,6 +3775,7 @@ export default function Home() {
 
 
 
+  const [softRefreshing, setSoftRefreshing] = useState(false); // iOS에서 화면 안 흔들리게(RefreshControl 미사용)
 
   const [yearCursor, setYearCursor] = useState(null); // number | null
   const [yearNav, setYearNav] = useState({ canPrev: false, canNext: false });
@@ -4272,7 +4273,7 @@ export default function Home() {
 
       await NativeShare.share({
         message,
-               title: header || "Histree",
+        title: header || "Histree",
 
       });
     } catch (e) {
@@ -4366,13 +4367,28 @@ export default function Home() {
   );
 
 
-  const handlePullToRefresh = useCallback(() => {
-    // 자정이 지났으면(로컬 타임존 기준) "다른 탭/새로고침"을 트리거로 날짜를 갱신하고
-    // 그 다음 로딩 useEffect가 새 isoDate로 데이터를 다시 뽑도록 만든다.
+  const handlePullToRefresh = useCallback((source = "button") => {
+    const fromPull = source === "pull";
+
+    const triggerRefresh = () => {
+      setLoading(true);
+
+      // ✅ iOS에서 버튼/자동 리프레시는 RefreshControl을 켜지 않음(화면 안 내려가게)
+      if (Platform.OS === "ios" && !fromPull) {
+        setSoftRefreshing(true);
+        setIsRefreshing(false);
+      } else {
+        // Android + iOS pull은 기존대로
+        setSoftRefreshing(false);
+        setIsRefreshing(true);
+      }
+
+      setRefreshTick((t) => t + 1);
+    };
+
+    // 자정 지난 경우
     const midnightPassed = bumpDayAnchorIfMidnightPassed();
     if (midnightPassed) {
-      // 사용자 요구: "다른 탭 터치/새로고침" 전에는 이전 이벤트 유지.
-      // 여기(사용자 액션)에서만 새 날짜로 갱신 + 새 11개 로딩을 시작.
       toast.show(
         {
           ko: "새로운 데이터를 불러오는 중…",
@@ -4383,61 +4399,43 @@ export default function Home() {
         }[uiLang] || "Loading new data…",
         { duration: 1500 }
       );
-      setLoading(true);
-      setIsRefreshing(true);
-      setRefreshTick((t) => t + 1);
+      triggerRefresh();
       return;
     }
 
-    // =========================
     // World 모드
-    // =========================
     if (!isYearMode) {
       const now = Date.now();
 
-      // 1) 12시간 패스가 있으면 제한 없이 새로고침
       if (rewardPassUntil && rewardPassUntil > now) {
-        setIsRefreshing(true);
-        setRefreshTick((t) => t + 1);
+        triggerRefresh();
         return;
       }
 
-      // 2) 어제/내일은 "처음부터" 못 보게 해야 하므로
-      //    (UI 이동 자체가 handlePrevDay/handleNextDay에서 막힘)
-      //    여기서는 오늘(dayOffset===0)만 3회 무료 새로고침 허용
       if (dayOffset === 0) {
         if (worldTodayFreeCount < WORLD_TODAY_FREE_LIMIT) {
           const next = worldTodayFreeCount + 1;
           setWorldTodayFreeCount(next);
           const key = worldTodayFreeKeyRef.current;
-          if (key) {
-            AsyncStorage.setItem(key, String(next)).catch(() => { });
-          }
-          setIsRefreshing(true);
-          setRefreshTick((t) => t + 1);
+          if (key) AsyncStorage.setItem(key, String(next)).catch(() => { });
+          triggerRefresh();
           return;
         }
 
-        // 3회 초과 → 어제/내일과 동일한 리워드 모달 노출
         pendingNavRef.current = "world_today_more";
         setAdPromptVisible(true);
         return;
       }
 
-      // (안전장치) 혹시 외부 경로로 dayOffset이 -1/+1인데 여기로 들어오면,
-      // 패스가 없으니 리워드 모달로 유도
       pendingNavRef.current = dayOffset < 0 ? -1 : +1;
       setAdPromptVisible(true);
       return;
     }
 
-    // =========================
-    // 🇰🇷🇨🇳🇯🇵 연도 모드
-    //  - 같은 날: "더 보기"(순차)와 동일
-    //  - 자정이 지나 새 날짜면: 위에서 refreshTick으로 새 11개 로딩
-    // =========================
+    // Year 모드
     handlePressYearMore();
   }, [
+    uiLang,
     isYearMode,
     bumpDayAnchorIfMidnightPassed,
     rewardPassUntil,
@@ -4825,6 +4823,7 @@ export default function Home() {
   const endLoading = useCallback(() => {
     setLoading(false);
     setIsRefreshing(false);
+    setSoftRefreshing(false);
   }, []);
 
   // 데이터 로딩 (World = 기존 / Year = 랜덤 연도 + prev/next + refresh 중복방지)
@@ -5601,8 +5600,8 @@ export default function Home() {
               }}
               refreshControl={
                 <RefreshControl
-                  refreshing={isRefreshing}
-                  onRefresh={handlePullToRefresh}
+                  refreshing={isRefreshing}     // softRefreshing은 여기 연결하지 않음
+                  onRefresh={() => handlePullToRefresh("pull")}
                 />
               }
             >
@@ -5878,7 +5877,7 @@ export default function Home() {
                 <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
                   {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).description}
                 </Text>
-                <View style={{ flexDirection: "row",justifyContent: "center"}}>
+                <View style={{ flexDirection: "row", justifyContent: "center" }}>
                   <Pressable
                     onPress={showRewardedAdForWorld}
                     style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
