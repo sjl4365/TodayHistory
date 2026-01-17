@@ -5865,7 +5865,15 @@ export default function Home() {
             onRequestClose={() => setAdPromptVisible(false)}
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 310, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
+              <View
+                style={{
+                  width: Math.min(width - 40, 360), // 좌우 20px 여백, 최대 360
+                  borderRadius: 16,
+                  paddingHorizontal: 20,
+                  paddingVertical: 18,
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
                 <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
                   <Pressable onPress={() => setAdPromptVisible(false)} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
@@ -5908,7 +5916,15 @@ export default function Home() {
 
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
-              <View style={{ width: 310, borderRadius: 16, paddingHorizontal: 20, paddingVertical: 18, backgroundColor: "#FFFFFF" }}>
+              <View
+                style={{
+                  width: Math.min(width - 40, 360), // 좌우 20px 여백, 최대 360
+                  borderRadius: 16,
+                  paddingHorizontal: 20,
+                  paddingVertical: 18,
+                  backgroundColor: "#FFFFFF",
+                }}
+              >
                 <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
                   <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
