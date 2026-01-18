@@ -336,11 +336,17 @@ const handleSaveTime = async () => {
     
     const message = messages[currentLanguage] || messages.en;
     Alert.alert(message.title, message.message);
+    
+    // Turn off notification if content loading fails
+    setIsNotificationOn(false);
+    await cancelDaily();
+    setSavedTime(null);
     return;
   }
   
   console.log('✅ Using refreshed content for notification');
   
+  //Try to schedule
   const ok = await scheduleDailyAt(date);
   console.log('Schedule result:', ok);
   
@@ -387,7 +393,11 @@ const handleSaveTime = async () => {
       );
     }
   } else {
-    console.log('Failed to save time');
+    //Turn off notification if scheduling fails
+    console.log('Failed to schedule notification, turning OFF');
+    setIsNotificationOn(false);
+    await cancelDaily();
+    setSavedTime(null);
     
     try {
       const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
@@ -411,6 +421,49 @@ const handleToggleNotification = async (value) => {
   
   if (value) {
     // ⭐ 저장된 시간이 있으면 그걸 사용, 없으면 기본값(15:00)
+    // First, check if we have notification content
+    try {
+      let cachedBody = await AsyncStorage.getItem("@notification_body");
+      
+      // If no cached content, try to refresh
+      if (!cachedBody) {
+        console.log('No cached notification content, refreshing...');
+        const refreshedBody = await refreshTodayFeed();
+        
+        if (!refreshedBody) {
+          // Can't proceed without content
+          const currentLanguage = await AsyncStorage.getItem('@app_language') || 'en';
+          const messages = {
+            ko: {
+              title: '콘텐츠 로드 실패',
+              message: 'Home 화면을 먼저 방문해주세요.'
+            },
+            en: {
+              title: 'Content Loading Failed',
+              message: 'Please visit the Home screen first.'
+            },
+            ja: {
+              title: 'コンテンツの読み込みに失敗しました',
+              message: 'まずホーム画面にアクセスしてください。'
+            }
+          };
+          
+          const message = messages[currentLanguage] || messages.en;
+          Alert.alert(message.title, message.message);
+          setIsNotificationOn(false); // Keep it OFF
+          return;
+        }
+        
+        cachedBody = refreshedBody;
+      }
+    } catch (error) {
+      console.error('Failed to check notification content:', error);
+      Alert.alert('Error', 'Failed to load notification content.');
+      setIsNotificationOn(false);
+      return;
+    }
+    
+    // Load saved time or use default
     try {
       const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
       if (savedTimeStr) {
