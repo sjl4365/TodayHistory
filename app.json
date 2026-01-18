@@ -11,7 +11,7 @@
     "orientation": "portrait",
     "icon": "./assets/Histree_icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash_icon.png",
       "resizeMode": "cover",
