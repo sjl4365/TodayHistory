@@ -22,6 +22,7 @@ export default function Index() {
     doneRef.current = true;
 
     setTimeout(() => {
+      // ✅ 전환 프레임 2번 확보 (겹침/툭 줄어듦)
       requestAnimationFrame(() => {
         requestAnimationFrame(async () => {
           try {
@@ -33,6 +34,7 @@ export default function Index() {
     }, remain);
   }, []);
 
+  // ✅ 안전장치: 이미지 로드 이벤트가 안 와도 일정 시간 뒤엔 진행
   useEffect(() => {
     const t = setTimeout(() => {
       loadedRef.current = true;

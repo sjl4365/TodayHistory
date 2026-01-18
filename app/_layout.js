@@ -1,6 +1,6 @@
 // app/_layout.js
 import * as SplashScreen from "expo-splash-screen";
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync(); // ✅ 네이티브 스플래시 자동 숨김 방지 (숨기는 건 index에서)
 
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
