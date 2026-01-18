@@ -5,28 +5,41 @@ import { router } from "expo-router";
 import { Image } from "expo-image";
 import * as SplashScreen from "expo-splash-screen";
 
-export default function Index() {
-  const doneRef = useRef(false);
+const MIN_JS_SPLASH_MS = 2000;
 
-  const finish = useCallback(async () => {
+export default function Index() {
+  const startRef = useRef(Date.now());
+  const doneRef = useRef(false);
+  const loadedRef = useRef(false);
+
+  const finishOnce = useCallback(async () => {
     if (doneRef.current) return;
+    if (!loadedRef.current) return;
+
+    const elapsed = Date.now() - startRef.current;
+    const remain = Math.max(0, MIN_JS_SPLASH_MS - elapsed);
+
     doneRef.current = true;
 
-    requestAnimationFrame(async () => {
-      try {
-        await SplashScreen.hideAsync();
-      } catch {}
-      router.replace("/(tabs)/home");
-    });
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(async () => {
+          try {
+            await SplashScreen.hideAsync();
+          } catch {}
+          router.replace("/(tabs)/home");
+        });
+      });
+    }, remain);
   }, []);
 
-  // ✅ 혹시 onLoad가 안 오는 케이스 대비 (안전장치)
   useEffect(() => {
     const t = setTimeout(() => {
-      finish();
-    }, 1500);
+      loadedRef.current = true;
+      finishOnce();
+    }, MIN_JS_SPLASH_MS + 800);
     return () => clearTimeout(t);
-  }, [finish]);
+  }, [finishOnce]);
 
   return (
     <View style={styles.container}>
@@ -35,8 +48,14 @@ export default function Index() {
         style={styles.bg}
         contentFit="cover"
         cachePolicy="memory-disk"
-        onLoad={finish}     // ✅ 성공적으로 그려지면 즉시 finish
-        onError={finish}    // ✅ 에러 나도 멈추지 않게
+        onLoad={() => {
+          loadedRef.current = true;
+          finishOnce();
+        }}
+        onError={() => {
+          loadedRef.current = true;
+          finishOnce();
+        }}
       />
     </View>
   );
