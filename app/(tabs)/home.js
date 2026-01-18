@@ -4266,7 +4266,7 @@ export default function Home() {
     try {
       const { header, payload } = buildSharePayload();
       // 제목 + 본문 합쳐서 하나의 메시지로
-      const text = [header, payload].filter(Boolean).join("\n\n").trim();
+      const text = [header, payload].filter(Boolean).join("\n").trim();
 
       const message =
         text || "Histree - 오늘의 역사에서 오늘의 사건을 확인해 보세요.";

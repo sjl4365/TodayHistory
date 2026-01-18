@@ -7,7 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Platform, LogBox } from "react-native";
-import  CapsuleToastProvider  from "../components/CapsuleToastProvider";
+import CapsuleToastProvider from "../components/CapsuleToastProvider";
 
 export default function RootLayout() {
   useEffect(() => {
@@ -20,24 +20,6 @@ export default function RootLayout() {
     }
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-
-    (async () => {
-      try {
-        // 필요하면 아주 짧게만 (0~100ms 정도) 두고, 길게는 index에서 처리
-        // await new Promise((r) => setTimeout(r, 50));
-      } finally {
-        if (mounted) {
-          await SplashScreen.hideAsync();
-        }
-      }
-    })();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
 
   useEffect(() => {
     if (Platform.OS !== "android") return;
@@ -58,7 +40,7 @@ export default function RootLayout() {
       <CapsuleToastProvider>
         <StatusBar style="light" translucent backgroundColor="transparent" />
         <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
+          <Stack.Screen name="index" options={{ animation: "none" }} />
           <Stack.Screen name="(tabs)" />
         </Stack>
       </CapsuleToastProvider>
