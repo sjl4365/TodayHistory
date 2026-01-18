@@ -4289,82 +4289,79 @@ export default function Home() {
 
   const fetchingRef = useRef(false);
   const loadBannerImage = useCallback(
-    async ({ row, uiLang }) => {
-      console.log('🖼️ [LOAD BANNER] Starting...');
+      async ({ row, uiLang }) => {
+        console.log('🖼️ [LOAD BANNER] Starting...');
 
-      // 0️⃣ 캐시 확인 (선택사항 - 원하면 추가)
-      // const cacheKey = `@banner:${row 식별자}`;
-      // const cached = await AsyncStorage.getItem(cacheKey);
-      // if (cached) { setBannerStatus("ready"); setBannerImageUrl(cached); return; }
-
-      // 1️⃣ 항상 loading부터 시작
-      setBannerStatus("loading");
-      setBannerImageUrl(null);
-
-      try {
-        const nativeLang = COUNTRY_CFG[row?.cid]?.lang || uiLang || "en";
-        const anchors = getAnchorsForLang(row, nativeLang);
-
-        console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
-
-        let imageUrl = null;
-
-        // 앵커 1, 2 순차 시도
-        for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-          const anchor = anchors[i];
-          if (!anchor || !anchor.text) continue;
-
-          console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
-
-          try {
-            const result = await withTimeout(
-              fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
-              5000
-            );
-
-            if (result) {
-              console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
-              imageUrl = result;
-              break;
-            }
-          } catch (e) {
-            console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
-          }
-        }
-
-        // 이미지 최적화
-        if (imageUrl) {
-          try {
-            const best = await bestWikiThumb(imageUrl, 640);
-            imageUrl = best || sanitizeImageUrl(imageUrl);
-          } catch (e) {
-            console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
-            imageUrl = sanitizeImageUrl(imageUrl);
-          }
-        }
-
-        console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
-
-        // 2️⃣ 상태 업데이트
-        if (imageUrl) {
-          setBannerImageUrl(imageUrl);
-          setBannerStatus("ready");
-
-          // 캐시 저장 (선택사항)
-          // await AsyncStorage.setItem(cacheKey, imageUrl);
-        } else {
-          setBannerImageUrl(null);
-          setBannerStatus("no-image");
-        }
-
-      } catch (e) {
-        console.error('❌ [LOAD BANNER] Error:', e);
-        setBannerStatus("no-image");
+        // 1️⃣ 항상 loading부터 시작
+        setBannerStatus("loading");
         setBannerImageUrl(null);
-      }
-    },
-    []
-  );
+
+        try {
+          // ⭐ 변경: uiLang 대신 해당 국가의 기본 언어 사용
+          const cid = row?.cid || 'world';
+          const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
+          
+          console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
+          
+          const anchors = getAnchorsForLang(row, nativeLang);
+
+          console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
+
+          let imageUrl = null;
+
+          // 앵커 1, 2 순차 시도
+          for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+            const anchor = anchors[i];
+            if (!anchor || !anchor.text) continue;
+
+            console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
+
+            try {
+              const result = await withTimeout(
+                fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+                5000
+              );
+
+              if (result) {
+                console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
+                imageUrl = result;
+                break;
+              }
+            } catch (e) {
+              console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
+            }
+          }
+
+          // 이미지 최적화
+          if (imageUrl) {
+            try {
+              const best = await bestWikiThumb(imageUrl, 640);
+              imageUrl = best || sanitizeImageUrl(imageUrl);
+            } catch (e) {
+              console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
+              imageUrl = sanitizeImageUrl(imageUrl);
+            }
+          }
+
+          console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
+
+          // 2️⃣ 상태 업데이트
+          if (imageUrl) {
+            setBannerImageUrl(imageUrl);
+            setBannerStatus("ready");
+          } else {
+            setBannerImageUrl(null);
+            setBannerStatus("no-image");
+          }
+
+        } catch (e) {
+          console.error('❌ [LOAD BANNER] Error:', e);
+          setBannerStatus("no-image");
+          setBannerImageUrl(null);
+        }
+      },
+      [] // ⭐ uiLang 의존성 제거
+    );
 
 
   const handlePullToRefresh = useCallback((source = "button") => {
