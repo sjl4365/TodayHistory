@@ -4224,7 +4224,7 @@ export default function Home() {
 
     const eventYear = getYearFromRow(p.row);
     const dateLabel = formatEventDateLabel(eventYear, todayParts, lang, tz);
-
+//TEST
     // const downloadLabel =
     //   lang === "ko"
     //     ? "히스트리 앱 다운로드 링크"
