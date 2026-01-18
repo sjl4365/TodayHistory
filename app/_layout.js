@@ -20,7 +20,6 @@ export default function RootLayout() {
     }
   }, []);
 
-
   useEffect(() => {
     if (Platform.OS !== "android") return;
     (async () => {
