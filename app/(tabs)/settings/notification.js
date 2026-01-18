@@ -606,7 +606,7 @@ const handleToggleNotification = async (value) => {
                     <Text style={{ fontSize: 16 }}>
                       {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
                     </Text>
-                    <Text style={{ color: '#8B5CF6', marginTop: 6 }}>Change time</Text>
+                    <Text style={{ color: '#8B5CF6', marginTop: 6 }}>{t('change_time')}</Text>
                   </TouchableOpacity>
 
                   {showTimePicker && (
@@ -638,7 +638,7 @@ const handleToggleNotification = async (value) => {
     <ScrollView style={styles.container}>
       <View style={styles.section}>
         <NotificationItem
-          title="Allow Notification"
+          title={t('allow_notification')}
           value={isNotificationOn}
           onToggle={handleToggleNotification}
         />

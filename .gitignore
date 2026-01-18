@@ -39,10 +39,15 @@ yarn-error.*
 
 #for the files that are generated from the dev build 
 #android
-android/.gradle
+android/.gradle/
+android/.cxx/
 android/app/build/
 android/app/cxx/
-android/.cxx/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
 
 #ios
 ios/build/
@@ -61,5 +66,5 @@ package-lock.json
 
 .idea
 
-android/
+
 ios/
