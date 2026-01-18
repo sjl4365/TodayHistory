@@ -2901,6 +2901,25 @@ export default function Home() {
 
   const toast = useCapsuleToast();
 
+  // ✅ Pull-to-refresh로 화면이 내려간 채로 남는 문제 방지용
+  const mainScrollRef = useRef(null);
+  const scrollMainToTop = useCallback((animated = false) => {
+    try {
+      mainScrollRef.current?.scrollTo?.({ y: 0, animated });
+    } catch {
+      // noop
+    }
+  }, []);
+
+  const normalizeScrollAfterAdPrompt = useCallback(() => {
+    // 광고 모달이 뜨거나 닫힐 때, 아래로 내려간 상태(갭)에서 로딩이 끼는 현상 방지
+    scrollMainToTop(false);
+    setIsRefreshing(false);
+    setSoftRefreshing(false);
+    scrollMainToTop(false);
+  }, [scrollMainToTop]);
+
+
   // 연도 모드 시청 카운트 & 패스
   // 나라별로 몇 개 봤는지 저장
   const [yearSeenGroups, setYearSeenGroups] = useState({
@@ -3935,7 +3954,8 @@ export default function Home() {
     }
     // 패스 없으면 광고 모달 띄우기
     pendingNavRef.current = -1;
-    setAdPromptVisible(true);
+    normalizeScrollAfterAdPrompt();
+        setAdPromptVisible(true);
   }, [rewardPassUntil, goBy, isYearMode]);
 
   // [확인/교체] 내일 보기
@@ -3949,7 +3969,8 @@ export default function Home() {
     }
     // 패스 없으면 광고 모달 띄우기
     pendingNavRef.current = +1;
-    setAdPromptVisible(true);
+    normalizeScrollAfterAdPrompt();
+        setAdPromptVisible(true);
   }, [rewardPassUntil, goBy, isYearMode]);
 
 
@@ -4420,12 +4441,14 @@ export default function Home() {
         }
 
         pendingNavRef.current = "world_today_more";
+        normalizeScrollAfterAdPrompt();
         setAdPromptVisible(true);
         return;
       }
 
       pendingNavRef.current = dayOffset < 0 ? -1 : +1;
-      setAdPromptVisible(true);
+      normalizeScrollAfterAdPrompt();
+        setAdPromptVisible(true);
       return;
     }
 
@@ -4440,6 +4463,14 @@ export default function Home() {
     worldTodayFreeCount,
     handlePressYearMore,
   ]);
+
+  // ✅ 광고 모달이 뜨는 순간(또는 닫히는 순간)에 화면이 아래로 내려간 상태를 정리
+  useEffect(() => {
+    if (adPromptVisible) {
+      normalizeScrollAfterAdPrompt();
+    }
+  }, [adPromptVisible, normalizeScrollAfterAdPrompt]);
+
 
 
 
@@ -4821,6 +4852,7 @@ export default function Home() {
     setLoading(false);
     setIsRefreshing(false);
     setSoftRefreshing(false);
+    scrollMainToTop(false);
   }, []);
 
   // 데이터 로딩 (World = 기존 / Year = 랜덤 연도 + prev/next + refresh 중복방지)
@@ -5589,6 +5621,7 @@ export default function Home() {
             panHandlers={panResponder.panHandlers}
           >
             <ScrollView
+              ref={mainScrollRef}
               style={{ flex: 1 }}
               contentContainerStyle={{
                 flexGrow: 1,
@@ -5859,7 +5892,7 @@ export default function Home() {
             }}
             transparent
             animationType="fade"
-            onRequestClose={() => setAdPromptVisible(false)}
+            onRequestClose={() => { setAdPromptVisible(false); normalizeScrollAfterAdPrompt(); }}
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
               <View
@@ -5872,7 +5905,7 @@ export default function Home() {
                 }}
               >
                 <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
-                  <Pressable onPress={() => setAdPromptVisible(false)} hitSlop={10}>
+                  <Pressable onPress={() => { setAdPromptVisible(false); normalizeScrollAfterAdPrompt(); }} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
                 </View>
