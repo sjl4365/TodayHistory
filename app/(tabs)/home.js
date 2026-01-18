@@ -4202,12 +4202,12 @@ export default function Home() {
       const payload = [
         header,
         "",
-        `*${lang === "ko"
-          ? "히스트리 앱 다운로드 링크"
-          : lang === "ja"
-            ? "Histreeアプリのダウンロードリンク"
-            : "Download Histree app"
-        } - ${APP_DOWNLOAD_URL}`,
+        // `*${lang === "ko"
+        //   ? "히스트리 앱 다운로드 링크"
+        //   : lang === "ja"
+        //     ? "Histreeアプリのダウンロードリンク"
+        //     : "Download Histree app"
+        // } - ${APP_DOWNLOAD_URL}`,
       ].join("\n");
 
       return { header, payload };
@@ -4224,13 +4224,13 @@ export default function Home() {
 
     const eventYear = getYearFromRow(p.row);
     const dateLabel = formatEventDateLabel(eventYear, todayParts, lang, tz);
-
-    const downloadLabel =
-      lang === "ko"
-        ? "히스트리 앱 다운로드 링크"
-        : lang === "ja"
-          ? "Histreeアプリのダウンロードリンク"
-          : "Download Histree app";
+//TEST
+    // const downloadLabel =
+    //   lang === "ko"
+    //     ? "히스트리 앱 다운로드 링크"
+    //     : lang === "ja"
+    //       ? "Histreeアプリのダウンロードリンク"
+    //       : "Download Histree app";
 
     const bodyText = (p.body || "").trim();
 
@@ -4245,7 +4245,7 @@ export default function Home() {
       bodyText,
       "",
       // *히스트리 앱 다운로드 링크 - https://.
-      `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
+      // `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
     ];
 
     const payload = lines.join("\n");
