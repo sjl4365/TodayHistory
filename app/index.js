@@ -1,62 +1,77 @@
 // app/index.js
 import React, { useCallback, useEffect, useRef } from "react";
-import { View, StyleSheet } from "react-native";
+import { View, StyleSheet, Animated } from "react-native";
 import { router } from "expo-router";
 import { Image } from "expo-image";
 import * as SplashScreen from "expo-splash-screen";
 
 const MIN_JS_SPLASH_MS = 2000;
+const FADE_OUT_MS = 260; // 부드럽게 (200~300 추천)
 
 export default function Index() {
-  const startRef = useRef(Date.now());
+  const revealedRef = useRef(false);
+  const shownAtRef = useRef(0);
   const doneRef = useRef(false);
-  const loadedRef = useRef(false);
 
-  const finishOnce = useCallback(async () => {
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  const revealJsSplashOnce = useCallback(async () => {
+    if (revealedRef.current) return;
+    revealedRef.current = true;
+
+    shownAtRef.current = Date.now();
+
+    try {
+      await SplashScreen.hideAsync();
+    } catch {}
+  }, []);
+
+  const goHomeSmoothOnce = useCallback(() => {
     if (doneRef.current) return;
-    if (!loadedRef.current) return;
+    if (!revealedRef.current) return;
 
-    const elapsed = Date.now() - startRef.current;
+    const elapsed = Date.now() - shownAtRef.current;
     const remain = Math.max(0, MIN_JS_SPLASH_MS - elapsed);
 
     doneRef.current = true;
 
     setTimeout(() => {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(async () => {
-          try {
-            await SplashScreen.hideAsync();
-          } catch {}
-          router.replace("/(tabs)/home");
-        });
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: FADE_OUT_MS,
+        useNativeDriver: true,
+      }).start(() => {
+        router.replace("/(tabs)/home");
       });
     }, remain);
-  }, []);
+  }, [opacity]);
 
   useEffect(() => {
-    const t = setTimeout(() => {
-      loadedRef.current = true;
-      finishOnce();
-    }, MIN_JS_SPLASH_MS + 800);
+    const t = setTimeout(async () => {
+      await revealJsSplashOnce();
+      goHomeSmoothOnce();
+    }, 1200);
     return () => clearTimeout(t);
-  }, [finishOnce]);
+  }, [revealJsSplashOnce, goHomeSmoothOnce]);
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require("../assets/splash.png")}
-        style={styles.bg}
-        contentFit="cover"
-        cachePolicy="memory-disk"
-        onLoad={() => {
-          loadedRef.current = true;
-          finishOnce();
-        }}
-        onError={() => {
-          loadedRef.current = true;
-          finishOnce();
-        }}
-      />
+      <Animated.View style={[styles.container, { opacity }]}>
+        <Image
+          source={require("../assets/splash.png")}
+          style={styles.bg}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          onLoad={async () => {
+            await revealJsSplashOnce();
+            goHomeSmoothOnce();
+          }}
+          onError={async () => {
+            await revealJsSplashOnce();
+            goHomeSmoothOnce();
+          }}
+        />
+      </Animated.View>
     </View>
   );
 }
