@@ -1,6 +1,7 @@
 // app/_layout.js
 import * as SplashScreen from "expo-splash-screen";
-SplashScreen.preventAutoHideAsync(); 
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
