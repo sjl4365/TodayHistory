@@ -3128,6 +3128,8 @@ export default function Home() {
       applyYearIndex(currentCid, nextIdx);
       await persistYearIndex(currentCid, nextIdx);
     } else {
+      // iOS에서 모달 거절/닫기 시 스크롤이 내려간 채로 남아 갭이 생기는 현상 방지
+      normalizeScrollAfterAdPrompt();
       setYearAdPromptVisible(true);
     }
   }, [
@@ -3143,6 +3145,9 @@ export default function Home() {
   const handleCloseYearAdPrompt = useCallback(async () => {
     // 모달 닫기
     setYearAdPromptVisible(false);
+
+    // 스크롤/리프레시 상태 정리 (특히 iOS에서 거절 시 내려간 채로 남는 문제 방지)
+    normalizeScrollAfterAdPrompt();
 
     // 이미 패스(광고 시청) 있으면 아무 것도 안 함
     const now = Date.now();
@@ -4470,6 +4475,13 @@ export default function Home() {
       normalizeScrollAfterAdPrompt();
     }
   }, [adPromptVisible, normalizeScrollAfterAdPrompt]);
+
+
+  useEffect(() => {
+    if (yearAdPromptVisible) {
+      normalizeScrollAfterAdPrompt();
+    }
+  }, [yearAdPromptVisible, normalizeScrollAfterAdPrompt]);
 
 
 
@@ -5942,7 +5954,7 @@ export default function Home() {
                 rewardedAd.show();
               }
             }}
-            onRequestClose={() => setYearAdPromptVisible(false)}
+            onRequestClose={handleCloseYearAdPrompt}
 
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
