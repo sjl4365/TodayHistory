@@ -14,7 +14,7 @@ import {
 import Slider from '@react-native-community/slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-import { StrokeText } from "@charmy.tech/react-native-stroke-text";
+import StrokeText from '../../../lib/lookstroketext';
 import { useTranslation } from '../../../lib/translations';
 import { useNavigation } from 'expo-router';
 
