@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@amplitude/analytics-react-native": "^1.5.35",
     "@expo/metro-runtime": "~6.1.2",
     "@google-cloud/storage": "^7.17.2",
     "@minbong/stroke-svg-text": "^0.1.1",
