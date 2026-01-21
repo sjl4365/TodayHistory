@@ -38,21 +38,3 @@ expoAutolinking.useExpoVersionCatalog()
 include ':app'
 includeBuild(expoAutolinking.reactNativeGradlePlugin)
 
-
-// --- AGP 8+ fix: ensure BuildConfig is generated for Android modules ---
-gradle.beforeProject { Project p ->
-  p.plugins.withId("com.android.library") {
-    if (p.hasProperty("android")) {
-      p.android {
-        buildFeatures { buildConfig true }
-      }
-    }
-  }
-  p.plugins.withId("com.android.application") {
-    if (p.hasProperty("android")) {
-      p.android {
-        buildFeatures { buildConfig true }
-      }
-    }
-  }
-}
