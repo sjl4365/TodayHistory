@@ -23,20 +23,18 @@ allprojects {
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
 
-// --- Force BuildConfig generation for Android subprojects (AGP 8+ safe) ---
-subprojects { subproject ->
-  subproject.plugins.withId("com.android.library") {
-    subproject.android {
-      buildFeatures {
-        buildConfig true
+gradle.beforeProject { Project p ->
+  p.plugins.withId("com.android.library") {
+    if (p.hasProperty("android")) {
+      p.android {
+        buildFeatures { buildConfig true }
       }
     }
   }
-
-  subproject.plugins.withId("com.android.application") {
-    subproject.android {
-      buildFeatures {
-        buildConfig true
+  p.plugins.withId("com.android.application") {
+    if (p.hasProperty("android")) {
+      p.android {
+        buildFeatures { buildConfig true }
       }
     }
   }
