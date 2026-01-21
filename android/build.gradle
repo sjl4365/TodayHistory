@@ -23,21 +23,20 @@ allprojects {
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
 
-/**
- * Fix for AGP 8+: some libraries (ex: @amplitude/analytics-react-native) define BuildConfig fields.
- * If BuildConfig generation is disabled, those library projects can end up with "No variants exist".
- */
+// --- Force BuildConfig generation for Android subprojects (AGP 8+ safe) ---
 subprojects { subproject ->
-  afterEvaluate {
-    if (subproject.plugins.hasPlugin("com.android.library") ||
-        subproject.plugins.hasPlugin("com.android.application")) {
+  subproject.plugins.withId("com.android.library") {
+    subproject.android {
+      buildFeatures {
+        buildConfig true
+      }
+    }
+  }
 
-      if (subproject.hasProperty("android")) {
-        subproject.android {
-          buildFeatures {
-            buildConfig true
-          }
-        }
+  subproject.plugins.withId("com.android.application") {
+    subproject.android {
+      buildFeatures {
+        buildConfig true
       }
     }
   }
