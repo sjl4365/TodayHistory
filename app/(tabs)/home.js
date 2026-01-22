@@ -4317,6 +4317,8 @@ export default function Home() {
   const loadBannerImage = useCallback(
       async ({ row, uiLang }) => {
         console.log('🖼️ [LOAD BANNER] Starting...');
+        console.log('🔍 [DEBUG] row.cid:', row?.cid);
+        console.log('🔍 [DEBUG] COUNTRY_CFG:', COUNTRY_CFG);
 
         // 1️⃣ 항상 loading부터 시작
         setBannerStatus("loading");
@@ -4326,6 +4328,11 @@ export default function Home() {
           // ⭐ 변경: uiLang 대신 해당 국가의 기본 언어 사용
           const cid = row?.cid || 'world';
           const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
+          
+          console.log('🔍 [LOAD BANNER] cid:', cid);
+          console.log('🔍 [LOAD BANNER] COUNTRY_CFG[cid]:', COUNTRY_CFG[cid]);
+          console.log('🔍 [LOAD BANNER] nativeLang:', nativeLang);
+          console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
           
           console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
           
@@ -4386,7 +4393,7 @@ export default function Home() {
           setBannerImageUrl(null);
         }
       },
-      [] // ⭐ uiLang 의존성 제거
+      []
     );
 
 
@@ -5188,9 +5195,10 @@ export default function Home() {
         console.log('🔍 [IMAGE] Processing image for', { iso, cid, pickKey });
 
         // ✅ loadBannerImage만 호출 (상태 관리 포함)
+        // ✅ loadBannerImage만 호출 (상태 관리 포함)
         if (alive) {
           await loadBannerImage({
-            row: first.row,
+            row: { ...first.row, cid: first.cid },  // ⭐ cid 추가
             uiLang: uiLang
           });
         }
