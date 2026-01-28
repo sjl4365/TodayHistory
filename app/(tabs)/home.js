@@ -350,7 +350,7 @@ const UI_STR = {
 const AD_MODAL_TEXT = {
   en: {
     title: "Enjoy Histree Pro for 12 Hours",
-    subTitle: "Watch one ad and get:",
+    subTitle: "Watch one ad and get",
     description:
       "- No video ads\n" +
       "- Explore more historical events\n" +
@@ -360,7 +360,7 @@ const AD_MODAL_TEXT = {
 
   ko: {
     title: "Histree Pro 12시간 무료 이용",
-    subTitle: "광고 1회 시청 시 다음 혜택을 제공합니다:",
+    subTitle: "광고 1회 시청 시 다음 혜택을 제공합니다",
     description:
       "- 동영상 광고 없이 이용\n" +
       "- 한·중·일의 더 많은 역사 이벤트 탐색\n" +
@@ -370,7 +370,7 @@ const AD_MODAL_TEXT = {
 
   ja: {
     title: "Histree Pro を12時間無料で利用",
-    subTitle: "広告を1回視聴すると、以下の特典があります：",
+    subTitle: "広告を1回視聴すると、以下の特典があります",
     description:
       "- 動画広告なしで利用可能\n" +
       "- 日・韓・中のより多くの歴史的出来事を探索\n" +
@@ -380,7 +380,7 @@ const AD_MODAL_TEXT = {
 
   sc: {
     title: "免费使用 Histree Pro 12 小时",
-    subTitle: "观看 1 次广告即可获得以下权益：",
+    subTitle: "观看 1 次广告即可获得以下权益",
     description:
       "- 无视频广告\n" +
       "- 探索更多日韩中的历史事件\n" +
@@ -390,7 +390,7 @@ const AD_MODAL_TEXT = {
 
   tc: {
     title: "免費使用 Histree Pro 12 小時",
-    subTitle: "觀看 1 次廣告即可獲得以下權益：",
+    subTitle: "觀看 1 次廣告即可獲得以下權益",
     description:
       "- 無影片廣告\n" +
       "- 探索更多日韓中的歷史事件\n" +
@@ -400,7 +400,7 @@ const AD_MODAL_TEXT = {
 
   es: {
     title: "Disfruta de Histree Pro durante 12 horas",
-    subTitle: "Mira un anuncio y obtén:",
+    subTitle: "Mira un anuncio y obtén",
     description:
       "- Sin anuncios de video\n" +
       "- Explora más eventos históricos\n" +
@@ -410,7 +410,7 @@ const AD_MODAL_TEXT = {
 
   fr: {
     title: "Profitez de Histree Pro pendant 12 heures",
-    subTitle: "Regardez une publicité et obtenez :",
+    subTitle: "Regardez une publicité et obtenez ",
     description:
       "- Sans publicité vidéo\n" +
       "- Explorez davantage d’événements historiques\n" +
@@ -3888,13 +3888,25 @@ export default function Home() {
   };
 
 
+  // useEffect(() => {
+  //   mobileAds()
+  //     .initialize()
+  //     .then(() => {
+  //       console.log("[AD] mobileAds initialized");
+  //     });
+  // }, []);
+
   useEffect(() => {
+  const task = InteractionManager.runAfterInteractions(() => {
     mobileAds()
       .initialize()
-      .then(() => {
-        console.log("[AD] mobileAds initialized");
-      });
-  }, []);
+      .then(() => console.log("[AD] mobileAds initialized"))
+      .catch(() => {});
+  });
+
+  return () => task.cancel();
+}, []);
+
 
   const bodyLineHeight = Math.round(
     (customFontSize || 18) * 1.45
