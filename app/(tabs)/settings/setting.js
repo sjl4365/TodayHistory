@@ -365,7 +365,7 @@ export default function SettingsIndex() {
                 styles.selectedLanguageText, 
                 { fontSize: scale(16) }
               ]}>
-                v 1.0.7
+                v 1.0.8
               </Text>
             }
             showArrow={false}
