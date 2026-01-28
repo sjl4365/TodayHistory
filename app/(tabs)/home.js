@@ -3888,13 +3888,25 @@ export default function Home() {
   };
 
 
+  // useEffect(() => {
+  //   mobileAds()
+  //     .initialize()
+  //     .then(() => {
+  //       console.log("[AD] mobileAds initialized");
+  //     });
+  // }, []);
+
   useEffect(() => {
+  const task = InteractionManager.runAfterInteractions(() => {
     mobileAds()
       .initialize()
-      .then(() => {
-        console.log("[AD] mobileAds initialized");
-      });
-  }, []);
+      .then(() => console.log("[AD] mobileAds initialized"))
+      .catch(() => {});
+  });
+
+  return () => task.cancel();
+}, []);
+
 
   const bodyLineHeight = Math.round(
     (customFontSize || 18) * 1.45
