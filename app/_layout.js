@@ -8,8 +8,13 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Platform, LogBox } from "react-native";
 import CapsuleToastProvider from "../components/CapsuleToastProvider";
+import { preloadAppOnce } from "../lib/preloadApp";
 
 export default function RootLayout() {
+  useEffect(() => {
+    preloadAppOnce().catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (__DEV__) {
       LogBox.ignoreLogs([
@@ -39,8 +44,8 @@ export default function RootLayout() {
         <Stack
           screenOptions={{
             headerShown: false,
-            animation: "none",                 
-            contentStyle: { backgroundColor: "#1E3023" }, 
+            animation: "none",
+            contentStyle: { backgroundColor: "#1E3023" },
           }}
         >
           <Stack.Screen name="index" />
