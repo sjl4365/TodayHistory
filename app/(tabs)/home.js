@@ -360,17 +360,17 @@ const AD_MODAL_TEXT = {
 
   ko: {
     title: "Histree Pro 12시간 무료 이용",
-    subTitle: "광고 1회 시청 시 다음 혜택을 제공합니다",
+    subTitle: "광고 1회 시청 시 혜택",
     description:
-      "- 동영상 광고 없이 이용\n" +
-      "- 한·중·일의 더 많은 역사 이벤트 탐색\n" +
-      "- 세계 역사 ‘어제·내일’ 이용 가능",
+      "- 동영상 광고 없이 사용\n" +
+      "- 한·일·중의 더 많은 역사적 사건 탐색\n" +
+      "- 세계 역사 어제·내일 이용 가능",
     cta: "광고 보기",
   },
 
   ja: {
     title: "Histree Pro を12時間無料で利用",
-    subTitle: "広告を1回視聴すると、以下の特典があります",
+    subTitle: "広告1回視聴時の特典",
     description:
       "- 動画広告なしで利用可能\n" +
       "- 日・韓・中のより多くの歴史的出来事を探索\n" +
@@ -380,7 +380,7 @@ const AD_MODAL_TEXT = {
 
   sc: {
     title: "免费使用 Histree Pro 12 小时",
-    subTitle: "观看 1 次广告即可获得以下权益",
+    subTitle: "广告观看 1 次的奖励",
     description:
       "- 无视频广告\n" +
       "- 探索更多日韩中的历史事件\n" +
@@ -390,7 +390,7 @@ const AD_MODAL_TEXT = {
 
   tc: {
     title: "免費使用 Histree Pro 12 小時",
-    subTitle: "觀看 1 次廣告即可獲得以下權益",
+    subTitle: "觀看廣告 1 次的獎勵",
     description:
       "- 無影片廣告\n" +
       "- 探索更多日韓中的歷史事件\n" +
@@ -400,7 +400,7 @@ const AD_MODAL_TEXT = {
 
   es: {
     title: "Disfruta de Histree Pro durante 12 horas",
-    subTitle: "Mira un anuncio y obtén",
+    subTitle: "Beneficio por ver un anuncio una vez",
     description:
       "- Sin anuncios de video\n" +
       "- Explora más eventos históricos\n" +
@@ -410,7 +410,7 @@ const AD_MODAL_TEXT = {
 
   fr: {
     title: "Profitez de Histree Pro pendant 12 heures",
-    subTitle: "Regardez une publicité et obtenez ",
+    subTitle: "Avantage pour un visionnage de publicité",
     description:
       "- Sans publicité vidéo\n" +
       "- Explorez davantage d’événements historiques\n" +
@@ -418,7 +418,6 @@ const AD_MODAL_TEXT = {
     cta: "Voir la publicité",
   },
 };
-
 
 
 
@@ -4270,7 +4269,22 @@ export default function Home() {
       FIELD_LABELS[lang] || FIELD_LABELS.en;
 
     const eventYear = getYearFromRow(p.row);
-    const dateLabel = formatEventDateLabel(eventYear, todayParts, lang, tz);
+
+const dateLabel =
+  p.cid === "world"
+    ? formatEventDateLabel(eventYear, todayParts, lang, tz)
+    : (() => {
+        const yNum = parseInt(String(eventYear || ""), 10);
+        if (Number.isNaN(yNum) || yNum <= 0) return "";
+
+        const yOnly = formatOnlyYearLabel(yNum, lang);
+        const baseYear = parseInt(String(todayParts?.y || ""), 10);
+        const diff = !Number.isNaN(baseYear) ? (baseYear - yNum) : 0;
+        const ago = formatYearsAgo(diff, lang);
+
+        return ago ? `${yOnly} ${ago}` : yOnly;
+      })();
+
     //TEST
     // const downloadLabel =
     //   lang === "ko"
@@ -6034,7 +6048,7 @@ export default function Home() {
                                 marginRight: 10, // 아이콘-글자 간격 10
                               }}
                             >
-                              <RNImage source={iconSrc} style={{ width: 24, height: 24 }} resizeMode="contain" />
+                              <RNImage source={iconSrc} style={{ width: 32, height: 32 }} resizeMode="contain" />
                             </View>
 
                             {/* Description text */}
@@ -6087,7 +6101,6 @@ export default function Home() {
 
 
 
-          {/* Year 모드용 광고 모달 */}
           {/* Year 모드용 광고 모달 */}
           <Modal
             visible={yearAdPromptVisible}
@@ -6187,7 +6200,7 @@ export default function Home() {
                         return (
                           <View key={`b-${idx}`} style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
                             <View style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center", marginRight: 10 }}>
-                              <RNImage source={iconSrc} style={{ width: 24, height: 24 }} resizeMode="contain" />
+                              <RNImage source={iconSrc} style={{ width: 32, height: 32 }} resizeMode="contain" />
                             </View>
 
                             <Text

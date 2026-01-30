@@ -9,7 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@amplitude/analytics-react-native": "^1.5.35",
+    "@amplitude/analytics-react-native": "^1.5.37",
     "@expo/config-plugins": "~54.0.4",
     "@expo/metro-runtime": "~6.1.2",
     "@google-cloud/storage": "^7.17.2",
@@ -55,6 +55,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
+    "@parcel/watcher": "^2.5.6",
     "@react-native-community/cli": "latest",
     "@types/react": "~19.1.10",
     "patch-package": "^8.0.1",
