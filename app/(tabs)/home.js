@@ -6034,7 +6034,7 @@ export default function Home() {
                                 marginRight: 10, // 아이콘-글자 간격 10
                               }}
                             >
-                              <RNImage source={iconSrc} style={{ width: 24, height: 24 }} resizeMode="contain" />
+                              <RNImage source={iconSrc} style={{ width: 32, height: 32 }} resizeMode="contain" />
                             </View>
 
                             {/* Description text */}
@@ -6087,7 +6087,6 @@ export default function Home() {
 
 
 
-          {/* Year 모드용 광고 모달 */}
           {/* Year 모드용 광고 모달 */}
           <Modal
             visible={yearAdPromptVisible}
