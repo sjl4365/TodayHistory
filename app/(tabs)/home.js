@@ -1593,22 +1593,25 @@ function isValidColorString(s) {
 function SegmentedCountrySelector({
   uiLang,
   ordered,
-  value,        // Set<string>
+  value,
   onChange,
   fixedHeight = 38,
 }) {
   const { scale } = useUIScale();
 
-  // Big button spec
   const BIG_W = 323;
   const BIG_H = 37;
   const BIG_RADIUS = 80;
 
-  // Small button spec
-  const BTN_W = 78;
+  const COUNT = Math.min(4, ordered.length);
+
+  // ✅ GAP 선언을 먼저 (기존엔 GAP을 선언 전에 써서 위험)
+  const GAP = 10;
+
+  // (폭 계산을 유지하고 싶으면 그대로 둬도 됨)
+  const BTN_W = Math.floor((BIG_W - GAP * (COUNT - 1)) / COUNT);
   const BTN_H = 38;
   const BTN_RADIUS = 100;
-  const GAP = 4;
 
   const ICON = 16;
 
@@ -1616,9 +1619,8 @@ function SegmentedCountrySelector({
 
   const handlePress = (id) => {
     if (selectedId === id) return;
-    onChange(new Set([id])); // 단일 선택 유지
+    onChange(new Set([id]));
     emitCountriesChanged(id);
-
   };
 
   const fontFamily = Platform.OS === "ios" ? "Arial" : "sans-serif";
@@ -1630,11 +1632,9 @@ function SegmentedCountrySelector({
         height: scale(BIG_H),
         borderRadius: BIG_RADIUS,
         overflow: "hidden",
-        backgroundColor: "rgba(255,255,255,0.6)", // Fill FFFFFF 60%
+        backgroundColor: "rgba(255,255,255,0.6)",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.5)",      // Stroke FFFFFF 50%
-
-        // Drop shadow (x 0 y 4 blur 4, color 000 25%)
+        borderColor: "rgba(255,255,255,0.5)",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
@@ -1642,24 +1642,18 @@ function SegmentedCountrySelector({
         elevation: 4,
       }}
     >
-      {/* Background blur (15) */}
-      <BlurView
-        intensity={15}
-        tint="light"
-        style={StyleSheet.absoluteFillObject}
-      />
+      <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFillObject} />
 
-      {/*  Small buttons row (가운데에 배치) */}
       <View
         style={{
           flex: 1,
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: scale(GAP),
+          paddingHorizontal: scale(4),
+          gap: 4,
         }}
       >
-        {ordered.slice(0, 4).map((id) => {
+        {ordered.slice(0, 4).map((id, idx) => {
           const active = selectedId === id;
 
           const label =
@@ -1676,49 +1670,52 @@ function SegmentedCountrySelector({
                 width: scale(BTN_W),
                 height: scale(BTN_H),
                 borderRadius: BTN_RADIUS,
+
+                // ✅ 가운데 정렬로 변경 (짧은 글자일 때 오른쪽이 남아보이는 문제 해결)
+                flexDirection: "row",
+                alignItems: "center",
                 justifyContent: "center",
-                paddingLeft: scale(12),
 
-                //  선택됐을 때만 "small button"이 떠야 함
+                // ✅ 기존 paddingLeft/Right로 “왼쪽 박힘” 만들던 걸 제거/축소
+                paddingHorizontal: scale(6),
+
                 backgroundColor: active ? "#FFFFFF" : "transparent",
-
-                // shadow / Elevation Level 3 (선택된 것만)
                 ...(active
                   ? {
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowRadius: 3,
-                    shadowOpacity: 0.3,
-                    elevation: 3,
-                  }
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowRadius: 3,
+                      shadowOpacity: 0.3,
+                      elevation: 3,
+                    }
                   : null),
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                {!!FLAG_ICON[id] && (
-                  <RNImage
-                    source={FLAG_ICON[id]}
-                    style={{
-                      width: scale(ICON),
-                      height: scale(ICON),
-                      marginRight: scale(6),
-                    }}
-                    resizeMode="contain"
-                  />
-                )}
-
-                <Text
+              {!!FLAG_ICON[id] && (
+                <RNImage
+                  source={FLAG_ICON[id]}
                   style={{
-                    fontFamily,
-                    fontSize: 13, // Arial 13
-                    fontWeight: "600",
-                    color: "#000",
+                    width: scale(ICON),
+                    height: scale(ICON),
+                    marginRight: scale(6),
                   }}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-              </View>
+                  resizeMode="contain"
+                />
+              )}
+
+              <Text
+                style={{
+                  fontFamily,
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: "#000",
+                  // (선택) 글자만이라도 중앙 느낌 강화
+                  textAlign: "center",
+                }}
+                numberOfLines={1}
+              >
+                {label}
+              </Text>
             </Pressable>
           );
         })}
@@ -1726,6 +1723,7 @@ function SegmentedCountrySelector({
     </View>
   );
 }
+
 
 
 
@@ -3896,15 +3894,15 @@ export default function Home() {
   // }, []);
 
   useEffect(() => {
-  const task = InteractionManager.runAfterInteractions(() => {
-    mobileAds()
-      .initialize()
-      .then(() => console.log("[AD] mobileAds initialized"))
-      .catch(() => {});
-  });
+    const task = InteractionManager.runAfterInteractions(() => {
+      mobileAds()
+        .initialize()
+        .then(() => console.log("[AD] mobileAds initialized"))
+        .catch(() => { });
+    });
 
-  return () => task.cancel();
-}, []);
+    return () => task.cancel();
+  }, []);
 
 
   const bodyLineHeight = Math.round(
@@ -4270,20 +4268,20 @@ export default function Home() {
 
     const eventYear = getYearFromRow(p.row);
 
-const dateLabel =
-  p.cid === "world"
-    ? formatEventDateLabel(eventYear, todayParts, lang, tz)
-    : (() => {
-        const yNum = parseInt(String(eventYear || ""), 10);
-        if (Number.isNaN(yNum) || yNum <= 0) return "";
+    const dateLabel =
+      p.cid === "world"
+        ? formatEventDateLabel(eventYear, todayParts, lang, tz)
+        : (() => {
+          const yNum = parseInt(String(eventYear || ""), 10);
+          if (Number.isNaN(yNum) || yNum <= 0) return "";
 
-        const yOnly = formatOnlyYearLabel(yNum, lang);
-        const baseYear = parseInt(String(todayParts?.y || ""), 10);
-        const diff = !Number.isNaN(baseYear) ? (baseYear - yNum) : 0;
-        const ago = formatYearsAgo(diff, lang);
+          const yOnly = formatOnlyYearLabel(yNum, lang);
+          const baseYear = parseInt(String(todayParts?.y || ""), 10);
+          const diff = !Number.isNaN(baseYear) ? (baseYear - yNum) : 0;
+          const ago = formatYearsAgo(diff, lang);
 
-        return ago ? `${yOnly} ${ago}` : yOnly;
-      })();
+          return ago ? `${yOnly} ${ago}` : yOnly;
+        })();
 
     //TEST
     // const downloadLabel =
@@ -6136,7 +6134,7 @@ const dateLabel =
                 }}
               >
                 {/* Close */}
-                <View style={{ alignItems: "flex-end"}}>
+                <View style={{ alignItems: "flex-end" }}>
                   <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
@@ -6153,7 +6151,7 @@ const dateLabel =
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontWeight: "900",
-                      fontSize: 10 ,
+                      fontSize: 10,
                       color: "#000000",
                       textAlign: "left",
                       flexShrink: 1,
