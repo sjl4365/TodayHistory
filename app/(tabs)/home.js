@@ -350,7 +350,7 @@ const UI_STR = {
 const AD_MODAL_TEXT = {
   en: {
     title: "Enjoy Histree Pro for 12 Hours",
-    subTitle: "Watch one ad and get",
+    subTitle: "Watch one ad and Get",
     description:
       "- No video ads\n" +
       "- Explore more historical events\n" +
@@ -5969,7 +5969,7 @@ const dateLabel =
                 }}
               >
                 {/* Close (유지) */}
-                <View style={{ alignItems: "flex-end", marginBottom: 12 }}>
+                <View style={{ alignItems: "flex-end" }}>
                   <Pressable onPress={() => { setAdPromptVisible(false); normalizeScrollAfterAdPrompt(); }} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
@@ -6056,7 +6056,7 @@ const dateLabel =
                               style={{
                                 fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                                 fontWeight: "400", // Inter Regular
-                                fontSize: 10,
+                                fontSize: 16,
                                 color: "#616161",
                                 textAlign: "left",
                                 flex: 1,
@@ -6076,7 +6076,7 @@ const dateLabel =
                   onPress={showRewardedAdForWorld}
                   style={{
                     width: "100%",
-                    height: 28.46,
+                    height: 34,
                     backgroundColor: "#000000",
                     borderRadius: 9,
                     alignItems: "center",
@@ -6086,7 +6086,7 @@ const dateLabel =
                   <Text
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: "700",
                       color: "#FFFFFF",
                     }}
@@ -6137,7 +6137,7 @@ const dateLabel =
                 }}
               >
                 {/* Close */}
-                <View style={{ alignItems: "flex-end", marginBottom: 12 }}>
+                <View style={{ alignItems: "flex-end"}}>
                   <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
@@ -6207,7 +6207,7 @@ const dateLabel =
                               style={{
                                 fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                                 fontWeight: "400",
-                                fontSize: 10,
+                                fontSize: 16,
                                 color: "#616161",
                                 textAlign: "left",
                                 flex: 1,
@@ -6227,7 +6227,7 @@ const dateLabel =
                   onPress={showRewardedAdForYear}
                   style={{
                     width: "100%",
-                    height: 28.46,
+                    height: 34,
                     backgroundColor: "#000000",
                     borderRadius: 9,
                     alignItems: "center",
@@ -6237,7 +6237,7 @@ const dateLabel =
                   <Text
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: "700",
                       color: "#FFFFFF",
                     }}
