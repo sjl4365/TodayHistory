@@ -257,61 +257,61 @@ const FIELD_LABELS = {
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
 
 const UI_STR = {
-  title: {
-    ko: {
-      prev: "어제의 역사",
-      today: "오늘의 역사",
-      next: "내일의 역사",
-    },
-    en: {
-      prev: "Yesterday in History",
-      today: "Today in History",
-      next: "Tomorrow in History",
-    },
-    ja: {
-      prev: "昨日の歴史",
-      today: "今日の歴史",
-      next: "明日の歴史",
-    },
-    sc: {
-      prev: "昨日历史",
-      today: "今日历史",
-      next: "明日历史",
-    },
-    tc: {
-      prev: "昨日歷史",
-      today: "今日歷史",
-      next: "明日歷史",
-    },
-    es: {
-      prev: "Ayer en la historia",
-      today: "Hoy en la historia",
-      next: "Mañana en la historia",
-    },
-    fr: {
-      prev: "Hier dans l’histoire",
-      today: "Aujourd’hui dans l’histoire",
-      next: "Demain dans l’histoire",
-    },
-  },
+  // title: {
+  //   ko: {
+  //     prev: "어제의 역사",
+  //     today: "오늘의 역사",
+  //     next: "내일의 역사",
+  //   },
+  //   en: {
+  //     prev: "Yesterday in History",
+  //     today: "Today in History",
+  //     next: "Tomorrow in History",
+  //   },
+  //   ja: {
+  //     prev: "昨日の歴史",
+  //     today: "今日の歴史",
+  //     next: "明日の歴史",
+  //   },
+  //   sc: {
+  //     prev: "昨日历史",
+  //     today: "今日历史",
+  //     next: "明日历史",
+  //   },
+  //   tc: {
+  //     prev: "昨日歷史",
+  //     today: "今日歷史",
+  //     next: "明日歷史",
+  //   },
+  //   es: {
+  //     prev: "Ayer en la historia",
+  //     today: "Hoy en la historia",
+  //     next: "Mañana en la historia",
+  //   },
+  //   fr: {
+  //     prev: "Hier dans l’histoire",
+  //     today: "Aujourd’hui dans l’histoire",
+  //     next: "Demain dans l’histoire",
+  //   },
+  // },
 
-  yearTitle: {
-    ko: {
-      base: "연도별 역사",
-    },
-    en: {
-      base: "Year in History",
-    },
-    ja: {
-      base: "年の歴史",
-    },
-    sc: {
-      base: "这一年的历史",
-    },
-    tc: {
-      base: "這一年的歷史",
-    },
-  },
+  // yearTitle: {
+  //   ko: {
+  //     base: "연도별 역사",
+  //   },
+  //   en: {
+  //     base: "Year in History",
+  //   },
+  //   ja: {
+  //     base: "年の歴史",
+  //   },
+  //   sc: {
+  //     base: "这一年的历史",
+  //   },
+  //   tc: {
+  //     base: "這一年的歷史",
+  //   },
+  // },
 
   empty: {
     ko: "표시할 항목이 없습니다.",
@@ -363,7 +363,7 @@ const AD_MODAL_TEXT = {
     subTitle: "광고 1회 시청 시 혜택",
     description:
       "- 동영상 광고 없이 사용\n" +
-      "- 한·일·중의 더 많은 역사적 사건 탐색\n" +
+      "- 한·중·일의 더 많은 역사 사건 탐색\n" +
       "- 세계 역사 어제·내일 이용 가능",
     cta: "광고 보기",
   },
@@ -3912,8 +3912,8 @@ export default function Home() {
   );
 
   const baseFontSize = customFontSize || 18;
-  const locationFontSize = Math.max(10, baseFontSize - 2);
-  const dateFontSize = Math.max(10, baseFontSize - 3);
+  const locationFontSize = Math.max(18, baseFontSize - 2);
+  const dateFontSize = Math.max(18, baseFontSize - 3);
   const anchorFontSize = Math.max(10, baseFontSize - 2);
 
   const amplitudeReadyRef = useRef(false);
@@ -4226,16 +4226,16 @@ export default function Home() {
       yearDeltaForTitle = yearCursor - baseYearRef.current;
     }
 
-    const historyTitle = getHistoryTitle(
-      lang,
-      dayOffset,
-      selectedCountries,
-      yearDeltaForTitle // 
-    );
+    // const historyTitle = getHistoryTitle(
+    //   lang,
+    //   dayOffset,
+    //   selectedCountries,
+    //   yearDeltaForTitle // 
+    // );
 
 
     // 최상단 헤더: 예) "Histree: 오늘의 역사"
-    const header = `${appName}: ${historyTitle}`;
+    const header = `${appName}`;
 
     const list = Array.isArray(onePick)
       ? onePick
@@ -5692,18 +5692,17 @@ const dateLabel =
             >
               <View
                 style={{
-                  paddingTop: 20,
                   width: CONTENT_W,
                   alignSelf: "center",
                 }}
               >
                 <View
                   style={{
-                    paddingVertical: 20,
+                    paddingVertical: 10,
                     alignItems: "center",
                   }}
                 >
-                  <Text
+                  {/* <Text
                     style={{
                       fontSize: 20,
                       fontWeight: "800",
@@ -5717,7 +5716,7 @@ const dateLabel =
                       selectedCountries,
                       yearDeltaForTitle
                     )}
-                  </Text>
+                  </Text> */}
                   <Text
                     style={{
                       marginTop: 4,
@@ -6076,7 +6075,7 @@ const dateLabel =
                   onPress={showRewardedAdForWorld}
                   style={{
                     width: "100%",
-                    height: 34,
+                    height: 38,
                     backgroundColor: "#000000",
                     borderRadius: 9,
                     alignItems: "center",
@@ -6227,7 +6226,7 @@ const dateLabel =
                   onPress={showRewardedAdForYear}
                   style={{
                     width: "100%",
-                    height: 34,
+                    height: 38,
                     backgroundColor: "#000000",
                     borderRadius: 9,
                     alignItems: "center",
