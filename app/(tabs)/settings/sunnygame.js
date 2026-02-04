@@ -1,6 +1,6 @@
 // app/(tabs)/settings/sunnygame.js
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Alert, useWindowDimensions} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
@@ -14,16 +14,16 @@ function useUIScale() {
 
 export default function SunnyGame() {
   const { scale } = useUIScale();
-  const { t } = useTranslation();
+  const { t, currentLanguage } = useTranslation();
   const navigation = useNavigation();
 
   useEffect(() => {
     navigation.setOptions({
       title: t('sunnyGames')
     });
-  }, [navigation, t]);
+  }, [navigation, t, currentLanguage]);
 
-  const apps = [
+  const apps = useMemo(() => [
     {
         id: 1,
         name: t('skyPeacemaker'),
@@ -62,7 +62,7 @@ export default function SunnyGame() {
       url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
 
   },
-  ];
+  ], [t, currentLanguage]);
 
   const openAppLink = async (url, appName) => {
     try {

@@ -1,5 +1,5 @@
 // app/(tabs)/settings/setting.js
-// Updated settings screen with notification time display
+// Updated settings screen with notification time display and improved back button
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
@@ -51,6 +51,27 @@ export default function SettingsIndex() {
     navigation.setOptions({
       title: t('settings'),
       headerShown: true,
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => router.replace('/home')}
+          style={{
+            width: scale(60),
+            height: scale(50),
+            marginLeft: scale(-14),
+          }}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <View
+            style={{
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: scale(3)
+            }}
+          >
+            <Ionicons name="chevron-back" size={scale(28)} color="white" />
+          </View>
+        </TouchableOpacity>
+      ),
     });
     
     // Hide navigation bar on Android when this screen is shown
@@ -65,7 +86,7 @@ export default function SettingsIndex() {
         NavigationBar.setVisibilityAsync('visible');
       }
     };
-  }, [currentLanguage, navigation, t]);
+  }, [currentLanguage, navigation, t, router, scale]);
 
   // Load notification time when screen comes into focus
   useFocusEffect(
