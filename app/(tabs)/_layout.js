@@ -20,6 +20,7 @@ import {
 } from "../../lib/bus";
 import { markUserInteracted } from "../../lib/idle";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LanguageProvider } from "../../lib/languageContext";
 
 // 아이콘 PNG 매핑
 const ICONS = {
@@ -132,7 +133,7 @@ function Slot({ mr = 0, w, h, children }) {
   );
 }
 
-export default function TabLayout() {
+function TabLayoutContent() {
   const router = useRouter();
   const segments = useSegments();
   const insets = useSafeAreaInsets();
@@ -323,5 +324,13 @@ export default function TabLayout() {
 
       <Tabs.Screen name="home" options={{ href: null }} />
     </Tabs>
+  );
+}
+
+export default function TabLayout() {
+  return (
+    <LanguageProvider>
+      <TabLayoutContent />
+    </LanguageProvider>
   );
 }
