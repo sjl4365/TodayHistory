@@ -3910,8 +3910,9 @@ export default function Home() {
   );
 
   const baseFontSize = customFontSize || 18;
-  const locationFontSize = Math.max(18, baseFontSize - 2);
-  const dateFontSize = Math.max(18, baseFontSize - 3);
+  const locationFontSize = baseFontSize;
+  const dateFontSize = baseFontSize;
+
   const anchorFontSize = Math.max(10, baseFontSize - 2);
 
   const amplitudeReadyRef = useRef(false);
