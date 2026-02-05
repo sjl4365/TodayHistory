@@ -1199,7 +1199,7 @@
   version "5.0.1"
   resolved "https://registry.npmjs.org/@isaacs/brace-expansion/-/brace-expansion-5.0.1.tgz"
   integrity sha512-WMz71T1JS624nWj2n2fnYAuPovhv7EUhk69R6i9dsVyzxt5eM3bjwvgk9L+APE1TRscGysAVMANkB0jh0LQZrQ==
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   dependencies:
     "@isaacs/balanced-match" "^4.0.1"
 
@@ -1663,7 +1663,7 @@
   resolved "https://registry.npmjs.org/@react-native-community/cli-clean/-/cli-clean-20.1.1.tgz"
   integrity sha512-6nGQ08w2+EcDwTFC4JFiW/wI2pLwzMrk9thz4um7tKRNW8sADX0IyCsfM2F4rHS720C0UNKYBZE9nAsfp8Vkcw==
   dependencies:
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
     "@react-native-community/cli-tools" "20.1.1"
     execa "^5.0.0"
     fast-glob "^3.3.2"
@@ -1675,7 +1675,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-config-android/-/cli-config-android-20.1.1.tgz#7e0098b64e95d91c899768737b22e3a9a95f6eed"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-config-android/-/cli-config-android-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-1iUV2rPAyoWPo8EceAFC2vZTF+pEd9YqS87c0aqpbGOFE0gs1rHEB+auVR8CdjzftR4U9sq6m2jrdst0rvpIkg==
   dependencies:
     "@react-native-community/cli-tools" "20.1.1"
@@ -1689,7 +1689,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-config-apple/-/cli-config-apple-20.1.1.tgz#d4960f21a01d5bb6dfe00044ba82988b47e816c7"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-config-apple/-/cli-config-apple-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-doepJgLJVqeJb5tNoP9hyFIcoZ1OMGO7QN/YMuCCIjbThUQe/J87XdwPol3Qrjr58KRt9xeBVz+kHeW5mtSutw==
   dependencies:
     "@react-native-community/cli-tools" "20.1.1"
@@ -1703,7 +1703,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-config/-/cli-config-20.1.1.tgz#d5866d1d8ab7298f96fe461473ed984f700308b0"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-config/-/cli-config-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-ajs2i56MANie/v0bMQ1BmRcrOb6MEvLT2rh/I1CA62NXGqF1Rxv6QwsN84LrADMXHRg8QiEMAIADkyDeQHt7Kg==
   dependencies:
     "@react-native-community/cli-tools" "20.1.1"
@@ -1719,7 +1719,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-doctor/-/cli-doctor-20.1.1.tgz#c39f56cc642ef6a3f0e0d2411c254b08890fafed"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-doctor/-/cli-doctor-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-eFpg5wWnV7uGqvLemshpgj2trPD8cckqxBuI4nT7sxKF/YpA/e3nnnyytHxPP5EnYfWbMcqfaq8hDJoOnJinGQ==
   dependencies:
     "@react-native-community/cli-config" "20.1.1"
@@ -1744,7 +1744,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-platform-android/-/cli-platform-android-20.1.1.tgz#bf3dca3c699786b92f3a45b95e771bd993ec5fe4"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-platform-android/-/cli-platform-android-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-KPheizJQI0tVvBLy9owzpo+A9qDsDAa87e7a8xNaHnwqGpExnIzFPrbdvrltiZjstU2eB/+/UgNQxYIEd4Oc+g==
   dependencies:
     "@react-native-community/cli-config-android" "20.1.1"
@@ -1759,7 +1759,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-platform-apple/-/cli-platform-apple-20.1.1.tgz#95ec7f5e01b2f99466bc4d3433cf1fa92144ceba"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-platform-apple/-/cli-platform-apple-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-mQEjOzRFCcQTrCt73Q/+5WWTfUg6U2vLZv5rPuFiNrLbrwRqxVH3OLaXg5gilJkDTJC80z8iOSsdd8MRxONOig==
   dependencies:
     "@react-native-community/cli-config-apple" "20.1.1"
@@ -1774,7 +1774,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-platform-ios/-/cli-platform-ios-20.1.1.tgz#54d2542d5e30ccc0d78e6f35f3fbdd54d2e2ca4e"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-platform-ios/-/cli-platform-ios-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-6vr10/oSjKkZO/BBgfFJNQTC/0CDF4WrN8iW9ss+Kt6ZL2QrBXLYz7fobrrboOlHwqqs5EyQadlEaNii7gKRJg==
   dependencies:
     "@react-native-community/cli-platform-apple" "20.1.1"
@@ -1785,7 +1785,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-server-api/-/cli-server-api-20.1.1.tgz#812afe6e567ae375029745c36ceec363f987f08c"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-server-api/-/cli-server-api-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-phHfiCa4WqfKfaoV2vGVR3ZrYQDQTpI1k+C+i6rXAxFGxPuy8IgFFVOSL543qjKPpHBVwLcA+/xAJCVpdyCtVQ==
   dependencies:
     "@react-native-community/cli-tools" "20.1.1"
@@ -1806,7 +1806,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-tools/-/cli-tools-20.1.1.tgz#f47bcfe39fb9e9118fdf34d880322b6ffc2cabbb"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-tools/-/cli-tools-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-j+zX/H2X+6ZGneIDj56tZ1Hbnip5nSfnq7yGlMyF/zm3U1hKp3G1jN5v0YEfnz/zEmjr7zruh4Y06KmZrF1lrA==
   dependencies:
     "@vscode/sudo-prompt" "^9.0.0"
@@ -1826,7 +1826,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/cli-types/-/cli-types-20.1.1.tgz#c65c739eb203d4a213f617c69712a7986bbfc691"
 =======
   resolved "https://registry.npmjs.org/@react-native-community/cli-types/-/cli-types-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-Tp+s27I/RDONrGvWVj4IzEmga2HhJhXi8ZlZTfycMMyAcv4LG/CTPira+BUZs8nzLAJNrlJ79pVVPJPqQAe+aw==
   dependencies:
     joi "^17.2.1"
@@ -1839,7 +1839,7 @@
 "@react-native-community/cli@*", "@react-native-community/cli@latest":
   version "20.1.1"
   resolved "https://registry.npmjs.org/@react-native-community/cli/-/cli-20.1.1.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-aLPUx43+WSeTOaUepR2FBD5a1V0OAZ1QB2DOlRlW4fOEjtBXgv40eM/ho8g3WCvAOKfPvTvx4fZdcuovTyV81Q==
   dependencies:
     "@react-native-community/cli-clean" "20.1.1"
@@ -2804,7 +2804,7 @@ caniuse-lite@^1.0.30001759:
   version "1.0.30001765"
   resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001765.tgz"
   integrity sha512-LWcNtSyZrakjECqmpP4qdg0MMGdN368D7X8XvvAqOcqMv0RxnlqVKZl2V6/mBR68oYMxOZPLw/gO7DuisMHUvQ==
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
 
 chalk@^2.0.1, chalk@^2.4.2:
   version "2.4.2"
@@ -6413,7 +6413,7 @@ string_decoder@^1.1.1:
   integrity sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==
   dependencies:
     safe-buffer "~5.2.0"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
 
 string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.3:
   version "4.2.3"
@@ -6528,7 +6528,7 @@ tar@^7.5.2:
   resolved "https://registry.yarnpkg.com/tar/-/tar-7.5.7.tgz#adf99774008ba1c89819f15dbd6019c630539405"
 =======
   resolved "https://registry.npmjs.org/tar/-/tar-7.5.7.tgz"
->>>>>>> e5921643ea5a25ef6214f54eb01a7a1c5c946096
+>>>>>>>>> Temporary merge branch 2
   integrity sha512-fov56fJiRuThVFXD6o6/Q354S7pnWMJIVlDBYijsTNx6jKSE4pvrDTs6lUnmGvNyfJwFQQwWy3owKz1ucIhveQ==
   dependencies:
     "@isaacs/fs-minipass" "^4.0.0"
