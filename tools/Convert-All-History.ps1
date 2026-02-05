@@ -256,5 +256,5 @@ Write-Host "Done."
 
 
 # powershell -ExecutionPolicy Bypass -File .\Convert-All-History.ps1 `
-# >>   -CsvRoot "." `
-# >>   -OutRoot "..\assets\seed"
+#   -CsvRoot "." `
+#    -OutRoot "..\assets\seed"

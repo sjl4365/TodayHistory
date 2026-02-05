@@ -257,61 +257,61 @@ const FIELD_LABELS = {
 const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
 
 const UI_STR = {
-  title: {
-    ko: {
-      prev: "어제의 역사",
-      today: "오늘의 역사",
-      next: "내일의 역사",
-    },
-    en: {
-      prev: "Yesterday in History",
-      today: "Today in History",
-      next: "Tomorrow in History",
-    },
-    ja: {
-      prev: "昨日の歴史",
-      today: "今日の歴史",
-      next: "明日の歴史",
-    },
-    sc: {
-      prev: "昨日历史",
-      today: "今日历史",
-      next: "明日历史",
-    },
-    tc: {
-      prev: "昨日歷史",
-      today: "今日歷史",
-      next: "明日歷史",
-    },
-    es: {
-      prev: "Ayer en la historia",
-      today: "Hoy en la historia",
-      next: "Mañana en la historia",
-    },
-    fr: {
-      prev: "Hier dans l’histoire",
-      today: "Aujourd’hui dans l’histoire",
-      next: "Demain dans l’histoire",
-    },
-  },
+  // title: {
+  //   ko: {
+  //     prev: "어제의 역사",
+  //     today: "오늘의 역사",
+  //     next: "내일의 역사",
+  //   },
+  //   en: {
+  //     prev: "Yesterday in History",
+  //     today: "Today in History",
+  //     next: "Tomorrow in History",
+  //   },
+  //   ja: {
+  //     prev: "昨日の歴史",
+  //     today: "今日の歴史",
+  //     next: "明日の歴史",
+  //   },
+  //   sc: {
+  //     prev: "昨日历史",
+  //     today: "今日历史",
+  //     next: "明日历史",
+  //   },
+  //   tc: {
+  //     prev: "昨日歷史",
+  //     today: "今日歷史",
+  //     next: "明日歷史",
+  //   },
+  //   es: {
+  //     prev: "Ayer en la historia",
+  //     today: "Hoy en la historia",
+  //     next: "Mañana en la historia",
+  //   },
+  //   fr: {
+  //     prev: "Hier dans l’histoire",
+  //     today: "Aujourd’hui dans l’histoire",
+  //     next: "Demain dans l’histoire",
+  //   },
+  // },
 
-  yearTitle: {
-    ko: {
-      base: "연도별 역사",
-    },
-    en: {
-      base: "Year in History",
-    },
-    ja: {
-      base: "年の歴史",
-    },
-    sc: {
-      base: "这一年的历史",
-    },
-    tc: {
-      base: "這一年的歷史",
-    },
-  },
+  // yearTitle: {
+  //   ko: {
+  //     base: "연도별 역사",
+  //   },
+  //   en: {
+  //     base: "Year in History",
+  //   },
+  //   ja: {
+  //     base: "年の歴史",
+  //   },
+  //   sc: {
+  //     base: "这一年的历史",
+  //   },
+  //   tc: {
+  //     base: "這一年的歷史",
+  //   },
+  // },
 
   empty: {
     ko: "표시할 항목이 없습니다.",
@@ -350,8 +350,8 @@ const UI_STR = {
 const AD_MODAL_TEXT = {
   en: {
     title: "Enjoy Histree Pro for 12 Hours",
+    subTitle: "Watch one ad and Get",
     description:
-      "Watch one ad and get:\n" +
       "- No video ads\n" +
       "- Explore more historical events\n" +
       "- Access to Yesterday and Tomorrow in World History",
@@ -360,18 +360,18 @@ const AD_MODAL_TEXT = {
 
   ko: {
     title: "Histree Pro 12시간 무료 이용",
+    subTitle: "광고 1회 시청 시 혜택",
     description:
-      "광고 1회 시청 시 다음 혜택을 제공합니다:\n" +
-      "- 동영상 광고 없이 이용\n" +
-      "- 한·중·일의 더 많은 역사 이벤트 탐색\n" +
-      "- 세계 역사 ‘어제·내일’ 이용 가능",
+      "- 동영상 광고 없이 사용\n" +
+      "- 한·중·일의 더 많은 역사 사건 탐색\n" +
+      "- 세계 역사 어제·내일 이용 가능",
     cta: "광고 보기",
   },
 
   ja: {
     title: "Histree Pro を12時間無料で利用",
+    subTitle: "広告1回視聴時の特典",
     description:
-      "広告を1回視聴すると、以下の特典があります。\n" +
       "- 動画広告なしで利用可能\n" +
       "- 日・韓・中のより多くの歴史的出来事を探索\n" +
       "- 世界史の「昨日・明日」を利用可能",
@@ -380,8 +380,8 @@ const AD_MODAL_TEXT = {
 
   sc: {
     title: "免费使用 Histree Pro 12 小时",
+    subTitle: "广告观看 1 次的奖励",
     description:
-      "观看 1 次广告即可获得以下权益：\n" +
       "- 无视频广告\n" +
       "- 探索更多日韩中的历史事件\n" +
       "- 可查看世界历史的昨天与明天",
@@ -390,8 +390,8 @@ const AD_MODAL_TEXT = {
 
   tc: {
     title: "免費使用 Histree Pro 12 小時",
+    subTitle: "觀看廣告 1 次的獎勵",
     description:
-      "觀看 1 次廣告即可獲得以下權益：\n" +
       "- 無影片廣告\n" +
       "- 探索更多日韓中的歷史事件\n" +
       "- 可查看世界歷史的昨天與明天",
@@ -400,8 +400,8 @@ const AD_MODAL_TEXT = {
 
   es: {
     title: "Disfruta de Histree Pro durante 12 horas",
+    subTitle: "Beneficio por ver un anuncio una vez",
     description:
-      "Mira un anuncio y obtén:\n" +
       "- Sin anuncios de video\n" +
       "- Explora más eventos históricos\n" +
       "- Accede al ayer y al mañana de la historia mundial",
@@ -410,15 +410,14 @@ const AD_MODAL_TEXT = {
 
   fr: {
     title: "Profitez de Histree Pro pendant 12 heures",
+    subTitle: "Avantage pour un visionnage de publicité",
     description:
-      "Regardez une publicité et profitez de :\n" +
       "- Sans publicité vidéo\n" +
       "- Explorez davantage d’événements historiques\n" +
       "- Accès au passé et au futur de l’histoire mondiale",
     cta: "Voir la publicité",
   },
 };
-
 
 
 
@@ -459,6 +458,14 @@ const FLAG_ICON = {
   japan: require("../../assets/flag/japan.png"),
   china: require("../../assets/flag/china.png"),
 };
+
+const REWARD_ICONS = {
+  frame28: require("../../assets/reward-icon/Frame 28.png"),
+  frame29: require("../../assets/reward-icon/Frame 29.png"),
+  frame31: require("../../assets/reward-icon/Frame 31.png"),
+  mask: require("../../assets/reward-icon/Mask group.png"),
+};
+
 
 // 나라별 헤더 배경 이미지 (각 7장씩)
 const HERO_BG_IMAGES = {
@@ -1586,22 +1593,25 @@ function isValidColorString(s) {
 function SegmentedCountrySelector({
   uiLang,
   ordered,
-  value,        // Set<string>
+  value,
   onChange,
   fixedHeight = 38,
 }) {
   const { scale } = useUIScale();
 
-  // Big button spec
   const BIG_W = 323;
   const BIG_H = 37;
   const BIG_RADIUS = 80;
 
-  // Small button spec
-  const BTN_W = 78;
+  const COUNT = Math.min(4, ordered.length);
+
+  // ✅ GAP 선언을 먼저 (기존엔 GAP을 선언 전에 써서 위험)
+  const GAP = 10;
+
+  // (폭 계산을 유지하고 싶으면 그대로 둬도 됨)
+  const BTN_W = Math.floor((BIG_W - GAP * (COUNT - 1)) / COUNT);
   const BTN_H = 38;
   const BTN_RADIUS = 100;
-  const GAP = 4;
 
   const ICON = 16;
 
@@ -1609,9 +1619,8 @@ function SegmentedCountrySelector({
 
   const handlePress = (id) => {
     if (selectedId === id) return;
-    onChange(new Set([id])); // 단일 선택 유지
+    onChange(new Set([id]));
     emitCountriesChanged(id);
-
   };
 
   const fontFamily = Platform.OS === "ios" ? "Arial" : "sans-serif";
@@ -1623,11 +1632,9 @@ function SegmentedCountrySelector({
         height: scale(BIG_H),
         borderRadius: BIG_RADIUS,
         overflow: "hidden",
-        backgroundColor: "rgba(255,255,255,0.6)", // Fill FFFFFF 60%
+        backgroundColor: "rgba(255,255,255,0.6)",
         borderWidth: 1,
-        borderColor: "rgba(255,255,255,0.5)",      // Stroke FFFFFF 50%
-
-        // Drop shadow (x 0 y 4 blur 4, color 000 25%)
+        borderColor: "rgba(255,255,255,0.5)",
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 4 },
         shadowRadius: 4,
@@ -1635,24 +1642,18 @@ function SegmentedCountrySelector({
         elevation: 4,
       }}
     >
-      {/* Background blur (15) */}
-      <BlurView
-        intensity={15}
-        tint="light"
-        style={StyleSheet.absoluteFillObject}
-      />
+      <BlurView intensity={15} tint="light" style={StyleSheet.absoluteFillObject} />
 
-      {/*  Small buttons row (가운데에 배치) */}
       <View
         style={{
           flex: 1,
           flexDirection: "row",
           alignItems: "center",
-          justifyContent: "space-between",
-          gap: scale(GAP),
+          paddingHorizontal: scale(4),
+          gap: 4,
         }}
       >
-        {ordered.slice(0, 4).map((id) => {
+        {ordered.slice(0, 4).map((id, idx) => {
           const active = selectedId === id;
 
           const label =
@@ -1669,49 +1670,52 @@ function SegmentedCountrySelector({
                 width: scale(BTN_W),
                 height: scale(BTN_H),
                 borderRadius: BTN_RADIUS,
+
+                // ✅ 가운데 정렬로 변경 (짧은 글자일 때 오른쪽이 남아보이는 문제 해결)
+                flexDirection: "row",
+                alignItems: "center",
                 justifyContent: "center",
-                paddingLeft: scale(12),
 
-                //  선택됐을 때만 "small button"이 떠야 함
+                // ✅ 기존 paddingLeft/Right로 “왼쪽 박힘” 만들던 걸 제거/축소
+                paddingHorizontal: scale(6),
+
                 backgroundColor: active ? "#FFFFFF" : "transparent",
-
-                // shadow / Elevation Level 3 (선택된 것만)
                 ...(active
                   ? {
-                    shadowColor: "#000",
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowRadius: 3,
-                    shadowOpacity: 0.3,
-                    elevation: 3,
-                  }
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowRadius: 3,
+                      shadowOpacity: 0.3,
+                      elevation: 3,
+                    }
                   : null),
               }}
             >
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                {!!FLAG_ICON[id] && (
-                  <RNImage
-                    source={FLAG_ICON[id]}
-                    style={{
-                      width: scale(ICON),
-                      height: scale(ICON),
-                      marginRight: scale(6),
-                    }}
-                    resizeMode="contain"
-                  />
-                )}
-
-                <Text
+              {!!FLAG_ICON[id] && (
+                <RNImage
+                  source={FLAG_ICON[id]}
                   style={{
-                    fontFamily,
-                    fontSize: 13, // Arial 13
-                    fontWeight: "600",
-                    color: "#000",
+                    width: scale(ICON),
+                    height: scale(ICON),
+                    marginRight: scale(6),
                   }}
-                  numberOfLines={1}
-                >
-                  {label}
-                </Text>
-              </View>
+                  resizeMode="contain"
+                />
+              )}
+
+              <Text
+                style={{
+                  fontFamily,
+                  fontSize: 13,
+                  fontWeight: "600",
+                  color: "#000",
+                  // (선택) 글자만이라도 중앙 느낌 강화
+                  textAlign: "center",
+                }}
+                numberOfLines={1}
+              >
+                {label}
+              </Text>
             </Pressable>
           );
         })}
@@ -1719,6 +1723,7 @@ function SegmentedCountrySelector({
     </View>
   );
 }
+
 
 
 
@@ -1897,6 +1902,7 @@ function WebViewModal({ visible, url, title, onClose }) {
               }}
               numberOfLines={1}
             >
+
               {title || ""}
             </Text>
 
@@ -3879,21 +3885,33 @@ export default function Home() {
   };
 
 
+  // useEffect(() => {
+  //   mobileAds()
+  //     .initialize()
+  //     .then(() => {
+  //       console.log("[AD] mobileAds initialized");
+  //     });
+  // }, []);
+
   useEffect(() => {
-    mobileAds()
-      .initialize()
-      .then(() => {
-        console.log("[AD] mobileAds initialized");
-      });
+    const task = InteractionManager.runAfterInteractions(() => {
+      mobileAds()
+        .initialize()
+        .then(() => console.log("[AD] mobileAds initialized"))
+        .catch(() => { });
+    });
+
+    return () => task.cancel();
   }, []);
+
 
   const bodyLineHeight = Math.round(
     (customFontSize || 18) * 1.45
   );
 
   const baseFontSize = customFontSize || 18;
-  const locationFontSize = Math.max(10, baseFontSize - 2);
-  const dateFontSize = Math.max(10, baseFontSize - 3);
+  const locationFontSize = Math.max(18, baseFontSize - 2);
+  const dateFontSize = Math.max(18, baseFontSize - 3);
   const anchorFontSize = Math.max(10, baseFontSize - 2);
 
   const amplitudeReadyRef = useRef(false);
@@ -3960,7 +3978,7 @@ export default function Home() {
     // 패스 없으면 광고 모달 띄우기
     pendingNavRef.current = -1;
     normalizeScrollAfterAdPrompt();
-        setAdPromptVisible(true);
+    setAdPromptVisible(true);
   }, [rewardPassUntil, goBy, isYearMode]);
 
   // [확인/교체] 내일 보기
@@ -3975,7 +3993,7 @@ export default function Home() {
     // 패스 없으면 광고 모달 띄우기
     pendingNavRef.current = +1;
     normalizeScrollAfterAdPrompt();
-        setAdPromptVisible(true);
+    setAdPromptVisible(true);
   }, [rewardPassUntil, goBy, isYearMode]);
 
 
@@ -4206,16 +4224,16 @@ export default function Home() {
       yearDeltaForTitle = yearCursor - baseYearRef.current;
     }
 
-    const historyTitle = getHistoryTitle(
-      lang,
-      dayOffset,
-      selectedCountries,
-      yearDeltaForTitle // 
-    );
+    // const historyTitle = getHistoryTitle(
+    //   lang,
+    //   dayOffset,
+    //   selectedCountries,
+    //   yearDeltaForTitle // 
+    // );
 
 
     // 최상단 헤더: 예) "Histree: 오늘의 역사"
-    const header = `${appName}: ${historyTitle}`;
+    const header = `${appName}`;
 
     const list = Array.isArray(onePick)
       ? onePick
@@ -4249,8 +4267,23 @@ export default function Home() {
       FIELD_LABELS[lang] || FIELD_LABELS.en;
 
     const eventYear = getYearFromRow(p.row);
-    const dateLabel = formatEventDateLabel(eventYear, todayParts, lang, tz);
-//TEST
+
+    const dateLabel =
+      p.cid === "world"
+        ? formatEventDateLabel(eventYear, todayParts, lang, tz)
+        : (() => {
+          const yNum = parseInt(String(eventYear || ""), 10);
+          if (Number.isNaN(yNum) || yNum <= 0) return "";
+
+          const yOnly = formatOnlyYearLabel(yNum, lang);
+          const baseYear = parseInt(String(todayParts?.y || ""), 10);
+          const diff = !Number.isNaN(baseYear) ? (baseYear - yNum) : 0;
+          const ago = formatYearsAgo(diff, lang);
+
+          return ago ? `${yOnly} ${ago}` : yOnly;
+        })();
+
+    //TEST
     // const downloadLabel =
     //   lang === "ko"
     //     ? "히스트리 앱 다운로드 링크"
@@ -4315,79 +4348,86 @@ export default function Home() {
 
   const fetchingRef = useRef(false);
   const loadBannerImage = useCallback(
-      async ({ row, uiLang }) => {
-        console.log('🖼️ [LOAD BANNER] Starting...');
+    async ({ row, uiLang }) => {
+      console.log('🖼️ [LOAD BANNER] Starting...');
+      console.log('🔍 [DEBUG] row.cid:', row?.cid);
+      console.log('🔍 [DEBUG] COUNTRY_CFG:', COUNTRY_CFG);
 
-        // 1️⃣ 항상 loading부터 시작
-        setBannerStatus("loading");
-        setBannerImageUrl(null);
+      // 1️⃣ 항상 loading부터 시작
+      setBannerStatus("loading");
+      setBannerImageUrl(null);
 
-        try {
-          // ⭐ 변경: uiLang 대신 해당 국가의 기본 언어 사용
-          const cid = row?.cid || 'world';
-          const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
-          
-          console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
-          
-          const anchors = getAnchorsForLang(row, nativeLang);
+      try {
+        // ⭐ 변경: uiLang 대신 해당 국가의 기본 언어 사용
+        const cid = row?.cid || 'world';
+        const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
 
-          console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
+        console.log('🔍 [LOAD BANNER] cid:', cid);
+        console.log('🔍 [LOAD BANNER] COUNTRY_CFG[cid]:', COUNTRY_CFG[cid]);
+        console.log('🔍 [LOAD BANNER] nativeLang:', nativeLang);
+        console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
 
-          let imageUrl = null;
+        console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
 
-          // 앵커 1, 2 순차 시도
-          for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-            const anchor = anchors[i];
-            if (!anchor || !anchor.text) continue;
+        const anchors = getAnchorsForLang(row, nativeLang);
 
-            console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
+        console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
 
-            try {
-              const result = await withTimeout(
-                fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
-                5000
-              );
+        let imageUrl = null;
 
-              if (result) {
-                console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
-                imageUrl = result;
-                break;
-              }
-            } catch (e) {
-              console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
+        // 앵커 1, 2 순차 시도
+        for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+          const anchor = anchors[i];
+          if (!anchor || !anchor.text) continue;
+
+          console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
+
+          try {
+            const result = await withTimeout(
+              fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+              5000
+            );
+
+            if (result) {
+              console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
+              imageUrl = result;
+              break;
             }
+          } catch (e) {
+            console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
           }
-
-          // 이미지 최적화
-          if (imageUrl) {
-            try {
-              const best = await bestWikiThumb(imageUrl, 640);
-              imageUrl = best || sanitizeImageUrl(imageUrl);
-            } catch (e) {
-              console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
-              imageUrl = sanitizeImageUrl(imageUrl);
-            }
-          }
-
-          console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
-
-          // 2️⃣ 상태 업데이트
-          if (imageUrl) {
-            setBannerImageUrl(imageUrl);
-            setBannerStatus("ready");
-          } else {
-            setBannerImageUrl(null);
-            setBannerStatus("no-image");
-          }
-
-        } catch (e) {
-          console.error('❌ [LOAD BANNER] Error:', e);
-          setBannerStatus("no-image");
-          setBannerImageUrl(null);
         }
-      },
-      [] // ⭐ uiLang 의존성 제거
-    );
+
+        // 이미지 최적화
+        if (imageUrl) {
+          try {
+            const best = await bestWikiThumb(imageUrl, 640);
+            imageUrl = best || sanitizeImageUrl(imageUrl);
+          } catch (e) {
+            console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
+            imageUrl = sanitizeImageUrl(imageUrl);
+          }
+        }
+
+        console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
+
+        // 2️⃣ 상태 업데이트
+        if (imageUrl) {
+          setBannerImageUrl(imageUrl);
+          setBannerStatus("ready");
+        } else {
+          setBannerImageUrl(null);
+          setBannerStatus("no-image");
+        }
+
+      } catch (e) {
+        console.error('❌ [LOAD BANNER] Error:', e);
+        setBannerStatus("no-image");
+        setBannerImageUrl(null);
+      }
+    },
+    []
+  );
 
 
   const handlePullToRefresh = useCallback((source = "button") => {
@@ -4453,7 +4493,7 @@ export default function Home() {
 
       pendingNavRef.current = dayOffset < 0 ? -1 : +1;
       normalizeScrollAfterAdPrompt();
-        setAdPromptVisible(true);
+      setAdPromptVisible(true);
       return;
     }
 
@@ -5188,9 +5228,10 @@ export default function Home() {
         console.log('🔍 [IMAGE] Processing image for', { iso, cid, pickKey });
 
         // ✅ loadBannerImage만 호출 (상태 관리 포함)
+        // ✅ loadBannerImage만 호출 (상태 관리 포함)
         if (alive) {
           await loadBannerImage({
-            row: first.row,
+            row: { ...first.row, cid: first.cid },  // ⭐ cid 추가
             uiLang: uiLang
           });
         }
@@ -5649,18 +5690,17 @@ export default function Home() {
             >
               <View
                 style={{
-                  paddingTop: 20,
                   width: CONTENT_W,
                   alignSelf: "center",
                 }}
               >
                 <View
                   style={{
-                    paddingVertical: 20,
+                    paddingVertical: 10,
                     alignItems: "center",
                   }}
                 >
-                  <Text
+                  {/* <Text
                     style={{
                       fontSize: 20,
                       fontWeight: "800",
@@ -5674,7 +5714,7 @@ export default function Home() {
                       selectedCountries,
                       yearDeltaForTitle
                     )}
-                  </Text>
+                  </Text> */}
                   <Text
                     style={{
                       marginTop: 4,
@@ -5890,13 +5930,11 @@ export default function Home() {
             </View>
           )}
 
-          {/* 연도 모드용 광고 모달 */}
+          {/* World 모드용 광고 모달 */}
           <Modal
             visible={adPromptVisible}
             onDismiss={() => {
               if (Platform.OS !== "ios") return;
-
-              // 모달이 화면에서 완전히 사라진 "직후"에 실행됨
               if (shouldShowAdRef.current) {
                 shouldShowAdRef.current = false;
                 rewardedAd.show();
@@ -5909,85 +5947,301 @@ export default function Home() {
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
               <View
                 style={{
-                  width: Math.min(width - 40, 360), // 좌우 20px 여백, 최대 360
-                  borderRadius: 16,
-                  paddingHorizontal: 20,
-                  paddingVertical: 18,
+                  width: Math.min(width - 40, 360),
                   backgroundColor: "#FFFFFF",
+
+                  // 공통 스타일
+                  borderRadius: 30,
+                  borderWidth: 1,
+                  borderColor: "rgba(122,122,122,0.83)",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowRadius: 20,
+                  shadowOpacity: 0.1,
+                  elevation: 10,
+
+                  // Padding
+                  paddingVertical: 28,
+                  paddingHorizontal: 24,
                 }}
               >
-                <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+                {/* Close (유지) */}
+                <View style={{ alignItems: "flex-end" }}>
                   <Pressable onPress={() => { setAdPromptVisible(false); normalizeScrollAfterAdPrompt(); }} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: "#111827", marginBottom: 8 }}>
-                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
-                </Text>
-                <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
-                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).description}
-                </Text>
-                <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                  <Pressable
-                    onPress={showRewardedAdForWorld}
-                    style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
+
+                {/* 1) mask + title */}
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                  <RNImage
+                    source={REWARD_ICONS.mask} // Mask group.png
+                    style={{ width: 12, height: 12, marginRight: 8 }}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={{
+                      fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                      fontWeight: "900", // Inter Black
+                      fontSize: 10,
+                      color: "#000000",
+                      textAlign: "left",
+                      flexShrink: 1,
+                    }}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
-                      {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
-                    </Text>
-                  </Pressable>
+                    {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
+                  </Text>
                 </View>
+
+                {/* 2) subtitle */}
+                <Text
+                  style={{
+                    fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                    fontWeight: "900", // Inter Black (원하면 700으로 바꿔도 됨)
+                    fontSize: 17,
+                    color: "#000000",
+                    textAlign: "left",
+                    marginBottom: 14,
+                  }}
+                >
+                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).subTitle}
+                </Text>
+
+                {/* 3) icon + description 리스트 */}
+                {(() => {
+                  const modalCopy = (AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en);
+                  const raw = String(modalCopy?.description || "");
+                  const lines = raw.split("\n").filter(Boolean);
+                  const bullets = lines.filter((l) => String(l).trim().startsWith("-"));
+
+                  const icons = [
+                    REWARD_ICONS.frame29,
+                    REWARD_ICONS.frame31,
+                    REWARD_ICONS.frame28,
+                  ];
+
+                  return (
+                    <View style={{ marginBottom: 20 }}>
+                      {bullets.map((line, idx) => {
+                        const clean = String(line).replace(/^\-\s*/, "");
+                        const iconSrc = icons[idx % icons.length];
+
+                        return (
+                          <View
+                            key={`b-${idx}`}
+                            style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              marginBottom: 10, // 줄 간격 10
+                            }}
+                          >
+                            {/* Icon Container 32x32 */}
+                            <View
+                              style={{
+                                width: 32,
+                                height: 32,
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginRight: 10, // 아이콘-글자 간격 10
+                              }}
+                            >
+                              <RNImage source={iconSrc} style={{ width: 32, height: 32 }} resizeMode="contain" />
+                            </View>
+
+                            {/* Description text */}
+                            <Text
+                              style={{
+                                fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                                fontWeight: "400", // Inter Regular
+                                fontSize: 16,
+                                color: "#616161",
+                                textAlign: "left",
+                                flex: 1,
+                              }}
+                            >
+                              {clean}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })()}
+
+                {/* 4) button */}
+                <Pressable
+                  onPress={showRewardedAdForWorld}
+                  style={{
+                    width: "100%",
+                    height: 38,
+                    backgroundColor: "#000000",
+                    borderRadius: 9,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                      fontSize: 14,
+                      fontWeight: "700",
+                      color: "#FFFFFF",
+                    }}
+                  >
+                    {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
+                  </Text>
+                </Pressable>
+
               </View>
             </View>
           </Modal>
 
-          {/* 2. 연도 모드용 광고 모달 */}
+
+
+          {/* Year 모드용 광고 모달 */}
           <Modal
             visible={yearAdPromptVisible}
-            transparent
-            animationType="fade"
             onDismiss={() => {
-              // 모달이 완전히 사라진 후 광고 실행
+              if (Platform.OS !== "ios") return;
               if (shouldShowAdRef.current) {
-                shouldShowAdRef.current = false; // 플래그 초기화
-                console.log("🎬 [AD] Showing year reward ad via onDismiss");
+                shouldShowAdRef.current = false;
                 rewardedAd.show();
               }
             }}
+            transparent
+            animationType="fade"
             onRequestClose={handleCloseYearAdPrompt}
-
           >
             <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center" }}>
               <View
                 style={{
-                  width: Math.min(width - 40, 360), // 좌우 20px 여백, 최대 360
-                  borderRadius: 16,
-                  paddingHorizontal: 20,
-                  paddingVertical: 18,
+                  width: Math.min(width - 40, 360),
                   backgroundColor: "#FFFFFF",
+
+                  // 공통 스타일
+                  borderRadius: 30,
+                  borderWidth: 1,
+                  borderColor: "rgba(122,122,122,0.83)",
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 10 },
+                  shadowRadius: 20,
+                  shadowOpacity: 0.1,
+                  elevation: 10,
+
+                  // Padding
+                  paddingVertical: 28,
+                  paddingHorizontal: 24,
                 }}
               >
-                <View style={{ alignItems: 'flex-end', marginBottom: 8 }}>
+                {/* Close */}
+                <View style={{ alignItems: "flex-end" }}>
                   <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}>
                     <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
                   </Pressable>
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: "#111827", marginBottom: 8 }}>
-                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
-                </Text>
-                <Text style={{ fontSize: 14, color: "#4b5563", marginBottom: 20, lineHeight: 20 }}>
-                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).description}
-                </Text>
-                <View style={{ flexDirection: "row", justifyContent: "center" }}>
-                  <Pressable
-                    onPress={showRewardedAdForYear}
-                    style={{ backgroundColor: "#10B981", borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10 }}
+
+                {/* 1) mask + title (스펙: Inter Black 17px) */}
+                <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                  <RNImage
+                    source={REWARD_ICONS.mask} // Mask group.png
+                    style={{ width: 12, height: 12, marginRight: 8 }}
+                    resizeMode="contain"
+                  />
+                  <Text
+                    style={{
+                      fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                      fontWeight: "900",
+                      fontSize: 10,
+                      color: "#000000",
+                      textAlign: "left",
+                      flexShrink: 1,
+                    }}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: "600", color: "#FFFFFF" }}>
-                      {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
-                    </Text>
-                  </Pressable>
+                    {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
+                  </Text>
                 </View>
+
+                {/* 2) subtitle (원하면 17 그대로, 더 작게 원하면 10으로 낮춰도 됨) */}
+                <Text
+                  style={{
+                    fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                    fontWeight: "900",
+                    fontSize: 17,
+                    color: "#000000",
+                    textAlign: "left",
+                    marginBottom: 14,
+                  }}
+                >
+                  {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).subTitle}
+                </Text>
+
+                {/* 3) icon + description 리스트 */}
+                {(() => {
+                  const modalCopy = (AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en);
+                  const raw = String(modalCopy?.description || "");
+                  const lines = raw.split("\n").filter(Boolean);
+                  const bullets = lines.filter((l) => String(l).trim().startsWith("-"));
+
+                  const icons = [
+                    REWARD_ICONS.frame29,
+                    REWARD_ICONS.frame31,
+                    REWARD_ICONS.frame28,
+                  ];
+
+                  return (
+                    <View style={{ marginBottom: 20 }}>
+                      {bullets.map((line, idx) => {
+                        const clean = String(line).replace(/^\-\s*/, "");
+                        const iconSrc = icons[idx % icons.length];
+
+                        return (
+                          <View key={`b-${idx}`} style={{ flexDirection: "row", alignItems: "center", marginBottom: 10 }}>
+                            <View style={{ width: 32, height: 32, alignItems: "center", justifyContent: "center", marginRight: 10 }}>
+                              <RNImage source={iconSrc} style={{ width: 32, height: 32 }} resizeMode="contain" />
+                            </View>
+
+                            <Text
+                              style={{
+                                fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                                fontWeight: "400",
+                                fontSize: 16,
+                                color: "#616161",
+                                textAlign: "left",
+                                flex: 1,
+                              }}
+                            >
+                              {clean}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })()}
+
+                {/* 4) button */}
+                <Pressable
+                  onPress={showRewardedAdForYear}
+                  style={{
+                    width: "100%",
+                    height: 38,
+                    backgroundColor: "#000000",
+                    borderRadius: 9,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
+                      fontSize: 14,
+                      fontWeight: "700",
+                      color: "#FFFFFF",
+                    }}
+                  >
+                    {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
+                  </Text>
+                </Pressable>
               </View>
             </View>
           </Modal>

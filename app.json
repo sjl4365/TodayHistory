@@ -3,7 +3,7 @@
     "name": "Histree",
     "slug": "todayhistory",
     "owner": "todayhistory",
-    "version": "1.0.7",
+    "version": "1.0.9",
     "runtimeVersion": {
       "policy": "appVersion"
     },

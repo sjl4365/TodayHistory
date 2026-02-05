@@ -1,82 +1,49 @@
 // app/index.js
-import React, { useCallback, useEffect, useRef } from "react";
-import { View, StyleSheet, Animated } from "react-native";
-import { router } from "expo-router";
+import { useEffect, useRef } from "react";
+import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { Image } from "expo-image";
+import { router } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 
-const MIN_JS_SPLASH_MS = 2000;
-const FADE_OUT_MS = 260; // 부드럽게 (200~300 추천)
+const MIN_MS = 2000; 
 
 export default function Index() {
-  const revealedRef = useRef(false);
-  const shownAtRef = useRef(0);
-  const doneRef = useRef(false);
-
-  const opacity = useRef(new Animated.Value(1)).current;
-
-  const revealJsSplashOnce = useCallback(async () => {
-    if (revealedRef.current) return;
-    revealedRef.current = true;
-
-    shownAtRef.current = Date.now();
-
-    try {
-      await SplashScreen.hideAsync();
-    } catch {}
-  }, []);
-
-  const goHomeSmoothOnce = useCallback(() => {
-    if (doneRef.current) return;
-    if (!revealedRef.current) return;
-
-    const elapsed = Date.now() - shownAtRef.current;
-    const remain = Math.max(0, MIN_JS_SPLASH_MS - elapsed);
-
-    doneRef.current = true;
-
-    setTimeout(() => {
-      Animated.timing(opacity, {
-        toValue: 0,
-        duration: FADE_OUT_MS,
-        useNativeDriver: true,
-      }).start(() => {
-        router.replace("/(tabs)/home");
-      });
-    }, remain);
-  }, [opacity]);
+  const start = useRef(Date.now());
 
   useEffect(() => {
-    const t = setTimeout(async () => {
-      await revealJsSplashOnce();
-      goHomeSmoothOnce();
-    }, 1200);
-    return () => clearTimeout(t);
-  }, [revealJsSplashOnce, goHomeSmoothOnce]);
+    (async () => {
+      await SplashScreen.hideAsync();
+
+ 
+      const elapsed = Date.now() - start.current;
+      if (elapsed < MIN_MS) {
+        await new Promise((r) => setTimeout(r, MIN_MS - elapsed));
+      }
+
+      requestAnimationFrame(() => {
+        router.replace("/(tabs)/home");
+      });
+    })();
+  }, []);
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.container, { opacity }]}>
-        <Image
-          source={require("../assets/splash.png")}
-          style={styles.bg}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          onLoad={async () => {
-            await revealJsSplashOnce();
-            goHomeSmoothOnce();
-          }}
-          onError={async () => {
-            await revealJsSplashOnce();
-            goHomeSmoothOnce();
-          }}
-        />
-      </Animated.View>
+      <Image source={require("../assets/splash.png")} style={styles.bg} />
+      <View style={styles.loading}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
-  bg: { flex: 1, width: "100%", height: "100%" },
+  container: { flex: 1, backgroundColor: "#1E3023" },
+  bg: { flex: 1 },
+  loading: {
+    position: "absolute",
+    bottom: 40,
+    left: 0,
+    right: 0,
+    alignItems: "center",
+  },
 });

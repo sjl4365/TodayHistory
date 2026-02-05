@@ -2,15 +2,19 @@
 import * as SplashScreen from "expo-splash-screen";
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-
 import { Stack } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { Platform, LogBox } from "react-native";
 import CapsuleToastProvider from "../components/CapsuleToastProvider";
+import { preloadAppOnce } from "../lib/preloadApp";
 
 export default function RootLayout() {
+  useEffect(() => {
+    preloadAppOnce().catch(() => {});
+  }, []);
+
   useEffect(() => {
     if (__DEV__) {
       LogBox.ignoreLogs([
@@ -29,9 +33,7 @@ export default function RootLayout() {
         await NavigationBar.setBackgroundColorAsync("transparent");
         await NavigationBar.setButtonStyleAsync("dark");
         await NavigationBar.setVisibilityAsync("hidden");
-      } catch {
-        // noop
-      }
+      } catch {}
     })();
   }, []);
 
@@ -39,8 +41,14 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <CapsuleToastProvider>
         <StatusBar style="light" translucent backgroundColor="transparent" />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" options={{ animation: "none" }} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            animation: "none",
+            contentStyle: { backgroundColor: "#1E3023" },
+          }}
+        >
+          <Stack.Screen name="index" />
           <Stack.Screen name="(tabs)" />
         </Stack>
       </CapsuleToastProvider>
