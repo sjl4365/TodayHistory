@@ -109,6 +109,8 @@ const STORAGE_KEY_CARD_BG = "@card_bg"; // "bg1" | "bg2" | "bg3" | "none"
 const STORAGE_KEY_NOTIFY_TITLE = "@notification_title";
 const STORAGE_KEY_NOTIFY_BODY = "@notification_body";
 const STORAGE_KEY_SEEN_PREFIX = "@seen_events_v1:";
+const STORAGE_KEY_WORLD_PICK_CACHE_PREFIX = "@world_pick_cache_v1:"; // seedKey -> pickKey
+
 
 const STORAGE_KEY_YEAR_ROT_INDEX = "@year_rot_idx_v1:";
 const STORAGE_KEY_YEAR_BASE = "@year_base_v1:";
@@ -3847,6 +3849,7 @@ export default function Home() {
   const [bannerStatus, setBannerStatus] = useState("loading");
   const [bannerImageUrl, setBannerImageUrl] = useState(undefined);
 
+const bannerReqIdRef = useRef(0);
 
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyTime, setNotifyTime] = useState("09:00");
@@ -4348,87 +4351,75 @@ export default function Home() {
 
 
   const fetchingRef = useRef(false);
-  const loadBannerImage = useCallback(
-    async ({ row, uiLang }) => {
-      console.log('🖼️ [LOAD BANNER] Starting...');
-      console.log('🔍 [DEBUG] row.cid:', row?.cid);
-      console.log('🔍 [DEBUG] COUNTRY_CFG:', COUNTRY_CFG);
+ const loadBannerImage = useCallback(async ({ row, uiLang, reqId }) => {
+  // ✅ 최신 요청 아니면 시작도 안 함
+  if (reqId !== bannerReqIdRef.current) return;
 
-      // 1️⃣ 항상 loading부터 시작
-      setBannerStatus("loading");
-      setBannerImageUrl(null);
+  setBannerStatus("loading");
+  setBannerImageUrl(null); // ✅ 기존 유지 (너가 건드리면 안 된다고 한 부분)
+
+  try {
+    const cid = row?.cid || 'world';
+    const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
+
+    const anchors = getAnchorsForLang(row, nativeLang);
+
+    let imageUrl = null;
+
+    // 앵커 1, 2 순차 시도 (그대로 유지)
+    for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+      // ✅ 탭 바꿔서 새 요청이 시작됐으면 즉시 중단
+      if (reqId !== bannerReqIdRef.current) return;
+
+      const anchor = anchors[i];
+      if (!anchor || !anchor.text) continue;
 
       try {
-        // ⭐ 변경: uiLang 대신 해당 국가의 기본 언어 사용
-        const cid = row?.cid || 'world';
-        const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
+        const result = await withTimeout(
+          fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+          5000
+        );
 
-        console.log('🔍 [LOAD BANNER] cid:', cid);
-        console.log('🔍 [LOAD BANNER] COUNTRY_CFG[cid]:', COUNTRY_CFG[cid]);
-        console.log('🔍 [LOAD BANNER] nativeLang:', nativeLang);
-        console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
+        if (reqId !== bannerReqIdRef.current) return; // ✅ 늦게 온 결과 차단
 
-        console.log('🔍 [LOAD BANNER] Using native language:', { cid, nativeLang });
-
-        const anchors = getAnchorsForLang(row, nativeLang);
-
-        console.log('🔍 [LOAD BANNER] Found anchors:', anchors.length);
-
-        let imageUrl = null;
-
-        // 앵커 1, 2 순차 시도
-        for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-          const anchor = anchors[i];
-          if (!anchor || !anchor.text) continue;
-
-          console.log(`🔍 [LOAD BANNER] Trying anchor ${i + 1}/${anchors.length}:`, anchor.text);
-
-          try {
-            const result = await withTimeout(
-              fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
-              5000
-            );
-
-            if (result) {
-              console.log(`✅ [LOAD BANNER] Found image from anchor ${i + 1}`);
-              imageUrl = result;
-              break;
-            }
-          } catch (e) {
-            console.warn(`⚠️ [LOAD BANNER] Anchor ${i + 1} failed:`, e.message);
-          }
+        if (result) {
+          imageUrl = result;
+          break;
         }
-
-        // 이미지 최적화
-        if (imageUrl) {
-          try {
-            const best = await bestWikiThumb(imageUrl, 640);
-            imageUrl = best || sanitizeImageUrl(imageUrl);
-          } catch (e) {
-            console.warn('⚠️ [LOAD BANNER] Optimization failed:', e.message);
-            imageUrl = sanitizeImageUrl(imageUrl);
-          }
-        }
-
-        console.log('🏁 [LOAD BANNER] Final result:', imageUrl ? 'Image found' : 'No image (will show ad)');
-
-        // 2️⃣ 상태 업데이트
-        if (imageUrl) {
-          setBannerImageUrl(imageUrl);
-          setBannerStatus("ready");
-        } else {
-          setBannerImageUrl(null);
-          setBannerStatus("no-image");
-        }
-
       } catch (e) {
-        console.error('❌ [LOAD BANNER] Error:', e);
-        setBannerStatus("no-image");
-        setBannerImageUrl(null);
+        // 기존 warn 유지 가능
       }
-    },
-    []
-  );
+    }
+
+    // 이미지 최적화 (그대로 유지)
+    if (imageUrl) {
+      if (reqId !== bannerReqIdRef.current) return;
+
+      try {
+        const best = await bestWikiThumb(imageUrl, 640);
+        imageUrl = best || sanitizeImageUrl(imageUrl);
+      } catch (e) {
+        imageUrl = sanitizeImageUrl(imageUrl);
+      }
+    }
+
+    // ✅ 최종 반영도 최신 요청만
+    if (reqId !== bannerReqIdRef.current) return;
+
+    if (imageUrl) {
+      setBannerImageUrl(imageUrl);
+      setBannerStatus("ready");
+    } else {
+      setBannerImageUrl(null);
+      setBannerStatus("no-image");
+    }
+  } catch (e) {
+    if (reqId !== bannerReqIdRef.current) return;
+    setBannerStatus("no-image");
+    setBannerImageUrl(null);
+  }
+}, []);
+
 
 
   const handlePullToRefresh = useCallback((source = "button") => {
@@ -5021,6 +5012,12 @@ export default function Home() {
               setYearNav({ canPrev: false, canNext: false });
               lastPickKeyRef.current = foundPick.key;
 
+              AsyncStorage.setItem(
+                `${STORAGE_KEY_WORLD_PICK_CACHE_PREFIX}${seedKey}`,
+                String(foundPick.key)
+              ).catch(() => {});
+
+
               setNotificationEventKey(null);
               await AsyncStorage.removeItem('@notification_event_key');
 
@@ -5032,7 +5029,39 @@ export default function Home() {
             }
           }
 
-          const pick = await pickOneWithSeenRotation(
+          
+          // ✅ World 탭: 같은 seedKey(날짜+선택+refreshTick)에서는 이미 뽑아둔 이벤트를 그대로 유지
+          try {
+            const cachedKey = await AsyncStorage.getItem(
+              `${STORAGE_KEY_WORLD_PICK_CACHE_PREFIX}${seedKey}`
+            );
+            if (cachedKey) {
+              let cachedPick = null;
+              for (const cid of chosen) {
+                const pool = poolsByCid[cid];
+                if (pool) {
+                  cachedPick = pool.find((p) => p.key === cachedKey);
+                  if (cachedPick) break;
+                }
+              }
+
+              if (cachedPick && !canceled) {
+                setHeaderImageUrl(null);
+                setOnePick([cachedPick]);
+                setYearYears([]);
+                setYearCursor(null);
+                setYearNav({ canPrev: false, canNext: false });
+                lastPickKeyRef.current = cachedPick.key;
+
+                endLoading();
+                return;
+              }
+            }
+          } catch (e) {
+            // ignore
+          }
+
+const pick = await pickOneWithSeenRotation(
             poolsByCid,
             chosen,
             isoDate,
@@ -5047,9 +5076,19 @@ export default function Home() {
               setYearCursor(null);
               setYearNav({ canPrev: false, canNext: false });
               lastPickKeyRef.current = pick.key;
+
+              AsyncStorage.setItem(
+                `${STORAGE_KEY_WORLD_PICK_CACHE_PREFIX}${seedKey}`,
+                String(pick.key)
+              ).catch(() => {});
+
             } else {
               setHeaderImageUrl(null);
               setOnePick([]);
+              AsyncStorage.removeItem(
+                `${STORAGE_KEY_WORLD_PICK_CACHE_PREFIX}${seedKey}`
+              ).catch(() => {});
+
               setYearYears([]);
               setYearCursor(null);
               setYearNav({ canPrev: false, canNext: false });
@@ -5199,58 +5238,102 @@ export default function Home() {
 
 
   // 헤더 배너 이미지 로딩/캐시
+  // useEffect(() => {
+  //   console.log('🎯 [IMAGE EFFECT] Started', {
+  //     onePick: onePick?.length,
+  //     uiLang,
+  //     hydrated,
+  //     isoDate,
+  //   });
+
+  //   let alive = true;
+  //   //추가
+  //   const reqId = ++bannerReqIdRef.current;
+
+  //   (async () => {
+  //     try {
+  //       const iso = isoDate;
+
+  //       if (!onePick || !onePick.length) {
+  //         console.log('❌ [IMAGE] No pick');
+  //         if (alive) {
+  //           setBannerStatus("loading");
+  //           setBannerImageUrl(null);
+  //         }
+  //         return;
+  //       }
+
+  //       const first = onePick[0];
+  //       const cid = first.cid;
+  //       const pickKey = first.key;
+
+  //       console.log('🔍 [IMAGE] Processing image for', { iso, cid, pickKey });
+
+  //       // ✅ loadBannerImage만 호출 (상태 관리 포함)
+  //       // ✅ loadBannerImage만 호출 (상태 관리 포함)
+  //       if (alive) {
+  //         await loadBannerImage({
+  //           row: { ...first.row, cid: first.cid },  // ⭐ cid 추가
+  //           uiLang: uiLang
+  //         });
+  //       }
+
+  //     } catch (e) {
+  //       console.error('❌ [IMAGE] Error:', e);
+  //       if (alive) {
+  //         setBannerStatus("no-image");
+  //         setBannerImageUrl(null);
+  //       }
+  //     }
+  //   })();
+
+  //   return () => {
+  //     console.log('🧹 [IMAGE EFFECT] Cleanup');
+  //     alive = false;
+  //   };
+  // }, [onePick, uiLang, hydrated, isoDate, loadBannerImage]);
+
+
   useEffect(() => {
-    console.log('🎯 [IMAGE EFFECT] Started', {
-      onePick: onePick?.length,
-      uiLang,
-      hydrated,
-      isoDate,
-    });
+  let alive = true;
 
-    let alive = true;
+  // ✅ 새 요청 시작: reqId 발급
+  const reqId = ++bannerReqIdRef.current;
 
-    (async () => {
-      try {
-        const iso = isoDate;
-
-        if (!onePick || !onePick.length) {
-          console.log('❌ [IMAGE] No pick');
-          if (alive) {
-            setBannerStatus("loading");
-            setBannerImageUrl(null);
-          }
-          return;
-        }
-
-        const first = onePick[0];
-        const cid = first.cid;
-        const pickKey = first.key;
-
-        console.log('🔍 [IMAGE] Processing image for', { iso, cid, pickKey });
-
-        // ✅ loadBannerImage만 호출 (상태 관리 포함)
-        // ✅ loadBannerImage만 호출 (상태 관리 포함)
+  (async () => {
+    try {
+      if (!onePick || !onePick.length) {
         if (alive) {
-          await loadBannerImage({
-            row: { ...first.row, cid: first.cid },  // ⭐ cid 추가
-            uiLang: uiLang
-          });
-        }
-
-      } catch (e) {
-        console.error('❌ [IMAGE] Error:', e);
-        if (alive) {
-          setBannerStatus("no-image");
+          setBannerStatus("loading");
           setBannerImageUrl(null);
         }
+        return;
       }
-    })();
 
-    return () => {
-      console.log('🧹 [IMAGE EFFECT] Cleanup');
-      alive = false;
-    };
-  }, [onePick, uiLang, hydrated, isoDate, loadBannerImage]);
+      const first = onePick[0];
+
+      if (alive) {
+        await loadBannerImage({
+          row: { ...first.row, cid: first.cid },
+          uiLang,
+          reqId, // ✅ 이게 핵심!
+        });
+      }
+    } catch (e) {
+      if (alive) {
+        setBannerStatus("no-image");
+        setBannerImageUrl(null);
+      }
+    }
+  })();
+
+  return () => {
+    alive = false;
+    // ✅ (선택이지만 강추) 언마운트/탭이동 순간에 기존 요청 무효화
+    bannerReqIdRef.current++;
+  };
+}, [onePick, uiLang, hydrated, isoDate, loadBannerImage]);
+
 
   // 자정 워밍
   useEffect(() => {
