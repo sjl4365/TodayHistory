@@ -19,9 +19,22 @@ export default function SunnyGame() {
 
   useEffect(() => {
     navigation.setOptions({
-      title: t('sunnyGames')
+      headerTitle: () => (
+        <Text
+          style={{
+            color: 'white',
+            fontSize: scale(19),
+            fontWeight: '600',
+          }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
+          {t('sunnyGames')}
+        </Text>
+      ),
     });
-  }, [navigation, t, currentLanguage]);
+  }, [navigation, t, currentLanguage, scale]);
 
   const apps = useMemo(() => [
     {
@@ -37,26 +50,32 @@ export default function SunnyGame() {
         url: 'https://wmt.onelink.me/YPN9/m428wgpq',
     },
     {
-        id: 3,
+      id: 3,
+      name: t('worldbookranking'),
+      icon: require('../../../assets/images/worldbookranking.png'),
+      url: 'https://worldbookranking.onelink.me/so3H/gftf32rq',
+  },
+    {
+        id: 4,
         name: "Wisdom Qclock",
         icon: require('../../../assets/images/wisdomqclock.png'),
         url: 'https://wisdomqclock.onelink.me/SVr2/b7gs4og1',
     },
     {
-        id: 4,
+        id: 5,
         name: t('findFour'),
         icon: require('../../../assets/images/findfour.png'),
         url: 'https://findfour.onelink.me/vurA/0tfteiuf',
     },
     {
-        id: 5,
+        id: 6,
         name: t('dualFlashlight'),
         icon: require('../../../assets/images/dualflashlight.png'),
         url: 'https://dualflashlight.onelink.me/7gkq/qpbc8y65',
 
     },
     {
-      id: 6,
+      id: 7,
       name: t('decibella'),
       icon: require('../../../assets/images/decibella.png'),
       url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
