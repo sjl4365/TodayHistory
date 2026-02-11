@@ -4356,7 +4356,6 @@ const bannerReqIdRef = useRef(0);
   const loadBannerImage = useCallback(async ({ row, uiLang, reqId }) => {
     // ✅ 최신 요청 아니면 시작도 안 함
     if (reqId !== bannerReqIdRef.current) return;
-<<<<<<< HEAD
   
     setBannerStatus("loading");
     setBannerImageUrl(null);
@@ -4377,46 +4376,11 @@ const bannerReqIdRef = useRef(0);
         const anchor = anchors[i];
         if (!anchor || !anchor.text) continue;
   
-=======
-
-    setBannerStatus("loading");
-    setBannerImageUrl(null);
-
-    // ✅ 10초 타임아웃 설정
-    const timeoutId = setTimeout(() => {
-      if (reqId === bannerReqIdRef.current) {
-        console.log('⏱️ [IMAGE] Timeout (10s) - showing ad instead');
-        setBannerStatus("no-image");
-        setBannerImageUrl(null);
-      }
-    }, 10000); // 10초
-
-    try {
-      const cid = row?.cid || 'world';
-      const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
-
-      const anchors = getAnchorsForLang(row, nativeLang);
-
-      let imageUrl = null;
-
-      // 앵커 1, 2 순차 시도
-      for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-        // ✅ 탭 바꿔서 새 요청이 시작됐으면 즉시 중단
-        if (reqId !== bannerReqIdRef.current) {
-          clearTimeout(timeoutId);
-          return;
-        }
-
-        const anchor = anchors[i];
-        if (!anchor || !anchor.text) continue;
-
->>>>>>> 81e5ee2940b445a5cab4e010f785899f25871411
         try {
           const result = await withTimeout(
             fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
             5000
           );
-<<<<<<< HEAD
   
           if (reqId !== bannerReqIdRef.current) return;
   
@@ -4486,62 +4450,6 @@ const bannerReqIdRef = useRef(0);
       console.error('[IMAGE] Fatal error:', e);
       setBannerStatus("no-image");
       setBannerImageUrl(null);
-=======
-
-          if (reqId !== bannerReqIdRef.current) {
-            clearTimeout(timeoutId);
-            return;
-          }
-
-          if (result) {
-            imageUrl = result;
-            break;
-          }
-        } catch (e) {
-          // 기존 warn 유지 가능
-        }
-      }
-
-      // 이미지 최적화
-      if (imageUrl) {
-        if (reqId !== bannerReqIdRef.current) {
-          clearTimeout(timeoutId);
-          return;
-        }
-
-        try {
-          const best = await bestWikiThumb(imageUrl, 640);
-          imageUrl = best || sanitizeImageUrl(imageUrl);
-        } catch (e) {
-          imageUrl = sanitizeImageUrl(imageUrl);
-        }
-      }
-
-      // ✅ 최종 반영도 최신 요청만
-      if (reqId !== bannerReqIdRef.current) {
-        clearTimeout(timeoutId);
-        return;
-      }
-
-      // ✅ 타임아웃 클리어
-      clearTimeout(timeoutId);
-
-      if (imageUrl) {
-        setBannerImageUrl(imageUrl);
-        setBannerStatus("ready");
-        console.log('✅ [IMAGE] Image loaded successfully within 10s');
-      } else {
-        setBannerImageUrl(null);
-        setBannerStatus("no-image");
-        console.log('❌ [IMAGE] No image found - showing ad');
-      }
-    } catch (e) {
-      clearTimeout(timeoutId);
-      if (reqId !== bannerReqIdRef.current) return;
-      setBannerStatus("no-image");
-      setBannerImageUrl(null);
-      console.error('❌ [IMAGE] Error occurred - showing ad:', e);
->>>>>>> 81e5ee2940b445a5cab4e010f785899f25871411
     }
   }, []);
 
