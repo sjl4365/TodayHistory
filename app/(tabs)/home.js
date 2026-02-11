@@ -37,6 +37,8 @@ import {
   emitCountriesChanged,
 
 } from "../../lib/bus";
+// import { fetchWikipediaImageFromAnchors } from "../../lib/wikipediaSearch";
+// import { fetchImageForContent } from "../../libimport { fetchImageForContent } from "../../lib/googleSearch";/googleSearch";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -4351,74 +4353,105 @@ const bannerReqIdRef = useRef(0);
 
 
   const fetchingRef = useRef(false);
- const loadBannerImage = useCallback(async ({ row, uiLang, reqId }) => {
-  // ✅ 최신 요청 아니면 시작도 안 함
-  if (reqId !== bannerReqIdRef.current) return;
-
-  setBannerStatus("loading");
-  setBannerImageUrl(null); // ✅ 기존 유지 (너가 건드리면 안 된다고 한 부분)
-
-  try {
-    const cid = row?.cid || 'world';
-    const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
-
-    const anchors = getAnchorsForLang(row, nativeLang);
-
-    let imageUrl = null;
-
-    // 앵커 1, 2 순차 시도 (그대로 유지)
-    for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-      // ✅ 탭 바꿔서 새 요청이 시작됐으면 즉시 중단
-      if (reqId !== bannerReqIdRef.current) return;
-
-      const anchor = anchors[i];
-      if (!anchor || !anchor.text) continue;
-
-      try {
-        const result = await withTimeout(
-          fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
-          5000
-        );
-
-        if (reqId !== bannerReqIdRef.current) return; // ✅ 늦게 온 결과 차단
-
-        if (result) {
-          imageUrl = result;
-          break;
-        }
-      } catch (e) {
-        // 기존 warn 유지 가능
-      }
-    }
-
-    // 이미지 최적화 (그대로 유지)
-    if (imageUrl) {
-      if (reqId !== bannerReqIdRef.current) return;
-
-      try {
-        const best = await bestWikiThumb(imageUrl, 640);
-        imageUrl = best || sanitizeImageUrl(imageUrl);
-      } catch (e) {
-        imageUrl = sanitizeImageUrl(imageUrl);
-      }
-    }
-
-    // ✅ 최종 반영도 최신 요청만
+  const loadBannerImage = useCallback(async ({ row, uiLang, reqId }) => {
+    // ✅ 최신 요청 아니면 시작도 안 함
     if (reqId !== bannerReqIdRef.current) return;
-
-    if (imageUrl) {
-      setBannerImageUrl(imageUrl);
-      setBannerStatus("ready");
-    } else {
-      setBannerImageUrl(null);
-      setBannerStatus("no-image");
-    }
-  } catch (e) {
-    if (reqId !== bannerReqIdRef.current) return;
-    setBannerStatus("no-image");
+  
+    setBannerStatus("loading");
     setBannerImageUrl(null);
-  }
-}, []);
+  
+    try {
+      const cid = row?.cid || 'world';
+      const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
+  
+      const anchors = getAnchorsForLang(row, nativeLang);
+  
+      let imageUrl = null;
+  
+      // ✅ Step 1: Try Wikipedia with anchors 1, 2
+      console.log('📚 [IMAGE] Trying Wikipedia...');
+      for (let i = 0; i < Math.min(anchors.length, 2); i++) {
+        if (reqId !== bannerReqIdRef.current) return;
+  
+        const anchor = anchors[i];
+        if (!anchor || !anchor.text) continue;
+  
+        try {
+          const result = await withTimeout(
+            fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+            5000
+          );
+  
+          if (reqId !== bannerReqIdRef.current) return;
+  
+          if (result) {
+            imageUrl = result;
+            console.log(`✅ [IMAGE] Wikipedia succeeded with anchor ${i + 1}`);
+            break;
+          }
+        } catch (e) {
+          console.warn(`⚠️ [IMAGE] Wikipedia anchor ${i + 1} failed:`, e.message);
+        }
+      }
+  
+      // ✅ Step 2: If Wikipedia failed, try Google Images
+      if (!imageUrl) {
+        if (reqId !== bannerReqIdRef.current) return;
+        
+        console.log('⚠️ [IMAGE] Wikipedia failed, trying Google Images...');
+        
+        try {
+          const nativeBody = bodyOfRowByLang(row, nativeLang, cid);
+          const searchQuery = nativeBody || row.body || '';
+          
+          if (searchQuery) {
+            imageUrl = await withTimeout(
+              fetchImageForContent(searchQuery),
+              5000
+            );
+            
+            if (reqId !== bannerReqIdRef.current) return;
+            
+            if (imageUrl) {
+              console.log('✅ [IMAGE] Google Images succeeded');
+            }
+          }
+        } catch (e) {
+          console.warn('⚠️ [IMAGE] Google Images failed:', e.message);
+        }
+      }
+  
+      if (imageUrl) {
+        if (reqId !== bannerReqIdRef.current) return;
+  
+        try {
+          const best = await bestWikiThumb(imageUrl, 640);
+          imageUrl = best || sanitizeImageUrl(imageUrl);
+          console.log('✅ [IMAGE] Optimization complete');
+        } catch (e) {
+          console.warn('⚠️ [IMAGE] Optimization failed:', e.message);
+          imageUrl = sanitizeImageUrl(imageUrl);
+        }
+      }
+  
+      if (reqId !== bannerReqIdRef.current) return;
+  
+      if (imageUrl) {
+        setBannerImageUrl(imageUrl);
+        setBannerStatus("ready");
+        console.log('[IMAGE] Final image set:', imageUrl.substring(0, 50) + '...');
+      } else {
+        setBannerImageUrl(null);
+        setBannerStatus("no-image");
+        console.log('[IMAGE] No image found from any source');
+      }
+    } catch (e) {
+      if (reqId !== bannerReqIdRef.current) return;
+      console.error('[IMAGE] Fatal error:', e);
+      setBannerStatus("no-image");
+      setBannerImageUrl(null);
+    }
+  }, []);
 
 
 
