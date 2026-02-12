@@ -1999,8 +1999,8 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
 
 
 function WikipediaBanner({
-  status, // 'loading' | 'no-image' | 'ready'
-  imageUrl, // status === 'ready'일 때만 string
+  status,
+  imageUrl,
   maxWidth = 340,
   screenWidth,
   cardBg = "none",
@@ -2024,7 +2024,6 @@ function WikipediaBanner({
     ? customBgColor.trim()
     : BG_MAP[cardBg] ?? "#FFFFFF";
 
-  // ✅ status 변화에 따른 내부 상태 초기화/로드
   useEffect(() => {
     // 1) 로딩
     if (status === "loading") {
@@ -2068,6 +2067,7 @@ function WikipediaBanner({
               if (prevUrlRef.current !== imageUrl) return;
               setImageSize({ width, height });
               setDisplayUrl(imageUrl);
+              setLoading(false); // ⭐ 추가
             },
             () => {
               if (prevUrlRef.current !== imageUrl) return;
@@ -2078,6 +2078,7 @@ function WikipediaBanner({
         } else {
           setImageSize({ width: maxWidth, height: maxWidth * 0.6 });
           setDisplayUrl(imageUrl);
+          setLoading(false); // ⭐ 추가
         }
       }, 50);
 
@@ -2103,11 +2104,10 @@ function WikipediaBanner({
   );
 
   const handleImageError = useCallback(() => {
+    console.log('❌ [BANNER] Image failed to load');
     setImageFailed(true);
     setLoading(false);
   }, []);
-
-  // ---------- Render 분기(오직 status로만!) ----------
 
   // ✅ 1) 로딩
   if (status === "loading") {
@@ -2155,9 +2155,32 @@ function WikipediaBanner({
     );
   }
 
-  // ✅ 3) ready인데 내부 계산/로드 준비 중 (짧게 로딩)
-  if (status === "ready" && (!imageSize || !displayUrl || imageFailed)) {
-    // imageFailed면 여기서 광고로 넘기고 싶으면 status를 no-image로 올리면 됨.
+  // ✅ 3) ready인데 imageFailed면 광고로 전환
+  if (status === "ready" && imageFailed) {
+    return (
+      <View
+        style={{
+          width: maxWidth,
+          alignSelf: "center",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: bgColor,
+          borderRadius: 12,
+          padding: 12,
+          marginVertical: 8,
+        }}
+      >
+        <BannerAd
+          unitId={TestIds.BANNER}
+          size={BannerAdSize.MEDIUM_RECTANGLE}
+          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+        />
+      </View>
+    );
+  }
+
+  // ✅ 4) ready인데 아직 준비 중
+  if (status === "ready" && (!imageSize || !displayUrl)) {
     return (
       <View
         style={{
@@ -2174,6 +2197,7 @@ function WikipediaBanner({
       </View>
     );
   }
+
   if (!imageSize) {
     return (
       <View
@@ -2192,7 +2216,7 @@ function WikipediaBanner({
     );
   }
 
-  // ✅ 4) 이미지 렌더
+  // ✅ 5) 이미지 렌더
   const { width: imgWidth, height: imgHeight } = imageSize;
   const aspectRatio = imgWidth / imgHeight;
   const isLandscape = aspectRatio > 1;
