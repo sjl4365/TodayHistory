@@ -1,4 +1,6 @@
+
 {
+  
   "name": "todayhistory",
   "version": "1.0.0",
   "main": "expo-router/entry.js",
@@ -10,7 +12,6 @@
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.5.37",
-    "@expo/config-plugins": "~54.0.4",
     "@expo/metro-runtime": "~6.1.2",
     "@google-cloud/storage": "^7.17.2",
     "@minbong/stroke-svg-text": "^0.1.1",
