@@ -107,8 +107,8 @@ export default function OpenSourceScreen() {
             <Image
               source={require('../../../assets/images/logo_mini.png')}
               style={{ 
-                width: scale(180),
-                height: scale(50),
+                width: scale(120),
+                height: scale(35),
                 marginBottom: scale(8),
                 tintColor: 'white',
               }}
@@ -124,7 +124,7 @@ export default function OpenSourceScreen() {
                     paddingHorizontal: scale(4),
                   }
                 ]}>
-                  Terms of Service
+                  Terms
                 </Text>
               </TouchableOpacity>
               
@@ -146,7 +146,7 @@ export default function OpenSourceScreen() {
                     paddingHorizontal: scale(4),
                   }
                 ]}>
-                  Privacy Policy
+                  Privacy
                 </Text>
               </TouchableOpacity>
             </View>

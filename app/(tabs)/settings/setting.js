@@ -410,17 +410,22 @@ export default function SettingsIndex() {
             width: '100%',
             paddingHorizontal: scale(4),
           }}>
-            <Image
-              source={require('../../../assets/images/logo_mini.png')}
-              style={[
-                styles.footerLogo, 
-                { 
-                  width: scale(120),
-                  height: scale(35),
-                }
-              ]}
-              resizeMode="contain"
-            />
+            <TouchableOpacity 
+              onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Home-Page-7589a833b4f6482e90844b9fe49c8ae0')}
+              activeOpacity={0.7}
+            >
+              <Image
+                source={require('../../../assets/images/logo_mini.png')}
+                style={[
+                  styles.footerLogo, 
+                  { 
+                    width: scale(120),
+                    height: scale(35),
+                  }
+                ]}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
             
             <View style={styles.footerLinksContainer}>
               <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>

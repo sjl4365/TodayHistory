@@ -163,8 +163,8 @@ export default function CreditScreen() {
             <Image
               source={require('../../../assets/images/logo_mini.png')}
               style={{ 
-                width: scale(180),
-                height: scale(50),
+                width: scale(120),
+                height: scale(35),
                 marginBottom: scale(16),
                 tintColor: 'white',
               }}
@@ -187,7 +187,7 @@ export default function CreditScreen() {
                     paddingHorizontal: scale(4),
                   }
                 ]}>
-                  Terms of Service
+                  Terms
                 </Text>
               </TouchableOpacity>
               
@@ -215,7 +215,7 @@ export default function CreditScreen() {
                     paddingHorizontal: scale(4),
                   }
                 ]}>
-                  Privacy Policy
+                  Privacy
                 </Text>
               </TouchableOpacity>
             </View>
