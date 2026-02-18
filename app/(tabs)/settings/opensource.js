@@ -98,57 +98,48 @@ export default function OpenSourceScreen() {
           <View style={[
             styles.footerContainer,
             {
-              paddingTop: scale(12),
-              paddingBottom: scale(16),
-              paddingHorizontal: scale(20),
+              paddingTop: scale(16),
+              paddingBottom: scale(8),
+              paddingHorizontal: scale(4),
               marginTop: scale(20),
             }
           ]}>
-            <Image
-              source={require('../../../assets/images/logo_mini.png')}
-              style={{ 
-                width: scale(120),
-                height: scale(35),
-                marginBottom: scale(8),
-                tintColor: 'white',
-              }}
-              resizeMode="contain"
-            />
-            
-            <View style={styles.footerLinksContainer}>
-              <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
-                <Text style={[
-                  styles.footerLink, 
-                  { 
-                    fontSize: scale(12),
-                    paddingHorizontal: scale(4),
-                  }
-                ]}>
-                  Terms
-                </Text>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              paddingHorizontal: scale(4),
+            }}>
+              <TouchableOpacity
+                onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Home-Page-7589a833b4f6482e90844b9fe49c8ae0')}
+                activeOpacity={0.7}
+              >
+                <Image
+                  source={require('../../../assets/images/logo_mini.png')}
+                  style={{ 
+                    width: scale(120),
+                    height: scale(35),
+                  }}
+                  resizeMode="contain"
+                />
               </TouchableOpacity>
-              
-              <Text style={[
-                styles.footerSeparator, 
-                { 
-                  fontSize: scale(12),
-                  marginHorizontal: scale(6),
-                }
-              ]}>
-                |
-              </Text>
-              
-              <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
-                <Text style={[
-                  styles.footerLink, 
-                  { 
-                    fontSize: scale(12),
-                    paddingHorizontal: scale(4),
-                  }
-                ]}>
-                  Privacy
+
+              <View style={styles.footerLinksContainer}>
+                <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
+                  <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                    Terms
+                  </Text>
+                </TouchableOpacity>
+                <Text style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>
+                  |
                 </Text>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
+                  <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                    Privacy
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
       </View>
