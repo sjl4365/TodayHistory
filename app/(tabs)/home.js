@@ -28,7 +28,15 @@ import {
   PanResponder,
   Animated,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  getString,
+  setString,
+  remove as removeKey,
+  getJSON,
+  setJSON,
+  multiGet as safeMultiGet,
+  multiSet as safeMultiSet,
+} from "../../lib/storageSafe";
 import {
   onRefresh,
   onGoPrevDay,
@@ -78,6 +86,27 @@ import { BlurView } from "expo-blur";
 import * as Notifications from 'expo-notifications';
 import StrokeText from '../../lib/stroketext';
 import { useCapsuleToast } from "../../components/CapsuleToastProvider";
+
+
+// ✅ AsyncStorage wrapper (routes everything through lib/storageSafe.js)
+// - 기존 코드의 AsyncStorage.getItem/setItem/multiGet/multiSet 호출은 유지
+// - 내부 구현만 storageSafe로 통일해서 try/catch/JSON 파싱/기본값 처리를 한 곳에서 관리
+const AsyncStorage = {
+  getItem: (key) => getString(key, null),
+  setItem: async (key, value) => {
+    await setString(key, value);
+  },
+  removeItem: async (key) => {
+    await removeKey(key);
+  },
+  multiGet: async (keys) => {
+    const map = await safeMultiGet(keys || []);
+    return (keys || []).map((k) => [k, map?.[k] ?? null]);
+  },
+  multiSet: async (pairs) => {
+    await safeMultiSet(pairs || []);
+  },
+};
 
 mobileAds()
   .initialize()
@@ -2477,27 +2506,20 @@ function cacheKey(mode, parts) {
 
 async function saveCache(mode, parts, rows) {
   const key = cacheKey(mode, parts);
-  const payload = JSON.stringify({
+  // storageSafe로 JSON/에러 처리를 통일
+  await setJSON(key, {
     t: Date.now(),
     rows,
   });
-  try {
-    await AsyncStorage.setItem(key, payload);
-  } catch { }
 }
 
 async function loadCache(mode, parts) {
   const key = cacheKey(mode, parts);
-  try {
-    const raw = await AsyncStorage.getItem(key);
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj?.t || !Array.isArray(obj?.rows)) return null;
-    if (Date.now() - obj.t > DATA_CACHE_TTL_MS) return null;
-    return obj.rows;
-  } catch {
-    return null;
-  }
+  // parse 실패/키 없음은 null로 처리
+  const obj = await getJSON(key, null);
+  if (!obj?.t || !Array.isArray(obj?.rows)) return null;
+  if (Date.now() - obj.t > DATA_CACHE_TTL_MS) return null;
+  return obj.rows;
 }
 
 function isSameDayItem(it, parts) {
