@@ -1,6 +1,6 @@
 
 {
-  
+
   "name": "todayhistory",
   "version": "1.0.0",
   "main": "expo-router/entry.js",
@@ -69,7 +69,8 @@
   "engines": {
     "node": ">=18 <21"
   },
-  "private": true
+  "private": true,
+  "resolutions": {
+    "@react-native-async-storage/async-storage": "2.2.0"
+  }
 }
-
-
