@@ -1151,7 +1151,7 @@
   dependencies:
     "@hapi/hoek" "^9.0.0"
 
-"@iabtcf/core@^1.5.6":
+"@iabtcf/core@^1.5.3":
   version "1.5.6"
   resolved "https://registry.npmjs.org/@iabtcf/core/-/core-1.5.6.tgz#92568d89252fbf205aa65836703cb0a52e812382"
   integrity sha512-u2q9thI9vLurYZdGtyJsDYOqoeLc4EgQsYGSc+UVibYII61B/ENJPZS6eFlML1F0hSoTR/goptpo5nGRDkKd2w==
@@ -5538,12 +5538,12 @@ react-native-edge-to-edge@1.6.0:
   resolved "https://registry.npmjs.org/react-native-edge-to-edge/-/react-native-edge-to-edge-1.6.0.tgz#2ba63b941704a7f713e298185c26cde4d9e4b973"
   integrity sha512-2WCNdE3Qd6Fwg9+4BpbATUxCLcouF6YRY7K+J36KJ4l3y+tWN6XCqAC4DuoGblAAbb2sLkhEDp4FOlbOIot2Og==
 
-react-native-google-mobile-ads@^16.0.0:
-  version "16.0.3"
-  resolved "https://registry.npmjs.org/react-native-google-mobile-ads/-/react-native-google-mobile-ads-16.0.3.tgz#8f801f7c7ebda52fb541d4feeb0d4c5e0fd72ee7"
-  integrity sha512-H+ViSEPiwAorLhKL29t6oaEN+thA1KTvSR8IYRY80Bv4Y62IdIYcucuqUsELrH2qFPC3+D2uPRG4HriLY/hjvA==
+react-native-google-mobile-ads@14.11.0:
+  version "14.11.0"
+  resolved "https://registry.npmjs.org/react-native-google-mobile-ads/-/react-native-google-mobile-ads-14.11.0.tgz#f3d452fd922cc157a9b8fdd97a4b9e969e51f940"
+  integrity sha512-OWCuk4fR7eLyQT4u2A98tAdgTTFA5/QXUxQEt89LtBJUSALh/Go3wye7X+259b/lszbOOFMxojpPFIMSKeCXmQ==
   dependencies:
-    "@iabtcf/core" "^1.5.6"
+    "@iabtcf/core" "^1.5.3"
     use-deep-compare-effect "^1.8.1"
 
 react-native-is-edge-to-edge@1.1.7:
