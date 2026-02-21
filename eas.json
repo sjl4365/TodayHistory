@@ -6,7 +6,7 @@
   "build": {
     "apk": {
       "android": {
-        "image": "sdk-54",
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
         "buildType": "apk"
       },
       "env": {
@@ -17,7 +17,7 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "image": "sdk-54",
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
         "buildType": "apk",
         "autoIncrement": true
       },
@@ -28,7 +28,7 @@
     },
     "production": {
       "android": {
-        "image": "sdk-54",
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
         "buildType": "app-bundle",
         "autoIncrement": true
       },
@@ -40,7 +40,7 @@
     "debug-autolinking": {
       "distribution": "internal",
       "android": {
-        "image": "sdk-54",
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
         "buildType": "apk"
       },
       "env": {
