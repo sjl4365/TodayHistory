@@ -44,9 +44,6 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
-        "EXPO_DEBUG": "1",
-        "EXPO_AUTOLINKING_DEBUG": "1",
         "NPM_CONFIG_PRODUCTION": "false",
         "YARN_PRODUCTION": "false"
       }
