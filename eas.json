@@ -6,52 +6,55 @@
   "build": {
     "apk": {
       "android": {
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
         "buildType": "apk"
       },
       "env": {
-        "NODE_ENV": "production",
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
         "NPM_CONFIG_PRODUCTION": "false",
-        "YARN_PRODUCTION": "false",
-        "EXPO_DEBUG": "1",
-        "EXPO_AUTOLINKING_DEBUG": "1"
+        "YARN_PRODUCTION": "false"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "autoIncrement": true
       },
       "env": {
-        "NODE_ENV": "production",
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
         "NPM_CONFIG_PRODUCTION": "false",
-        "YARN_PRODUCTION": "false",
-        "EXPO_DEBUG": "1",
-        "EXPO_AUTOLINKING_DEBUG": "1"
+        "YARN_PRODUCTION": "false"
       }
     },
     "production": {
       "android": {
-        "buildType": "app-bundle"
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
+        "buildType": "app-bundle",
+        "autoIncrement": true
       },
       "env": {
-        "NODE_ENV": "production",
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
         "NPM_CONFIG_PRODUCTION": "false",
-        "YARN_PRODUCTION": "false",
-        "EXPO_DEBUG": "1",
-        "EXPO_AUTOLINKING_DEBUG": "1"
+        "YARN_PRODUCTION": "false"
+      }
+    },
+    "debug-autolinking": {
+      "distribution": "internal",
+      "android": {
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b",
+        "buildType": "apk"
       },
-      "autoIncrement": true
+      "env": {
+        "NPM_CONFIG_PRODUCTION": "false",
+        "YARN_PRODUCTION": "false"
+      }
     },
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "android": {
+        "image": "sdk-54"
+      },
       "env": {
-        "NODE_ENV": "development",
-        "EXPO_USE_COMMUNITY_AUTOLINKING": "1",
         "NPM_CONFIG_PRODUCTION": "false",
         "YARN_PRODUCTION": "false"
       }

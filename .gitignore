@@ -71,3 +71,5 @@ ios/
 
 # local gradle cache (created by -g ..\gradle-user-home)
 gradle-user-home/
+
+android/
