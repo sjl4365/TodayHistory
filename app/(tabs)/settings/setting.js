@@ -1,5 +1,4 @@
 // app/(tabs)/settings/setting.js
-// Updated settings screen with notification time display and improved back button
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
@@ -31,6 +30,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 const LANGUAGE_STORAGE_KEY = '@app_language';
 const TAG = 'DAILY_REMINDER';
 
+
 function useUIScale() {
   const { width } = useWindowDimensions();
   const BASE = 393;
@@ -38,14 +38,46 @@ function useUIScale() {
   return { scale, screenW: width };
 }
 
+const languages = [
+  { name: 'English',   code: 'en' },
+  { name: '한국어',    code: 'ko' },
+  { name: '日本語',    code: 'ja' },
+  { name: '簡体中文',  code: 'zh-Hans' },
+  { name: '繁體中文',  code: 'zh-Hant' },
+];
+
+// currentLanguage(내부 코드) → languages 배열의 표시 이름 변환
+// home.js는 'sc'/'tc', languageContext는 'zh-Hans'/'zh-Hant' 혼용 → 둘 다 처리
+function getDisplayName(langCode) {
+  const codeMap = {
+    en:        'en',
+    ko:        'ko',
+    ja:        'ja',
+    sc:        'zh-Hans',
+    tc:        'zh-Hant',
+    'zh-Hans': 'zh-Hans',
+    'zh-Hant': 'zh-Hant',
+  };
+  const normalized = codeMap[langCode] || 'en';
+  return languages.find(l => l.code === normalized)?.name || 'English';
+}
+
 export default function SettingsIndex() {
   const router = useRouter();
   const navigation = useNavigation();
   const { scale, screenW } = useUIScale();
   const { t, currentLanguage, changeLanguage } = useTranslation();
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  console.log('[SETTINGS] currentLanguage:', currentLanguage); // ← 여기
+
+  // ✅ currentLanguage 기준으로 초기값 설정 (AsyncStorage 읽기 전에도 올바르게 표시)
+  const [selectedLanguage, setSelectedLanguage] = useState(() => getDisplayName(currentLanguage));
   const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
   const [notificationTime, setNotificationTime] = useState(null);
+
+  // ✅ 앱 언어가 바뀌면 표시 언어도 즉시 동기화
+  useEffect(() => {
+    setSelectedLanguage(getDisplayName(currentLanguage));
+  }, [currentLanguage]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -61,26 +93,18 @@ export default function SettingsIndex() {
           }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <View
-            style={{
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginTop: scale(3)
-            }}
-          >
+          <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: scale(3) }}>
             <Ionicons name="chevron-back" size={scale(28)} color="white" />
           </View>
         </TouchableOpacity>
       ),
     });
-    
-    // Hide navigation bar on Android when this screen is shown
+
     if (Platform.OS === 'android') {
       NavigationBar.setVisibilityAsync('hidden');
       NavigationBar.setBehaviorAsync('overlay-swipe');
     }
-    
-    // Show navigation bar again when leaving this screen
+
     return () => {
       if (Platform.OS === 'android') {
         NavigationBar.setVisibilityAsync('visible');
@@ -88,71 +112,55 @@ export default function SettingsIndex() {
     };
   }, [currentLanguage, navigation, t, router, scale]);
 
-  // Load notification time when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       loadNotificationTime();
-      
-      const sub = BackHandler.addEventListener(
-        'hardwareBackPress',
-        () => {
-          router.replace('/home');
-          return true;
-        },
-      );
+
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        router.replace('/home');
+        return true;
+      });
       return () => sub.remove();
     }, []),
-  );  
-  const languages = [
-    { name: 'English', code: 'en' },
-    { name: '한국어', code: 'ko' },
-    { name: '日本語', code: 'ja' },
-    { name: '簡体中文', code: 'zh-Hans' },
-    { name: '繁體中文', code: 'zh-Hant' },
-  ];
+  );
 
   useEffect(() => {
-    loadLanguage();
+    loadLanguageFromStorage();
   }, []);
 
   const loadNotificationTime = async () => {
     try {
       const all = await Notifications.getAllScheduledNotificationsAsync();
       const mine = all.find(n => n?.content?.data?.__tag === TAG);
-      
+
       if (mine && mine.trigger && mine.trigger.hour !== undefined) {
         const hour = String(mine.trigger.hour).padStart(2, '0');
         const minute = String(mine.trigger.minute).padStart(2, '0');
-        const timeStr = `${hour}:${minute}`;
-        setNotificationTime(timeStr);
+        setNotificationTime(`${hour}:${minute}`);
         return;
       }
+
       const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
-      
       if (savedTimeStr) {
         const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
         if (!isNaN(hour) && !isNaN(minute)) {
-          const h = String(hour).padStart(2, '0');
-          const m = String(minute).padStart(2, '0');
-          const timeStr = `${h}:${m}`;
-          setNotificationTime(timeStr);
+          setNotificationTime(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
           return;
         }
       }
       setNotificationTime(null);
-    } catch (error) {
+    } catch {
       setNotificationTime(null);
     }
   };
 
-  const loadLanguage = async () => {
+  // ✅ AsyncStorage에서 불러올 때도 currentLanguage 우선, 저장값은 보조
+  const loadLanguageFromStorage = async () => {
     try {
-      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
-      if (savedLanguage) {
-        const language = languages.find(lang => lang.code === savedLanguage);
-        if (language) {
-          setSelectedLanguage(language.name);
-        }
+      const saved = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+      if (saved) {
+        const displayName = getDisplayName(saved);
+        setSelectedLanguage(displayName);
       }
     } catch (error) {
       console.error('Error loading language:', error);
@@ -170,32 +178,20 @@ export default function SettingsIndex() {
     const webUrl = 'https://www.instagram.com/sunnyinnolab/';
     try {
       const supported = await Linking.canOpenURL(instagramUrl);
-      if (supported) {
-        await Linking.openURL(instagramUrl);
-      } else {
-        await Linking.openURL(webUrl);
-      }
-    } catch (error) {
-      try {
-        await Linking.openURL(webUrl);
-      } catch (webError) {}
+      await Linking.openURL(supported ? instagramUrl : webUrl);
+    } catch {
+      try { await Linking.openURL(webUrl); } catch {}
     }
   };
- 
+
   const openTwitter = async () => {
     const twitterAppUrl = 'twitter://user?screen_name=Sunnyinnolab';
     const webUrl = 'https://x.com/Sunnyinnolab';
     try {
       const supported = await Linking.canOpenURL(twitterAppUrl);
-      if (supported) {
-        await Linking.openURL(twitterAppUrl);
-      } else {
-        await Linking.openURL(webUrl);
-      }
-    } catch (error) {
-      try {
-        await Linking.openURL(webUrl);
-      } catch (webError) {
+      await Linking.openURL(supported ? twitterAppUrl : webUrl);
+    } catch {
+      try { await Linking.openURL(webUrl); } catch {
         Alert.alert('Error', 'Unable to open X (Twitter)');
       }
     }
@@ -209,92 +205,58 @@ export default function SettingsIndex() {
       } else {
         Alert.alert('Error', 'Unable to open link');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Error', 'Unable to open link');
     }
   };
 
   const SettingItem = ({ title, onPress, rightComponent, showArrow = true }) => (
-    <TouchableOpacity 
-      style={[
-        styles.settingItem,
-        {
-          paddingVertical: scale(20),
-          paddingHorizontal: scale(10),
-        }
-      ]} 
+    <TouchableOpacity
+      style={[styles.settingItem, { paddingVertical: scale(20), paddingHorizontal: scale(10) }]}
       onPress={onPress}
     >
-      <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>
-        {title}
-      </Text>
+      <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>{title}</Text>
       <View style={[styles.rightContainer, { gap: scale(8) }]}>
         {rightComponent}
-        {showArrow && (
-          <Ionicons 
-            name="chevron-forward" 
-            size={scale(22)} 
-            color="grey" 
-          />
-        )}
+        {showArrow && <Ionicons name="chevron-forward" size={scale(22)} color="grey" />}
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.section}>
-          <SettingItem
-            title={t('lookAndFeel')}
-            onPress={() => router.push('/settings/look-and-feel')}
-          />
+          <SettingItem title={t('lookAndFeel')} onPress={() => router.push('/settings/look-and-feel')} />
         </View>
-        
+
         <View style={styles.section}>
           <SettingItem
             title={t('notification')}
             onPress={() => router.push('/settings/notification')}
             rightComponent={
               notificationTime && (
-                <Text style={[styles.timeText, { fontSize: scale(16) }]}>
-                  {notificationTime}
-                </Text>
+                <Text style={[styles.timeText, { fontSize: scale(16) }]}>{notificationTime}</Text>
               )
             }
           />
         </View>
 
         <View style={styles.section}>
-          <TouchableOpacity 
-            style={[
-              styles.settingItem,
-              {
-                paddingVertical: scale(20),
-                paddingHorizontal: scale(10),
-              }
-            ]} 
+          <TouchableOpacity
+            style={[styles.settingItem, { paddingVertical: scale(20), paddingHorizontal: scale(10) }]}
             onPress={() => setIsLanguageExpanded(!isLanguageExpanded)}
           >
-            <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>
-              {t('language')}
-            </Text>
+            <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>{t('language')}</Text>
             <View style={[styles.rightContainer, { gap: scale(8) }]}>
-              <Text style={[
-                styles.selectedLanguageText, 
-                { fontSize: scale(16), marginRight: scale(4) }
-              ]}>
+              <Text style={[styles.selectedLanguageText, { fontSize: scale(16), marginRight: scale(4) }]}>
                 {selectedLanguage}
               </Text>
-              <Ionicons 
-                name={isLanguageExpanded ? "chevron-up" : "chevron-down"} 
-                size={scale(22)} 
-                color="grey" 
-              />
+              <Ionicons name={isLanguageExpanded ? "chevron-up" : "chevron-down"} size={scale(22)} color="grey" />
             </View>
           </TouchableOpacity>
 
@@ -303,27 +265,12 @@ export default function SettingsIndex() {
               {languages.map((language) => (
                 <TouchableOpacity
                   key={language.code}
-                  style={[
-                    styles.languageOption,
-                    {
-                      paddingVertical: scale(16),
-                      paddingHorizontal: scale(20),
-                    }
-                  ]}
+                  style={[styles.languageOption, { paddingVertical: scale(16), paddingHorizontal: scale(20) }]}
                   onPress={() => handleLanguageSelect(language)}
                 >
-                  <Text style={[
-                    styles.languageText, 
-                    { fontSize: scale(16) }
-                  ]}>
-                    {language.name}
-                  </Text>
+                  <Text style={[styles.languageText, { fontSize: scale(16) }]}>{language.name}</Text>
                   {selectedLanguage === language.name && (
-                    <Ionicons 
-                      name="checkmark" 
-                      size={scale(22)} 
-                      color="#007AFF" 
-                    />
+                    <Ionicons name="checkmark" size={scale(22)} color="#007AFF" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -335,11 +282,7 @@ export default function SettingsIndex() {
           <SettingItem
             title={t('instagram')}
             onPress={openInstagram}
-            rightComponent={
-              <Text style={[styles.linkText, { fontSize: scale(15) }]}>
-                {t('link')}
-              </Text>
-            }
+            rightComponent={<Text style={[styles.linkText, { fontSize: scale(15) }]}>{t('link')}</Text>}
             showArrow={false}
           />
         </View>
@@ -348,60 +291,34 @@ export default function SettingsIndex() {
           <SettingItem
             title={t('xTwitter')}
             onPress={openTwitter}
-            rightComponent={
-              <Text style={[styles.linkText, { fontSize: scale(15) }]}>
-                {t('link')}
-              </Text>
-            }
+            rightComponent={<Text style={[styles.linkText, { fontSize: scale(15) }]}>{t('link')}</Text>}
             showArrow={false}
           />
         </View>
-          
+
         <View style={styles.section}>
-          <SettingItem
-            title={t('sunnyGames')}
-            onPress={() => router.push('/settings/sunnygame')}
-          />
+          <SettingItem title={t('sunnyGames')} onPress={() => router.push('/settings/sunnygame')} />
         </View>
 
         <View style={styles.section}>
-          <SettingItem
-            title={t('credits')}
-            onPress={() => router.push('/settings/credit')}
-          />
+          <SettingItem title={t('credits')} onPress={() => router.push('/settings/credit')} />
         </View>
 
         <View style={styles.section}>
-          <SettingItem
-            title={t('openSource')}
-            onPress={() => router.push('/settings/opensource')}
-          />
+          <SettingItem title={t('openSource')} onPress={() => router.push('/settings/opensource')} />
         </View>
 
         <View style={[styles.section, styles.lastSection]}>
           <SettingItem
             title={t('appVersion')}
             rightComponent={
-              <Text style={[
-                styles.selectedLanguageText, 
-                { fontSize: scale(16) }
-              ]}>
-                v 1.0.10
-              </Text>
+              <Text style={[styles.selectedLanguageText, { fontSize: scale(16) }]}>v 1.0.10</Text>
             }
             showArrow={false}
           />
         </View>
 
-        {/* Footer - Now inside ScrollView */}
-        <View style={[
-          styles.footerContainer,
-          {
-            paddingTop: scale(16),
-            paddingBottom: scale(8),
-            paddingHorizontal: scale(4),
-          }
-        ]}>
+        <View style={[styles.footerContainer, { paddingTop: scale(16), paddingBottom: scale(8), paddingHorizontal: scale(4) }]}>
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
@@ -410,60 +327,32 @@ export default function SettingsIndex() {
             width: '100%',
             paddingHorizontal: scale(4),
           }}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Home-Page-7589a833b4f6482e90844b9fe49c8ae0')}
               activeOpacity={0.7}
             >
               <Image
                 source={require('../../../assets/images/logo_mini.png')}
-                style={[
-                  styles.footerLogo, 
-                  { 
-                    width: scale(120),
-                    height: scale(35),
-                  }
-                ]}
+                style={{ width: scale(120), height: scale(35) }}
                 resizeMode="contain"
               />
             </TouchableOpacity>
-            
+
             <View style={styles.footerLinksContainer}>
               <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
-                <Text style={[
-                  styles.footerLink, 
-                  { 
-                    fontSize: scale(13),
-                    paddingHorizontal: scale(4),
-                  }
-                ]}>
+                <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                   {t('termsOfService')}
                 </Text>
               </TouchableOpacity>
-              
-              <Text style={[
-                styles.footerSeparator, 
-                { 
-                  fontSize: scale(13),
-                  marginHorizontal: scale(4),
-                }
-              ]}>
-                |
-              </Text>
-              
+              <Text style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>|</Text>
               <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
-                <Text style={[
-                  styles.footerLink, 
-                  { 
-                    fontSize: scale(13),
-                    paddingHorizontal: scale(4),
-                  }
-                ]}>
+                <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                   {t('privacyPolicy')}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
-          
+
           <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}>
             <BannerAd
               unitId={TestIds.BANNER}
@@ -540,7 +429,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'black',
   },
-  footerLogo: {},
   footerLinksContainer: {
     flexDirection: 'row',
     alignItems: 'center',
