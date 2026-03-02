@@ -38,61 +38,71 @@ export default function SunnyGame() {
 
   const apps = useMemo(() => [
     {
-        id: 1,
-        name: t('skyPeacemaker'),
-        icon: require('../../../assets/images/skypeacemaker.png'),
-        url: 'https://skypeacemaker.onelink.me/YQxG/8s9sx66i',
+      id: 1,
+      name: "Sky Peacemaker - Finger Force",
+      icon: require('../../../assets/images/skypeacemaker.png'),
+      url: 'https://skypeacemaker.onelink.me/YQxG/8s9sx66i',
     },
     {
-        id: 2,
-        name: t('worldMovieTrailer'),
-        icon: require('../../../assets/images/worldmovietrailer.png'),
-        url: 'https://wmt.onelink.me/YPN9/m428wgpq',
+      id: 2,
+      name: "World Movie Trailer",
+      icon: require('../../../assets/images/worldmovietrailer.png'),
+      url: 'https://wmt.onelink.me/YPN9/m428wgpq',
     },
     {
       id: 3,
-      name: t('worldbookranking'),
+      name: "World Book Ranking",
       icon: require('../../../assets/images/worldbookranking.png'),
       url: 'https://worldbookranking.onelink.me/so3H/gftf32rq',
-  },
-    {
-        id: 4,
-        name: "Wisdom Qclock",
-        icon: require('../../../assets/images/wisdomqclock.png'),
-        url: 'https://wisdomqclock.onelink.me/SVr2/b7gs4og1',
     },
     {
-        id: 5,
-        name: t('findFour'),
-        icon: require('../../../assets/images/findfour.png'),
-        url: 'https://findfour.onelink.me/vurA/0tfteiuf',
+      id: 4,
+      name: "Simply Multi Timer",
+      icon: require('../../../assets/images/SimplyMultiTimerIcon.png'),
+      url: 'https://simplymultitimer.onelink.me/6kU2/v7i9ke1m',
     },
     {
-        id: 6,
-        name: t('dualFlashlight'),
-        icon: require('../../../assets/images/dualflashlight.png'),
-        url: 'https://dualflashlight.onelink.me/7gkq/qpbc8y65',
-
+      id: 5,
+      name: "Wisdom Qclock",
+      icon: require('../../../assets/images/wisdomqclock.png'),
+      url: 'https://wisdomqclock.onelink.me/SVr2/b7gs4og1',
+    },
+    {
+      id: 6,
+      name: "Play Memo",
+      icon: require('../../../assets/images/PlayMemoIcon.png'),
+      url: 'https://playmemo.onelink.me/LdOZ/6bbfoohf',
     },
     {
       id: 7,
-      name: t('decibella'),
+      name: "Find Four",
+      icon: require('../../../assets/images/findfour.png'),
+      url: 'https://findfour.onelink.me/vurA/0tfteiuf',
+    },
+    {
+      id: 8,
+      name: "Dual Flashlight",
+      icon: require('../../../assets/images/dualflashlight.png'),
+      url: 'https://dualflashlight.onelink.me/7gkq/qpbc8y65',
+    },
+    {
+      id: 9,
+      name: "Decibella",
       icon: require('../../../assets/images/decibella.png'),
       url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
-
-  },
-  ], [t, currentLanguage]);
+    },
+  ], []);
 
   const openAppLink = async (url, appName) => {
     try {
-        await Linking.openURL(url);
+      await Linking.openURL(url);
     } catch (error) {
-        console.error(`Error opening ${appName}:`, error);
-        Alert.alert(
-          'Unable to Open Link', 
-          `Could not open ${appName}. Please check your internet connection.`,
-          [{ text: 'OK' }]
-        );
+      console.error(`Error opening ${appName}:`, error);
+      Alert.alert(
+        'Unable to Open Link',
+        `Could not open ${appName}. Please check your internet connection.`,
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -120,17 +130,17 @@ export default function SunnyGame() {
           padding: scale(15),
           paddingVertical: scale(16),
         }]}>
-          <Image 
-            source={app.icon} 
+          <Image
+            source={app.icon}
             style={{
               width: scale(60),
               height: scale(60),
               borderRadius: scale(12),
               marginRight: scale(15),
-            }} 
-            resizeMode="cover" 
+            }}
+            resizeMode="cover"
           />
-          
+
           <View style={{ flex: 1, marginRight: scale(10) }}>
             <Text style={[styles.appName, { fontSize: scale(16) }]}>
               {app.name}
@@ -145,25 +155,25 @@ export default function SunnyGame() {
         </View>
       </TouchableOpacity>
 
-      {!isLast && <View style={{ 
-        height: 1, 
+      {!isLast && <View style={{
+        height: 1,
         backgroundColor: '#3a3a3a',
-        marginLeft: scale(15) 
+        marginLeft: scale(15)
       }} />}
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.appsContainer}>
           {apps.map((app, index) => (
-            <AppCard 
-              key={app.id} 
-              app={app} 
+            <AppCard
+              key={app.id}
+              app={app}
               isLast={index === apps.length - 1}
             />
           ))}
@@ -192,7 +202,7 @@ export default function SunnyGame() {
             >
               <Image
                 source={require('../../../assets/images/logo_mini.png')}
-                style={{ 
+                style={{
                   width: scale(120),
                   height: scale(35),
                 }}
