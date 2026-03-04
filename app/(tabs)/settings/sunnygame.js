@@ -39,7 +39,7 @@ export default function SunnyGame() {
   const apps = useMemo(() => [
     {
       id: 1,
-      name: "Sky Peacemaker - Finger Force",
+      name: "Sky Peacemaker",
       icon: require('../../../assets/images/skypeacemaker.png'),
       url: 'https://skypeacemaker.onelink.me/YQxG/8s9sx66i',
     },
