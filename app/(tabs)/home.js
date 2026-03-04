@@ -254,22 +254,28 @@ const COUNTRY_CFG = {
 
 const DEFAULT_COUNTRIES_BY_LANG = {
   en: ["world"],
-  ko: ["korea"],
-  ja: ["japan"],
-
-  sc: ["china"],
-  tc: ["china"],
-
-  "zh-Hans": ["china"],
-  "zh-Hant": ["china"],
-  "zh-hans": ["china"],
-  "zh-hant": ["china"],
-
+  ko: ["world"],  // "korea" → "world"
+  ja: ["world"],  // "japan" → "world"
+  sc: ["world"],  // "china" → "world"
+  tc: ["world"],  // "china" → "world"
+  "zh-Hans": ["world"],
+  "zh-Hant": ["world"],
+  "zh-hans": ["world"],
+  "zh-hant": ["world"],
   es: ["world"],
   fr: ["world"],
   default: ["world"],
 };
 
+const LANG_SWITCH_DEFAULT = {
+  ko: ["korea"],
+  ja: ["japan"],
+  sc: ["china"],
+  tc: ["china"],
+  "zh-Hans": ["china"],
+  "zh-Hant": ["china"],
+  default: ["world"],
+};
 
 const APP_NAME_BY_LANG = {
   ko: "Histree",
@@ -2626,8 +2632,6 @@ function normalizeItemsToRows(items, iso, parts) {
         tcAnchors: cleanAnchors(it.tcAnchors),
         esAnchors: cleanAnchors(it.esAnchors),
         frAnchors: cleanAnchors(it.frAnchors),
-
-        image_url: it.image_url || null,
       };
     });
 }
@@ -4402,84 +4406,88 @@ const bannerReqIdRef = useRef(0);
 
   const fetchingRef = useRef(false);
   const loadBannerImage = useCallback(async ({ row, uiLang, reqId }) => {
+    // ✅ 최신 요청 아니면 시작도 안 함
     if (reqId !== bannerReqIdRef.current) return;
-
+  
     setBannerStatus("loading");
     setBannerImageUrl(null);
-
+  
     try {
       const cid = row?.cid || 'world';
       const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
+  
       const anchors = getAnchorsForLang(row, nativeLang);
-      const rowKey = row?.key || null;
-
+  
       let imageUrl = null;
-
-      // ── Step 0: Check DB-provided image_url (from Google Sheet) ──────────
-      if (row?.image_url) {
-        imageUrl = sanitizeImageUrl(row.image_url);
-        if (imageUrl) {
-          console.log('[IMAGE] Using DB image_url');
-        }
-      }
-
-      // ── Step 0.5: Check AsyncStorage cache ───────────────────────────────
-      if (!imageUrl && rowKey) {
-        const cached = await getCachedImageUrl(rowKey);
+  
+      // ✅ Step 1: Try Wikipedia with anchors 1, 2
+      console.log('📚 [IMAGE] Trying Wikipedia...');
+      for (let i = 0; i < Math.min(anchors.length, 2); i++) {
         if (reqId !== bannerReqIdRef.current) return;
-        if (cached === "none") {
-          // Previously searched, nothing found — skip all API calls
-          setBannerImageUrl(null);
-          setBannerStatus("no-image");
-          return;
-        }
-        if (cached) {
-          imageUrl = cached;
-          console.log('[IMAGE] Using cached image URL');
+  
+        const anchor = anchors[i];
+        if (!anchor || !anchor.text) continue;
+  
+        try {
+          const result = await withTimeout(
+            fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+            5000
+          );
+  
+          if (reqId !== bannerReqIdRef.current) return;
+  
+          if (result) {
+            imageUrl = result;
+            console.log(`✅ [IMAGE] Wikipedia succeeded with anchor ${i + 1}`);
+            break;
+          }
+        } catch (e) {
+          console.warn(`⚠️ [IMAGE] Wikipedia anchor ${i + 1} failed:`, e.message);
         }
       }
-
-      // ── Step 1: Wikipedia — anchor text 1, then anchor text 2 ────────────
+  
+      // ✅ Step 2: If Wikipedia failed, try Google Images
       if (!imageUrl) {
-        console.log('[IMAGE] Trying Wikipedia...');
-        for (let i = 0; i < Math.min(anchors.length, 2); i++) {
-          if (reqId !== bannerReqIdRef.current) return;
-          const anchor = anchors[i];
-          if (!anchor?.text) continue;
-          try {
-            const result = await withTimeout(
-              fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
+        if (reqId !== bannerReqIdRef.current) return;
+        
+        console.log('⚠️ [IMAGE] Wikipedia failed, trying Google Images...');
+        
+        try {
+          const nativeBody = bodyOfRowByLang(row, nativeLang, cid);
+          const searchQuery = nativeBody || row.body || '';
+          
+          if (searchQuery) {
+            imageUrl = await withTimeout(
+              fetchImageForContent(searchQuery),
               5000
             );
+            
             if (reqId !== bannerReqIdRef.current) return;
-            if (result) {
-              imageUrl = result;
-              console.log(`[IMAGE] Wikipedia succeeded with anchor ${i + 1}`);
-              break;
+            
+            if (imageUrl) {
+              console.log('✅ [IMAGE] Google Images succeeded');
             }
-          } catch (e) {
-            console.warn(`[IMAGE] Wikipedia anchor ${i + 1} failed:`, e.message);
           }
+        } catch (e) {
+          console.warn('⚠️ [IMAGE] Google Images failed:', e.message);
         }
       }
-      // ── Optimize URL ──────────────────────────────────────────────────────
+  
       if (imageUrl) {
         if (reqId !== bannerReqIdRef.current) return;
+  
         try {
           const best = await bestWikiThumb(imageUrl, 640);
           imageUrl = best || sanitizeImageUrl(imageUrl);
+          console.log('✅ [IMAGE] Optimization complete');
         } catch (e) {
+          console.warn('⚠️ [IMAGE] Optimization failed:', e.message);
           imageUrl = sanitizeImageUrl(imageUrl);
         }
       }
-
+  
       if (reqId !== bannerReqIdRef.current) return;
-
-      // ── Persist result to AsyncStorage ───────────────────────────────────
-      if (rowKey) {
-        await setCachedImageUrl(rowKey, imageUrl);
-      }
-
+  
       if (imageUrl) {
         setBannerImageUrl(imageUrl);
         setBannerStatus("ready");
@@ -4823,14 +4831,10 @@ const bannerReqIdRef = useRef(0);
               Array.isArray(arr) ? arr : []
             );
             if (cur.size === 0) {
-              cur = ensureNonEmptySelection(cur, nextLang);
+              const defaults = LANG_SWITCH_DEFAULT[nextLang] || LANG_SWITCH_DEFAULT.default;
+              cur = new Set(defaults);
               setSelectedCountries(cur);
-              try {
-                await AsyncStorage.setItem(
-                  STORAGE_KEY_SELECTED,
-                  JSON.stringify([...cur])
-                );
-              } catch { }
+              AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...cur])).catch(() => {});
             }
           } else {
             const storedSel = dict[STORAGE_KEY_SELECTED];
