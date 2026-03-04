@@ -23,6 +23,7 @@ export default function SettingsLayout() {
         headerStyle: {
           backgroundColor: 'black',
         },
+        headerBackTitle: 'Back',
         headerTintColor: 'white',
         headerTitleStyle: {
           fontWeight: 'bold',

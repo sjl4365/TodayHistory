@@ -147,79 +147,88 @@ export default function CreditScreen() {
             </View>
           </View>
 
-          {/* Spacer to push footer down */}
           <View style={{ flex: 1, minHeight: scale(40) }} />
 
-          {/* Footer - Same as Settings page */}
+          {/* Footer - unified with settings screen */}
           <View style={[
             styles.footer,
             {
-              paddingTop: scale(32),
-              paddingBottom: scale(34),
-              paddingHorizontal: scale(20),
+              paddingTop: scale(16),
+              paddingBottom: scale(8),
+              paddingHorizontal: scale(4),
             }
           ]}>
-            {/* Logo */}
-            <Image
-              source={require('../../../assets/images/logo_mini.png')}
-              style={{ 
-                width: scale(120),
-                height: scale(35),
-                marginBottom: scale(16),
-                tintColor: 'white',
-              }}
-              resizeMode="contain"
-            />
-            
-            {/* Footer Links */}
-            <View style={styles.footerLinks}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              paddingHorizontal: scale(4),
+            }}>
               <TouchableOpacity
-                onPress={() =>
-                  openLink(
-                    'https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74'
-                  )
-                }
+                onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Home-Page-7589a833b4f6482e90844b9fe49c8ae0')}
+                activeOpacity={0.7}
               >
+                <Image
+                  source={require('../../../assets/images/logo_mini.png')}
+                  style={{ 
+                    width: scale(120),
+                    height: scale(35),
+                  }}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+
+              <View style={styles.footerLinks}>
+                <TouchableOpacity
+                  onPress={() =>
+                    openLink(
+                      'https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74'
+                    )
+                  }
+                >
+                  <Text style={[
+                    styles.linkText, 
+                    { 
+                      fontSize: scale(13),
+                      paddingHorizontal: scale(4),
+                    }
+                  ]}>
+                    Terms
+                  </Text>
+                </TouchableOpacity>
+                
                 <Text style={[
-                  styles.linkText, 
+                  styles.separator, 
                   { 
-                    fontSize: scale(14),
-                    paddingHorizontal: scale(4),
+                    fontSize: scale(13),
+                    marginHorizontal: scale(4),
                   }
                 ]}>
-                  Terms
+                  |
                 </Text>
-              </TouchableOpacity>
-              
-              <Text style={[
-                styles.separator, 
-                { 
-                  fontSize: scale(14),
-                  marginHorizontal: scale(8),
-                }
-              ]}>
-                |
-              </Text>
-              
-              <TouchableOpacity
-                onPress={() =>
-                  openLink(
-                    'https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b'
-                  )
-                }
-              >
-                <Text style={[
-                  styles.linkText, 
-                  { 
-                    fontSize: scale(14),
-                    paddingHorizontal: scale(4),
+                
+                <TouchableOpacity
+                  onPress={() =>
+                    openLink(
+                      'https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b'
+                    )
                   }
-                ]}>
-                  Privacy
-                </Text>
-              </TouchableOpacity>
+                >
+                  <Text style={[
+                    styles.linkText, 
+                    { 
+                      fontSize: scale(13),
+                      paddingHorizontal: scale(4),
+                    }
+                  ]}>
+                    Privacy
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
+
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -275,10 +284,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   linkText: {
-    color: '#888',
-    fontWeight: '500',
+    color: '#999',
+    textDecorationLine: 'underline',
   },
   separator: {
-    color: '#888',
+    color: '#666',
   },
 });
