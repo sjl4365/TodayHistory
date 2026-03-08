@@ -88,7 +88,7 @@ import StrokeText from '../../lib/stroketext';
 import { useCapsuleToast } from "../../components/CapsuleToastProvider";
 
 
-// ✅ AsyncStorage wrapper (routes everything through lib/storageSafe.js)
+// AsyncStorage wrapper (routes everything through lib/storageSafe.js)
 // - 기존 코드의 AsyncStorage.getItem/setItem/multiGet/multiSet 호출은 유지
 // - 내부 구현만 storageSafe로 통일해서 try/catch/JSON 파싱/기본값 처리를 한 곳에서 관리
 const AsyncStorage = {
@@ -566,17 +566,70 @@ const AD_RATIO = 3.2;
 const AD_TARGET = { w: 320, h: 100 };
 const ENABLE_BOTTOM_BANNER = true;
 
+// 실제 광고 ID는 env로 주입합니다.
+// - 개발 모드: Google 테스트 광고 사용
+// - 릴리즈 모드: EXPO_PUBLIC_* 값 사용
+const BANNER_AD_UNIT_ID = __DEV__
+  ? TestIds.BANNER
+  : Platform.select({
+    android: process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID || "ca-app-pub-3506417530430977/1617936328",
+    ios: process.env.EXPO_PUBLIC_ADMOB_BANNER_IOS || "ca-app-pub-3506417530430977/9692555821",
+  });
+
 const REWARDED_AD_UNIT_ID = __DEV__
   ? TestIds.REWARDED
   : Platform.select({
-    android: "ca-app-pub-3940256099942544/5224354917",
-    ios: "ca-app-pub-3940256099942544/1712485313",
+    android: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID || "ca-app-pub-3506417530430977/6711644622",
+    ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS || "ca-app-pub-3506417530430977/3270617708",
   });
 
+const HAS_BANNER_AD = Boolean(BANNER_AD_UNIT_ID);
+const HAS_REWARDED_AD = Boolean(REWARDED_AD_UNIT_ID);
+
+if (!__DEV__) {
+  if (!HAS_BANNER_AD) {
+    console.warn(
+      "[AD] Missing banner ad unit ID. Set EXPO_PUBLIC_ADMOB_BANNER_ANDROID / EXPO_PUBLIC_ADMOB_BANNER_IOS."
+    );
+  }
+  if (!HAS_REWARDED_AD) {
+    console.warn(
+      "[AD] Missing rewarded ad unit ID. Set EXPO_PUBLIC_ADMOB_REWARDED_ANDROID / EXPO_PUBLIC_ADMOB_REWARDED_IOS."
+    );
+  }
+}
+
+function AppBannerAd({ size, requestOptions, ...rest }) {
+  if (!HAS_BANNER_AD) return null;
+
+  return (
+    <BannerAd
+      unitId={BANNER_AD_UNIT_ID}
+      size={size}
+      requestOptions={{
+        requestNonPersonalizedAdsOnly: true,
+        ...(requestOptions || {}),
+      }}
+      {...rest}
+    />
+  );
+}
+
 // 전역 보상형 광고 인스턴스
-const rewardedAd = RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
-  requestNonPersonalizedAdsOnly: true,
-});
+const rewardedAd = HAS_REWARDED_AD
+  ? RewardedAd.createForAdRequest(REWARDED_AD_UNIT_ID, {
+    requestNonPersonalizedAdsOnly: true,
+  })
+  : null;
+
+function notifyRewardedAdUnavailable() {
+  console.warn(
+    "[AD] Rewarded ad is unavailable. Set EXPO_PUBLIC_ADMOB_REWARDED_ANDROID / EXPO_PUBLIC_ADMOB_REWARDED_IOS."
+  );
+  if (Platform.OS === "android") {
+    ToastAndroid.show("광고 설정이 아직 완료되지 않았습니다.", ToastAndroid.SHORT);
+  }
+}
 
 // 날짜 시간
 function safeTimeZone(tzCandidate) {
@@ -1840,8 +1893,7 @@ function WebViewModal({ visible, url, title, onClose }) {
             const h = e.nativeEvent.layout.height;
             if (h > 0) setAdHeight(h);
           }}>
-            <BannerAd
-              unitId={TestIds.BANNER}
+            <AppBannerAd
               size={BannerAdSize.BANNER}
               requestOptions={{
                 requestNonPersonalizedAdsOnly: true,
@@ -1894,8 +1946,7 @@ function WebViewModal({ visible, url, title, onClose }) {
               borderBottomColor: "#E5E7EB",
             }}
           >
-            <BannerAd
-              unitId={TestIds.BANNER}
+            <AppBannerAd
               size={BannerAdSize.BANNER}
               requestOptions={{
                 requestNonPersonalizedAdsOnly: true,
@@ -2181,8 +2232,7 @@ function WikipediaBanner({
           marginVertical: 8,
         }}
       >
-        <BannerAd
-          unitId={TestIds.BANNER}
+        <AppBannerAd
           size={BannerAdSize.MEDIUM_RECTANGLE}
           requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         />
@@ -2205,8 +2255,7 @@ function WikipediaBanner({
           marginVertical: 8,
         }}
       >
-        <BannerAd
-          unitId={TestIds.BANNER}
+        <AppBannerAd
           size={BannerAdSize.MEDIUM_RECTANGLE}
           requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         />
@@ -3367,6 +3416,11 @@ export default function Home() {
   async function showRewardedAdForYear() {
     console.log("📺 [AD] showRewardedAdForYear called");
 
+    if (!rewardedAd) {
+      notifyRewardedAdUnavailable();
+      return;
+    }
+
     if (adShowLockRef.current) return;
 
     if (!rewardedAd.loaded) {
@@ -3421,6 +3475,11 @@ export default function Home() {
 
   async function showRewardedAdForWorld() {
     console.log("📺 [AD] showRewardedAdForWorld called");
+
+    if (!rewardedAd) {
+      notifyRewardedAdUnavailable();
+      return;
+    }
 
     if (adShowLockRef.current) return;
 
@@ -4082,6 +4141,12 @@ const bannerReqIdRef = useRef(0);
   }, [isYearMode, todayParts?.y, todayParts?.m, todayParts?.d]);
 
   useEffect(() => {
+    if (!rewardedAd) {
+      console.warn("[AD] Rewarded listener skipped: rewarded ad unit ID is missing.");
+      setRewardedLoaded(false);
+      return;
+    }
+
     console.log("[AD] Setting up rewarded listener");
 
     rewardedAd.load();
@@ -6102,7 +6167,19 @@ const pick = await pickOneWithSeenRotation(
               if (Platform.OS !== "ios") return;
               if (shouldShowAdRef.current) {
                 shouldShowAdRef.current = false;
-                rewardedAd.show();
+                if (!rewardedAd) {
+                  notifyRewardedAdUnavailable();
+                  adShowLockRef.current = false;
+                  pendingNavRef.current = null;
+                  return;
+                }
+                try {
+                  rewardedAd.show();
+                } catch (e) {
+                  console.error("❌ [AD] Show failed:", e);
+                  adShowLockRef.current = false;
+                  pendingNavRef.current = null;
+                }
               }
             }}
             transparent
@@ -6270,7 +6347,19 @@ const pick = await pickOneWithSeenRotation(
               if (Platform.OS !== "ios") return;
               if (shouldShowAdRef.current) {
                 shouldShowAdRef.current = false;
-                rewardedAd.show();
+                if (!rewardedAd) {
+                  notifyRewardedAdUnavailable();
+                  adShowLockRef.current = false;
+                  pendingNavRef.current = null;
+                  return;
+                }
+                try {
+                  rewardedAd.show();
+                } catch (e) {
+                  console.error("❌ [AD] Show failed:", e);
+                  adShowLockRef.current = false;
+                  pendingNavRef.current = null;
+                }
               }
             }}
             transparent
