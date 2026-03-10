@@ -28,6 +28,13 @@ import * as Notifications from 'expo-notifications';
 import * as NavigationBar from 'expo-navigation-bar';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
+
+const BANNER_AD_UNIT_ID = __DEV__
+  ? TestIds.BANNER
+  : Platform.select({
+    android: "ca-app-pub-3506417530430977/1617936328",
+    ios: "ca-app-pub-3506417530430977/9692555821",
+  });
 const TAG = 'DAILY_REMINDER';
 
 
@@ -355,7 +362,7 @@ export default function SettingsIndex() {
 
           <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}>
             <BannerAd
-              unitId={TestIds.BANNER}
+              unitId={BANNER_AD_UNIT_ID}
               size={BannerAdSize.FULL_BANNER}
               requestOptions={{ requestNonPersonalizedAdsOnly: true }}
             />
