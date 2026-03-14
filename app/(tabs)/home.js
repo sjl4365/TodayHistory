@@ -293,7 +293,7 @@ const FIELD_LABELS = {
   tc: { location: "位置", date: "日期" },
 };
 
-const APP_DOWNLOAD_URL = "https://example.com/today-in-history";
+const APP_DOWNLOAD_URL = "https://histree.onelink.me/c9TM/bfbeczqo";
 
 const UI_STR = {
   // title: {
@@ -4369,12 +4369,12 @@ const bannerReqIdRef = useRef(0);
       const payload = [
         header,
         "",
-        // `*${lang === "ko"
-        //   ? "히스트리 앱 다운로드 링크"
-        //   : lang === "ja"
-        //     ? "Histreeアプリのダウンロードリンク"
-        //     : "Download Histree app"
-        // } - ${APP_DOWNLOAD_URL}`,
+        `*${lang === "ko"
+          ? "히스트리 앱 다운로드 링크"
+          : lang === "ja"
+            ? "Histreeアプリのダウンロードリンク"
+            : "Download Histree app"
+        } - ${APP_DOWNLOAD_URL}`,
       ].join("\n");
 
       return { header, payload };
@@ -4427,7 +4427,7 @@ const bannerReqIdRef = useRef(0);
       bodyText,
       "",
       // *히스트리 앱 다운로드 링크 - https://.
-      // `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
+      `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
     ];
 
     const payload = lines.join("\n");
