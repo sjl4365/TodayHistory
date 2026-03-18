@@ -30,7 +30,7 @@ import * as NavigationBar from 'expo-navigation-bar';
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
 const BANNER_AD_UNIT_ID = __DEV__
-  ? TestIds.BANNER
+  ? TestIds.ADAPTIVE_BANNER
   : Platform.select({
     android: "ca-app-pub-3506417530430977/1617936328",
     ios: "ca-app-pub-3506417530430977/9692555821",
@@ -360,10 +360,10 @@ export default function SettingsIndex() {
             </View>
           </View>
 
-          <View style={{ width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+          <View style={styles.bannerWrap}>
             <BannerAd
               unitId={BANNER_AD_UNIT_ID}
-              size={BannerAdSize.FULL_BANNER}
+              size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
               requestOptions={{ requestNonPersonalizedAdsOnly: true }}
             />
           </View>
@@ -448,5 +448,12 @@ const styles = StyleSheet.create({
   },
   footerSeparator: {
     color: '#666',
+  },
+  bannerWrap: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    paddingHorizontal: 12,
   },
 });
