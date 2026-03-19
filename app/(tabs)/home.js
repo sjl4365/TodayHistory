@@ -46,7 +46,6 @@ import {
 
 } from "../../lib/bus";
 // import { fetchWikipediaImageFromAnchors } from "../../lib/wikipediaSearch";
-// import { fetchImageForContent } from "../../libimport { fetchImageForContent } from "../../lib/googleSearch";/googleSearch";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -69,7 +68,6 @@ import {
 } from "./settings/notification";
 import { fetchHistory } from "../../api/history";
 import { fetchWikipediaImageFromAnchors } from "../../lib/wikipediaSearch";
-import { fetchImageForContent } from "../../lib/googleSearch";
 import { getLocalHistory } from "../../lib/localHistory";
 import { Image as ExpoImage } from "expo-image";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
@@ -2853,25 +2851,7 @@ const BANNER_KEY = (dateISO, cid) =>
 //     }
 //   }
 
-//   // ✅ 앵커에서 실패하면 Google Search 시도
-//   if (!imageUrl) {
-//     console.log('🔍 [IMAGE] No image from anchors, trying Google Search');
-//     const y = getYearFromRow(pick.row);
-//     const nativeBody = bodyOfRowByLang(pick.row, nativeLang, pick.cid);
 
-//     try {
-//       imageUrl = await withTimeout(
-//         fetchImageForContent(nativeBody || pick.body, y, pick.cid),
-//         3000
-//       );
-
-//       if (imageUrl) {
-//         console.log('✅ [IMAGE] Found image from Google Search');
-//       }
-//     } catch (e) {
-//       console.warn('⚠️ [IMAGE] Google Search failed:', e.message);
-//     }
-//   }
 
 //   // ✅ 이미지 최적화
 //   if (imageUrl) {
@@ -4473,7 +4453,11 @@ const bannerReqIdRef = useRef(0);
   const loadBannerImage = useCallback(async ({ row, uiLang, reqId }) => {
     // ✅ 최신 요청 아니면 시작도 안 함
     if (reqId !== bannerReqIdRef.current) return;
-  
+
+    // ✅ debounce: 연속 effect 실행 시 마지막 요청만 실제 HTTP 요청 보내도록
+    await new Promise(r => setTimeout(r, 300));
+    if (reqId !== bannerReqIdRef.current) return;
+
     setBannerStatus("loading");
     setBannerImageUrl(null);
   
@@ -4482,25 +4466,25 @@ const bannerReqIdRef = useRef(0);
       const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
   
       const anchors = getAnchorsForLang(row, nativeLang);
-  
+
       let imageUrl = null;
-  
+
       // ✅ Step 1: Try Wikipedia with anchors 1, 2
       console.log('📚 [IMAGE] Trying Wikipedia...');
       for (let i = 0; i < Math.min(anchors.length, 2); i++) {
         if (reqId !== bannerReqIdRef.current) return;
-  
+
         const anchor = anchors[i];
         if (!anchor || !anchor.text) continue;
-  
+
         try {
           const result = await withTimeout(
             fetchWikipediaImageFromAnchors([anchor.text], nativeLang),
             5000
           );
-  
+
           if (reqId !== bannerReqIdRef.current) return;
-  
+
           if (result) {
             imageUrl = result;
             console.log(`✅ [IMAGE] Wikipedia succeeded with anchor ${i + 1}`);
@@ -4508,33 +4492,6 @@ const bannerReqIdRef = useRef(0);
           }
         } catch (e) {
           console.warn(`⚠️ [IMAGE] Wikipedia anchor ${i + 1} failed:`, e.message);
-        }
-      }
-  
-      // ✅ Step 2: If Wikipedia failed, try Google Images
-      if (!imageUrl) {
-        if (reqId !== bannerReqIdRef.current) return;
-        
-        console.log('⚠️ [IMAGE] Wikipedia failed, trying Google Images...');
-        
-        try {
-          const nativeBody = bodyOfRowByLang(row, nativeLang, cid);
-          const searchQuery = nativeBody || row.body || '';
-          
-          if (searchQuery) {
-            imageUrl = await withTimeout(
-              fetchImageForContent(searchQuery),
-              5000
-            );
-            
-            if (reqId !== bannerReqIdRef.current) return;
-            
-            if (imageUrl) {
-              console.log('✅ [IMAGE] Google Images succeeded');
-            }
-          }
-        } catch (e) {
-          console.warn('⚠️ [IMAGE] Google Images failed:', e.message);
         }
       }
   
