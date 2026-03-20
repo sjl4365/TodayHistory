@@ -27,8 +27,8 @@ const ICONS = {
   "chevron-back": require("../../assets/images/prev.png"),
   "chevron-forward": require("../../assets/images/next.png"),
 
-  "blur-left": require("../../assets/images/blur_left_arrow.png"),
-  "blur-right": require("../../assets/images/blur_right_arrow.png"),
+  "blur-left": require("../../assets/images/empty.png"),
+  "blur-right": require("../../assets/images/empty.png"),
 
   refresh: require("../../assets/images/refresh.png"),
   share: require("../../assets/images/share.png"),
