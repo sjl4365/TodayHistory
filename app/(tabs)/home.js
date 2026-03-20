@@ -379,6 +379,27 @@ const UI_STR = {
     es: "Has visto todos los eventos históricos disponibles para hoy.\nAhora puedes volver a recorrer los 11 eventos que ya viste.",
     fr: "Vous avez vu tous les événements historiques disponibles aujourd’hui.\nVous pouvez maintenant revoir les 11 événements que vous avez déjà consultés.",
   },
+
+  navMiniPopup: {
+    prev: {
+      ko: "어제",
+      en: "Yesterday",
+      ja: "昨日",
+      sc: "昨天",
+      tc: "昨天",
+      es: "Ayer",
+      fr: "Hier",
+    },
+    next: {
+      ko: "내일",
+      en: "Tomorrow",
+      ja: "明日",
+      sc: "明天",
+      tc: "明天",
+      es: "Mañana",
+      fr: "Demain",
+    },
+  }
 };
 
 
@@ -1772,12 +1793,12 @@ function SegmentedCountrySelector({
                 backgroundColor: active ? "#FFFFFF" : "transparent",
                 ...(active
                   ? {
-                      shadowColor: "#000",
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowRadius: 3,
-                      shadowOpacity: 0.3,
-                      elevation: 3,
-                    }
+                    shadowColor: "#000",
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowRadius: 3,
+                    shadowOpacity: 0.3,
+                    elevation: 3,
+                  }
                   : null),
               }}
             >
@@ -1875,7 +1896,7 @@ function WebViewModal({ visible, url, title, onClose }) {
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, backgroundColor: bgImage ? 'transparent' : bgColor, paddingTop: insets.top }}>
+      <View style={{ flex: 1, backgroundColor: bgImage ? 'transparent' : bgColor, paddingTop: 0 }}>
         {/* Hidden preloader for ad */}
         <View
           style={{
@@ -1933,23 +1954,26 @@ function WebViewModal({ visible, url, title, onClose }) {
           {/* Header with Ad Banner - Fixed height with reduced padding */}
           <View
             style={{
-              height: adHeight, // Reserve space based on measured ad height
+              height: adHeight,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
-              paddingHorizontal: 20,
-              paddingVertical: 4, // Reduced from 12 to 4
+              paddingHorizontal: 0,
+              paddingVertical: 0,
+              margin: 0,
               backgroundColor: bgImage ? 'rgba(255,255,255,0.9)' : bgColor,
               borderBottomWidth: 1,
               borderBottomColor: "#E5E7EB",
             }}
           >
-            <AppBannerAd
-              size={BannerAdSize.BANNER}
-              requestOptions={{
-                requestNonPersonalizedAdsOnly: true,
-              }}
-            />
+            <View style={{ margin: 0, padding: 0 }}>
+              <AppBannerAd
+                size={BannerAdSize.BANNER}
+                requestOptions={{
+                  requestNonPersonalizedAdsOnly: true,
+                }}
+              />
+            </View>
           </View>
 
           {/* Page Title with close button */}
@@ -2992,6 +3016,14 @@ export default function Home() {
 
   const toast = useCapsuleToast();
 
+  const [navMiniPopup, setNavMiniPopup] = useState({
+    visible: false,
+    text: "",
+    side: "left", // "left" | "right"
+  });
+
+  const navMiniPopupTimerRef = useRef(null);
+
   // ✅ Pull-to-refresh로 화면이 내려간 채로 남는 문제 방지용
   const mainScrollRef = useRef(null);
   const scrollMainToTop = useCallback((animated = false) => {
@@ -3009,7 +3041,34 @@ export default function Home() {
     setSoftRefreshing(false);
     scrollMainToTop(false);
   }, [scrollMainToTop]);
+  const showNavMiniPopup = useCallback((side) => {
+    const text =
+      side === "left"
+        ? (UI_STR.navMiniPopup?.prev?.[uiLang] || UI_STR.navMiniPopup?.prev?.en || "Yesterday")
+        : (UI_STR.navMiniPopup?.next?.[uiLang] || UI_STR.navMiniPopup?.next?.en || "Tomorrow");
 
+    if (navMiniPopupTimerRef.current) {
+      clearTimeout(navMiniPopupTimerRef.current);
+    }
+
+    setNavMiniPopup({
+      visible: true,
+      text,
+      side,
+    });
+
+    navMiniPopupTimerRef.current = setTimeout(() => {
+      setNavMiniPopup((prev) => ({ ...prev, visible: false }));
+    }, 900);
+  }, [uiLang]);
+
+  useEffect(() => {
+    return () => {
+      if (navMiniPopupTimerRef.current) {
+        clearTimeout(navMiniPopupTimerRef.current);
+      }
+    };
+  }, []);
 
   // 연도 모드 시청 카운트 & 패스
   // 나라별로 몇 개 봤는지 저장
@@ -3942,7 +4001,7 @@ export default function Home() {
   const [bannerStatus, setBannerStatus] = useState("loading");
   const [bannerImageUrl, setBannerImageUrl] = useState(undefined);
 
-const bannerReqIdRef = useRef(0);
+  const bannerReqIdRef = useRef(0);
 
   const [notifyEnabled, setNotifyEnabled] = useState(false);
   const [notifyTime, setNotifyTime] = useState("09:00");
@@ -4066,6 +4125,7 @@ const bannerReqIdRef = useRef(0);
   // [확인/교체] 어제 보기
   const handlePrevDay = useCallback(() => {
     if (isYearMode) return;
+    showNavMiniPopup("left");
 
     const now = Date.now();
     if (rewardPassUntil && rewardPassUntil > now) {
@@ -4082,6 +4142,7 @@ const bannerReqIdRef = useRef(0);
   const handleNextDay = useCallback(() => {
     if (isYearMode) return;
 
+    showNavMiniPopup("right");
     const now = Date.now();
     if (rewardPassUntil && rewardPassUntil > now) {
       goBy(+1);
@@ -4349,12 +4410,7 @@ const bannerReqIdRef = useRef(0);
       const payload = [
         header,
         "",
-        `*${lang === "ko"
-          ? "히스트리 앱 다운로드 링크"
-          : lang === "ja"
-            ? "Histreeアプリのダウンロードリンク"
-            : "Download Histree app"
-        } - ${APP_DOWNLOAD_URL}`,
+        `*${downloadLabel} - ${APP_DOWNLOAD_URL}`,
       ].join("\n");
 
       return { header, payload };
@@ -4386,13 +4442,17 @@ const bannerReqIdRef = useRef(0);
           return ago ? `${yOnly} ${ago}` : yOnly;
         })();
 
-    //TEST
-    // const downloadLabel =
-    //   lang === "ko"
-    //     ? "히스트리 앱 다운로드 링크"
-    //     : lang === "ja"
-    //       ? "Histreeアプリのダウンロードリンク"
-    //       : "Download Histree app";
+
+    const downloadLabel =
+      lang === "ko"
+        ? "히스트리 앱 다운로드 링크"
+        : lang === "ja"
+          ? "Histreeアプリのダウンロードリンク"
+          : lang === "sc"
+            ? "Histree 应用下载链接"
+            : lang === "tc"
+              ? "Histree 應用下載連結"
+              : "Download Histree app";
 
     const bodyText = (p.body || "").trim();
 
@@ -4436,7 +4496,7 @@ const bannerReqIdRef = useRef(0);
       await NativeShare.share({
         message,
         title: header || "Histree",
-
+        url: APP_DOWNLOAD_URL,
       });
     } catch (e) {
       console.warn("[SHARE] NativeShare.share failed:", e);
@@ -4460,11 +4520,11 @@ const bannerReqIdRef = useRef(0);
 
     setBannerStatus("loading");
     setBannerImageUrl(null);
-  
+
     try {
       const cid = row?.cid || 'world';
       const nativeLang = COUNTRY_CFG[cid]?.lang || 'en';
-  
+
       const anchors = getAnchorsForLang(row, nativeLang);
 
       let imageUrl = null;
@@ -4494,10 +4554,10 @@ const bannerReqIdRef = useRef(0);
           console.warn(`⚠️ [IMAGE] Wikipedia anchor ${i + 1} failed:`, e.message);
         }
       }
-  
+
       if (imageUrl) {
         if (reqId !== bannerReqIdRef.current) return;
-  
+
         try {
           const best = await bestWikiThumb(imageUrl, 640);
           imageUrl = best || sanitizeImageUrl(imageUrl);
@@ -4507,9 +4567,9 @@ const bannerReqIdRef = useRef(0);
           imageUrl = sanitizeImageUrl(imageUrl);
         }
       }
-  
+
       if (reqId !== bannerReqIdRef.current) return;
-  
+
       if (imageUrl) {
         setBannerImageUrl(imageUrl);
         setBannerStatus("ready");
@@ -4856,7 +4916,7 @@ const bannerReqIdRef = useRef(0);
               const defaults = LANG_SWITCH_DEFAULT[nextLang] || LANG_SWITCH_DEFAULT.default;
               cur = new Set(defaults);
               setSelectedCountries(cur);
-              AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...cur])).catch(() => {});
+              AsyncStorage.setItem(STORAGE_KEY_SELECTED, JSON.stringify([...cur])).catch(() => { });
             }
           } else {
             const storedSel = dict[STORAGE_KEY_SELECTED];
@@ -5118,7 +5178,7 @@ const bannerReqIdRef = useRef(0);
               AsyncStorage.setItem(
                 `${STORAGE_KEY_WORLD_PICK_CACHE_PREFIX}${seedKey}`,
                 String(foundPick.key)
-              ).catch(() => {});
+              ).catch(() => { });
 
 
               setNotificationEventKey(null);
@@ -5132,7 +5192,7 @@ const bannerReqIdRef = useRef(0);
             }
           }
 
-          
+
           // ✅ World 탭: 같은 seedKey(날짜+선택+refreshTick)에서는 이미 뽑아둔 이벤트를 그대로 유지
           try {
             const cachedKey = await AsyncStorage.getItem(
@@ -5164,7 +5224,7 @@ const bannerReqIdRef = useRef(0);
             // ignore
           }
 
-const pick = await pickOneWithSeenRotation(
+          const pick = await pickOneWithSeenRotation(
             poolsByCid,
             chosen,
             isoDate,
@@ -5183,14 +5243,14 @@ const pick = await pickOneWithSeenRotation(
               AsyncStorage.setItem(
                 `${STORAGE_KEY_WORLD_PICK_CACHE_PREFIX}${seedKey}`,
                 String(pick.key)
-              ).catch(() => {});
+              ).catch(() => { });
 
             } else {
               setHeaderImageUrl(null);
               setOnePick([]);
               AsyncStorage.removeItem(
                 `${STORAGE_KEY_WORLD_PICK_CACHE_PREFIX}${seedKey}`
-              ).catch(() => {});
+              ).catch(() => { });
 
               setYearYears([]);
               setYearCursor(null);
@@ -5398,44 +5458,44 @@ const pick = await pickOneWithSeenRotation(
 
 
   useEffect(() => {
-  let alive = true;
+    let alive = true;
 
-  // ✅ 새 요청 시작: reqId 발급
-  const reqId = ++bannerReqIdRef.current;
+    // ✅ 새 요청 시작: reqId 발급
+    const reqId = ++bannerReqIdRef.current;
 
-  (async () => {
-    try {
-      if (!onePick || !onePick.length) {
+    (async () => {
+      try {
+        if (!onePick || !onePick.length) {
+          if (alive) {
+            setBannerStatus("loading");
+            setBannerImageUrl(null);
+          }
+          return;
+        }
+
+        const first = onePick[0];
+
         if (alive) {
-          setBannerStatus("loading");
+          await loadBannerImage({
+            row: { ...first.row, cid: first.cid },
+            uiLang,
+            reqId, // ✅ 이게 핵심!
+          });
+        }
+      } catch (e) {
+        if (alive) {
+          setBannerStatus("no-image");
           setBannerImageUrl(null);
         }
-        return;
       }
+    })();
 
-      const first = onePick[0];
-
-      if (alive) {
-        await loadBannerImage({
-          row: { ...first.row, cid: first.cid },
-          uiLang,
-          reqId, // ✅ 이게 핵심!
-        });
-      }
-    } catch (e) {
-      if (alive) {
-        setBannerStatus("no-image");
-        setBannerImageUrl(null);
-      }
-    }
-  })();
-
-  return () => {
-    alive = false;
-    // ✅ (선택이지만 강추) 언마운트/탭이동 순간에 기존 요청 무효화
-    bannerReqIdRef.current++;
-  };
-}, [onePick, uiLang, hydrated, isoDate, loadBannerImage]);
+    return () => {
+      alive = false;
+      // ✅ (선택이지만 강추) 언마운트/탭이동 순간에 기존 요청 무효화
+      bannerReqIdRef.current++;
+    };
+  }, [onePick, uiLang, hydrated, isoDate, loadBannerImage]);
 
 
   // 자정 워밍
@@ -6458,6 +6518,33 @@ const pick = await pickOneWithSeenRotation(
           </Modal>
 
         </>
+      )}
+
+      {navMiniPopup.visible && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            bottom: 100, // 👈 하단 중앙 근처
+            left: 0,
+            right: 0,
+            alignItems: "center",
+            zIndex: 999,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.85)",
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 999,
+            }}
+          >
+            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>
+              {navMiniPopup.text}
+            </Text>
+          </View>
+        </View>
       )}
     </SafeAreaView>
   );
