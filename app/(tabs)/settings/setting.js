@@ -147,14 +147,6 @@ export default function SettingsIndex() {
         return;
       }
 
-      const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
-      if (savedTimeStr) {
-        const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
-        if (!isNaN(hour) && !isNaN(minute)) {
-          setNotificationTime(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
-          return;
-        }
-      }
       setNotificationTime(null);
     } catch {
       setNotificationTime(null);
