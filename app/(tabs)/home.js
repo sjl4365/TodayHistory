@@ -1933,23 +1933,26 @@ function WebViewModal({ visible, url, title, onClose }) {
           {/* Header with Ad Banner - Fixed height with reduced padding */}
           <View
             style={{
-              height: adHeight, // Reserve space based on measured ad height
+              height: adHeight,
               flexDirection: "row",
               alignItems: "center",
               justifyContent: "center",
-              paddingHorizontal: 20,
-              paddingVertical: 4, // Reduced from 12 to 4
+              paddingHorizontal: 0,
+              paddingVertical: 0,
+              margin: 0,
               backgroundColor: bgImage ? 'rgba(255,255,255,0.9)' : bgColor,
               borderBottomWidth: 1,
               borderBottomColor: "#E5E7EB",
             }}
           >
-            <AppBannerAd
-              size={BannerAdSize.BANNER}
-              requestOptions={{
-                requestNonPersonalizedAdsOnly: true,
-              }}
-            />
+            <View style={{ margin: 0, padding: 0 }}>
+              <AppBannerAd
+                size={BannerAdSize.BANNER}
+                requestOptions={{
+                  requestNonPersonalizedAdsOnly: true,
+                }}
+              />
+            </View>
           </View>
 
           {/* Page Title with close button */}
