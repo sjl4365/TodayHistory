@@ -24,7 +24,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
-import * as Notifications from 'expo-notifications';
 import * as NavigationBar from 'expo-navigation-bar';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
@@ -35,8 +34,6 @@ const BANNER_AD_UNIT_ID = __DEV__
     android: "ca-app-pub-3506417530430977/1617936328",
     ios: "ca-app-pub-3506417530430977/9692555821",
   });
-const TAG = 'DAILY_REMINDER';
-
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -137,20 +134,16 @@ export default function SettingsIndex() {
 
   const loadNotificationTime = async () => {
     try {
-      const all = await Notifications.getAllScheduledNotificationsAsync();
-      const mine = all.find(n => n?.content?.data?.__tag === TAG);
-
-      if (mine && mine.trigger && mine.trigger.hour !== undefined) {
-        const hour = String(mine.trigger.hour).padStart(2, '0');
-        const minute = String(mine.trigger.minute).padStart(2, '0');
-        setNotificationTime(`${hour}:${minute}`);
-        return;
+      const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
+      if (savedTimeStr) {
+        const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
+        if (!isNaN(hour) && !isNaN(minute)) {
+          setNotificationTime(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+          return;
+        }
       }
-
-      setNotificationTime(null);
-    } catch {
-      setNotificationTime(null);
-    }
+    } catch {}
+    setNotificationTime(null);
   };
 
   // ✅ AsyncStorage에서 불러올 때도 currentLanguage 우선, 저장값은 보조
@@ -375,6 +368,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 20,
   },
   section: {
     backgroundColor: '#2a2a2a',
@@ -445,7 +439,5 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
-    paddingHorizontal: 12,
   },
 });
