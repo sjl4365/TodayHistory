@@ -352,6 +352,7 @@ const handleSaveTime = async () => {
   
   if (ok) {
     setSavedTime(date);
+    await AsyncStorage.setItem('@notification_enabled', 'true');
     const timeString = date.toLocaleTimeString([], {
       hour: '2-digit', minute: '2-digit', hour12: false
     });
@@ -525,8 +526,7 @@ const handleToggleNotification = async (value) => {
     setIsNotificationOn(false);
     await cancelDaily();
     setSavedTime(null);
-    
-    // ⭐ 알림 끄더라도 시간 설정은 유지 (삭제하지 않음)
+    await AsyncStorage.removeItem('@notification_enabled');
     
     // 다국어 처리
     try {

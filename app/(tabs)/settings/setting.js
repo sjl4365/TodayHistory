@@ -134,6 +134,11 @@ export default function SettingsIndex() {
 
   const loadNotificationTime = async () => {
     try {
+      const enabled = await AsyncStorage.getItem('@notification_enabled');
+      if (enabled !== 'true') {
+        setNotificationTime(null);
+        return;
+      }
       const savedTimeStr = await AsyncStorage.getItem('@last_notification_time');
       if (savedTimeStr) {
         const [hour, minute] = savedTimeStr.split(':').map(n => parseInt(n, 10));
