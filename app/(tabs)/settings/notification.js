@@ -539,9 +539,10 @@ const handleToggleNotification = async (value) => {
       };
       
       const message = messages[currentLanguage] || messages.ko;
-      Alert.alert(message.message);
+      // Alert.alert(message.message);
     } catch (error) {
-      Alert.alert('Notifications are off');
+      // Alert.alert('Notifications are off');
+      console.log('Notification off error:', error);
     }
   }
 };
