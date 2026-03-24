@@ -5,6 +5,7 @@ import {
   InteractionManager,
   Image,
   View,
+  Text,
   useWindowDimensions,
   Platform,
   BackHandler,
@@ -35,10 +36,10 @@ const ICONS = {
   setting: require("../../assets/images/setting.png"),
 };
 
-
 // 공통 버튼
 const ActionButton = memo(function ActionButton({
   onPress,
+  onLayout,
   name,
   w,
   h,
@@ -47,6 +48,7 @@ const ActionButton = memo(function ActionButton({
   const src = ICONS[name];
   return (
     <Pressable
+      onLayout={onLayout}
       onPress={() => {
         markUserInteracted();
         InteractionManager.runAfterInteractions(() => onPress && onPress());
@@ -145,6 +147,19 @@ function TabLayoutContent() {
 
   const [isCjkTab, setIsCjkTab] = useState(false);
 
+  const [navBtnLayouts, setNavBtnLayouts] = useState({
+    left: null,
+    right: null,
+  });
+
+  const [navMiniPopup, setNavMiniPopup] = useState({
+    visible: false,
+    text: "",
+    x: 0,
+    y: 0,
+  });
+
+  const navMiniPopupTimerRef = useRef(null);
 
   const STORAGE_KEY_FOCUSED_CID = "@focused_cid_v1";
 
@@ -168,18 +183,14 @@ function TabLayoutContent() {
     };
   }, []);
 
-
   useEffect(() => {
-    // home에서 emitCountriesChanged(payload)로 보내주는 값을 받음
     const off = onCountriesChanged((payload) => {
-      // payload 허용 형태:
-      // 1) "korea" 같은 string
-      // 2) ["korea"] 같은 array
-      // 3) { currentCid: "korea" } 같은 object (혹시 몰라서)
       let cid = payload;
 
       if (Array.isArray(payload)) cid = payload[0];
-      else if (payload && typeof payload === "object") cid = payload.currentCid ?? payload.cid;
+      else if (payload && typeof payload === "object") {
+        cid = payload.currentCid ?? payload.cid;
+      }
 
       const on = cid === "korea" || cid === "china" || cid === "japan";
       setIsCjkTab(!!on);
@@ -187,6 +198,42 @@ function TabLayoutContent() {
 
     return off;
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (navMiniPopupTimerRef.current) {
+        clearTimeout(navMiniPopupTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showNavMiniPopup = (side) => {
+    const layout = navBtnLayouts[side];
+    if (!layout) return;
+
+    if (navMiniPopupTimerRef.current) {
+      clearTimeout(navMiniPopupTimerRef.current);
+    }
+
+    const popupWidth = 76;
+    const popupHeight = 36;
+    const gap = 8;
+
+    const text = side === "left" ? "어제" : "내일";
+    const x = layout.x + layout.width / 2 - popupWidth / 2;
+    const y = layout.y - popupHeight - gap;
+
+    setNavMiniPopup({
+      visible: true,
+      text,
+      x,
+      y,
+    });
+
+    navMiniPopupTimerRef.current = setTimeout(() => {
+      setNavMiniPopup((prev) => ({ ...prev, visible: false }));
+    }, 900);
+  };
 
   // 디자인 상수(그대로)
   const MAX_CLUSTER_W = 340;
@@ -227,103 +274,180 @@ function TabLayoutContent() {
   const forwardIconName = isCjkTab ? "blur-right" : "chevron-forward";
 
   return (
-    <Tabs
-      initialRouteName="home"
-      screenOptions={{
-        headerShown: false,
-        tabBarShowLabel: false,
-        tabBarActiveTintColor: "#007AFF",
-        tabBarInactiveTintColor: "black",
-        tabBarActiveBackgroundColor: "transparent",
-        tabBarInactiveBackgroundColor: "transparent",
-        tabBarStyle: isInSettings
-          ? { display: "none" }
-          : {
-            width: "100%",
-            backgroundColor: "#fff",
-            borderTopWidth: 0,
-            height: tabBarHeight + ANDROID_EXTRA_BOTTOM,
-            paddingTop: PAD_V,
-            paddingBottom: PAD_V + ANDROID_EXTRA_BOTTOM,
-            justifyContent: "center",
+    <View style={{ flex: 1 }}>
+      <Tabs
+        initialRouteName="home"
+        screenOptions={{
+          headerShown: false,
+          tabBarShowLabel: false,
+          tabBarActiveTintColor: "#007AFF",
+          tabBarInactiveTintColor: "black",
+          tabBarActiveBackgroundColor: "transparent",
+          tabBarInactiveBackgroundColor: "transparent",
+          tabBarStyle: isInSettings
+            ? { display: "none" }
+            : {
+                width: "100%",
+                backgroundColor: "#fff",
+                borderTopWidth: 0,
+                height: tabBarHeight + ANDROID_EXTRA_BOTTOM,
+                paddingTop: PAD_V,
+                paddingBottom: PAD_V + ANDROID_EXTRA_BOTTOM,
+                justifyContent: "center",
+                alignItems: "center",
+              },
+          tabBarItemStyle: { width: "auto", padding: 0, margin: 0, flex: 0 },
+          lazy: true,
+        }}
+      >
+        {/* 1. 어제 */}
+        <Tabs.Screen
+          name="back"
+          options={{
+            tabBarButton: () => (
+              <Slot mr={gaps[0]} w={itemW} h={itemH}>
+                <ActionButton
+                  name={backIconName}
+                  onLayout={(e) => {
+                    const { x, y, width, height } = e.nativeEvent.layout;
+                    setNavBtnLayouts((prev) => ({
+                      ...prev,
+                      left: { x, y, width, height },
+                    }));
+                  }}
+                  onPress={() => {
+                    showNavMiniPopup("left");
+                    emitGoPrevDay();
+                  }}
+                  w={itemW}
+                  h={itemH}
+                />
+              </Slot>
+            ),
+          }}
+        />
+
+        {/* 2. 새로고침 */}
+        <Tabs.Screen
+          name="refresh"
+          options={{
+            tabBarButton: () => (
+              <Slot mr={gaps[1]} w={itemW} h={itemH}>
+                <ActionButton
+                  name="refresh"
+                  onPress={emitRefresh}
+                  w={itemW}
+                  h={itemH}
+                />
+              </Slot>
+            ),
+          }}
+        />
+
+        {/* 3. 내일 */}
+        <Tabs.Screen
+          name="forward"
+          options={{
+            tabBarButton: () => (
+              <Slot mr={gaps[2]} w={itemW} h={itemH}>
+                <ActionButton
+                  name={forwardIconName}
+                  onLayout={(e) => {
+                    const { x, y, width, height } = e.nativeEvent.layout;
+                    setNavBtnLayouts((prev) => ({
+                      ...prev,
+                      right: { x, y, width, height },
+                    }));
+                  }}
+                  onPress={() => {
+                    showNavMiniPopup("right");
+                    emitGoNextDay();
+                  }}
+                  w={itemW}
+                  h={itemH}
+                />
+              </Slot>
+            ),
+          }}
+        />
+
+        {/* 4. 공유 */}
+        <Tabs.Screen
+          name="share"
+          options={{
+            tabBarButton: () => (
+              <Slot mr={gaps[3]} w={itemW} h={itemH}>
+                <ActionButton
+                  name="share"
+                  onPress={emitShareAttach}
+                  w={itemW}
+                  h={itemH}
+                />
+              </Slot>
+            ),
+          }}
+        />
+
+        {/* 5. 설정 */}
+        <Tabs.Screen
+          name="settings"
+          options={{
+            tabBarButton: () => (
+              <Slot mr={gaps[4]} w={itemW} h={itemH}>
+                <SettingsButton
+                  router={router}
+                  href="/settings"
+                  name="setting"
+                  w={itemW}
+                  h={itemH}
+                />
+              </Slot>
+            ),
+          }}
+        />
+
+        <Tabs.Screen name="home" options={{ href: null }} />
+      </Tabs>
+
+      {navMiniPopup.visible && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            left: navMiniPopup.x,
+            top: navMiniPopup.y,
+            width: 76,
+            height: 36,
             alignItems: "center",
-          },
-        tabBarItemStyle: { width: "auto", padding: 0, margin: 0, flex: 0 },
-        lazy: true,
-      }}
-    >
-      {/* 1. 어제 */}
-      <Tabs.Screen
-        name="back"
-        options={{
-          tabBarButton: () => (
-            <Slot mr={gaps[0]} w={itemW} h={itemH}>
-              <ActionButton
-                name={backIconName}
-                onPress={emitGoPrevDay}
-                w={itemW}
-                h={itemH}
-              />
-            </Slot>
-          ),
-        }}
-      />
-
-      {/* 2. 새로고침 */}
-      <Tabs.Screen
-        name="refresh"
-        options={{
-          tabBarButton: () => (
-            <Slot mr={gaps[1]} w={itemW} h={itemH}>
-              <ActionButton name="refresh" onPress={emitRefresh} w={itemW} h={itemH} />
-            </Slot>
-          ),
-        }}
-      />
-
-      {/* 3. 내일 */}
-      <Tabs.Screen
-        name="forward"
-        options={{
-          tabBarButton: () => (
-            <Slot mr={gaps[2]} w={itemW} h={itemH}>
-              <ActionButton
-                name={forwardIconName}
-                onPress={emitGoNextDay}
-                w={itemW}
-                h={itemH}
-              />
-            </Slot>
-          ),
-        }}
-      />
-
-      {/* 4. 공유 */}
-      <Tabs.Screen
-        name="share"
-        options={{
-          tabBarButton: () => (
-            <Slot mr={gaps[3]} w={itemW} h={itemH}>
-              <ActionButton name="share" onPress={emitShareAttach} w={itemW} h={itemH} />
-            </Slot>
-          ),
-        }}
-      />
-
-      {/* 5. 설정 */}
-      <Tabs.Screen
-        name="settings"
-        options={{
-          tabBarButton: () => (
-            <Slot mr={gaps[4]} w={itemW} h={itemH}>
-              <SettingsButton router={router} href="/settings" name="setting" w={itemW} h={itemH} />
-            </Slot>
-          ),
-        }}
-      />
-
-      <Tabs.Screen name="home" options={{ href: null }} />
-    </Tabs>
+            justifyContent: "center",
+            zIndex: 999,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.85)",
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+              borderRadius: 999,
+              minWidth: 76,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Text
+              style={{
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: "700",
+                textAlign: "center",
+              }}
+            >
+              {navMiniPopup.text}
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
   );
 }
 
