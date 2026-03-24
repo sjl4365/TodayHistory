@@ -380,26 +380,26 @@ const UI_STR = {
     fr: "Vous avez vu tous les événements historiques disponibles aujourd’hui.\nVous pouvez maintenant revoir les 11 événements que vous avez déjà consultés.",
   },
 
-  navMiniPopup: {
-    prev: {
-      ko: "어제",
-      en: "Yesterday",
-      ja: "昨日",
-      sc: "昨天",
-      tc: "昨天",
-      es: "Ayer",
-      fr: "Hier",
-    },
-    next: {
-      ko: "내일",
-      en: "Tomorrow",
-      ja: "明日",
-      sc: "明天",
-      tc: "明天",
-      es: "Mañana",
-      fr: "Demain",
-    },
-  }
+  // navMiniPopup: {
+  //   prev: {
+  //     ko: "어제",
+  //     en: "Yesterday",
+  //     ja: "昨日",
+  //     sc: "昨天",
+  //     tc: "昨天",
+  //     es: "Ayer",
+  //     fr: "Hier",
+  //   },
+  //   next: {
+  //     ko: "내일",
+  //     en: "Tomorrow",
+  //     ja: "明日",
+  //     sc: "明天",
+  //     tc: "明天",
+  //     es: "Mañana",
+  //     fr: "Demain",
+  //   },
+  // }
 };
 
 
@@ -4104,7 +4104,7 @@ const handlePrevDay = useCallback(() => {
   pendingNavRef.current = -1;
   normalizeScrollAfterAdPrompt();
   setAdPromptVisible(true);
-}, [rewardPassUntil, goBy, isYearMode, showNavMiniPopup, normalizeScrollAfterAdPrompt]);
+}, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
 
 // [확인/교체] 내일 보기
 const handleNextDay = useCallback(() => {
@@ -4121,7 +4121,7 @@ const handleNextDay = useCallback(() => {
   pendingNavRef.current = +1;
   normalizeScrollAfterAdPrompt();
   setAdPromptVisible(true);
-}, [rewardPassUntil, goBy, isYearMode, showNavMiniPopup, normalizeScrollAfterAdPrompt]);
+}, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
 
 
   // World 모드: 오늘(isoDate) 기준 무료 새로고침 카운트 복원

@@ -25,6 +25,7 @@ import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
 import * as NavigationBar from 'expo-navigation-bar';
+import { emitUiLangChanged  } from '../../../lib/bus'; 
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -71,14 +72,12 @@ export default function SettingsIndex() {
   const navigation = useNavigation();
   const { scale, screenW } = useUIScale();
   const { t, currentLanguage, changeLanguage } = useTranslation();
-  console.log('[SETTINGS] currentLanguage:', currentLanguage); // ← 여기
+  console.log('[SETTINGS] currentLanguage:', currentLanguage);
 
-  // ✅ currentLanguage 기준으로 초기값 설정 (AsyncStorage 읽기 전에도 올바르게 표시)
   const [selectedLanguage, setSelectedLanguage] = useState(() => getDisplayName(currentLanguage));
   const [isLanguageExpanded, setIsLanguageExpanded] = useState(false);
   const [notificationTime, setNotificationTime] = useState(null);
 
-  // ✅ 앱 언어가 바뀌면 표시 언어도 즉시 동기화
   useEffect(() => {
     setSelectedLanguage(getDisplayName(currentLanguage));
   }, [currentLanguage]);
@@ -151,7 +150,6 @@ export default function SettingsIndex() {
     setNotificationTime(null);
   };
 
-  // ✅ AsyncStorage에서 불러올 때도 currentLanguage 우선, 저장값은 보조
   const loadLanguageFromStorage = async () => {
     try {
       const saved = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
@@ -167,7 +165,10 @@ export default function SettingsIndex() {
   const handleLanguageSelect = async (language) => {
     setSelectedLanguage(language.name);
     setIsLanguageExpanded(false);
+
     await changeLanguage(language.code);
+
+    emitUiLangChanged(language.code);
   };
 
   const openInstagram = async () => {
