@@ -380,26 +380,26 @@ const UI_STR = {
     fr: "Vous avez vu tous les événements historiques disponibles aujourd’hui.\nVous pouvez maintenant revoir les 11 événements que vous avez déjà consultés.",
   },
 
-  navMiniPopup: {
-    prev: {
-      ko: "어제",
-      en: "Yesterday",
-      ja: "昨日",
-      sc: "昨天",
-      tc: "昨天",
-      es: "Ayer",
-      fr: "Hier",
-    },
-    next: {
-      ko: "내일",
-      en: "Tomorrow",
-      ja: "明日",
-      sc: "明天",
-      tc: "明天",
-      es: "Mañana",
-      fr: "Demain",
-    },
-  }
+  // navMiniPopup: {
+  //   prev: {
+  //     ko: "어제",
+  //     en: "Yesterday",
+  //     ja: "昨日",
+  //     sc: "昨天",
+  //     tc: "昨天",
+  //     es: "Ayer",
+  //     fr: "Hier",
+  //   },
+  //   next: {
+  //     ko: "내일",
+  //     en: "Tomorrow",
+  //     ja: "明日",
+  //     sc: "明天",
+  //     tc: "明天",
+  //     es: "Mañana",
+  //     fr: "Demain",
+  //   },
+  // }
 };
 
 
@@ -3016,13 +3016,7 @@ export default function Home() {
 
   const toast = useCapsuleToast();
 
-  const [navMiniPopup, setNavMiniPopup] = useState({
-    visible: false,
-    text: "",
-    side: "left", // "left" | "right"
-  });
-
-  const navMiniPopupTimerRef = useRef(null);
+ 
 
   // ✅ Pull-to-refresh로 화면이 내려간 채로 남는 문제 방지용
   const mainScrollRef = useRef(null);
@@ -3041,34 +3035,9 @@ export default function Home() {
     setSoftRefreshing(false);
     scrollMainToTop(false);
   }, [scrollMainToTop]);
-  const showNavMiniPopup = useCallback((side) => {
-    const text =
-      side === "left"
-        ? (UI_STR.navMiniPopup?.prev?.[uiLang] || UI_STR.navMiniPopup?.prev?.en || "Yesterday")
-        : (UI_STR.navMiniPopup?.next?.[uiLang] || UI_STR.navMiniPopup?.next?.en || "Tomorrow");
+  
 
-    if (navMiniPopupTimerRef.current) {
-      clearTimeout(navMiniPopupTimerRef.current);
-    }
-
-    setNavMiniPopup({
-      visible: true,
-      text,
-      side,
-    });
-
-    navMiniPopupTimerRef.current = setTimeout(() => {
-      setNavMiniPopup((prev) => ({ ...prev, visible: false }));
-    }, 900);
-  }, [uiLang]);
-
-  useEffect(() => {
-    return () => {
-      if (navMiniPopupTimerRef.current) {
-        clearTimeout(navMiniPopupTimerRef.current);
-      }
-    };
-  }, []);
+  
 
   // 연도 모드 시청 카운트 & 패스
   // 나라별로 몇 개 봤는지 저장
@@ -4123,36 +4092,36 @@ export default function Home() {
 
 
   // [확인/교체] 어제 보기
-  const handlePrevDay = useCallback(() => {
-    if (isYearMode) return;
-    showNavMiniPopup("left");
+const handlePrevDay = useCallback(() => {
+  if (isYearMode) return;
 
-    const now = Date.now();
-    if (rewardPassUntil && rewardPassUntil > now) {
-      goBy(-1);
-      return;
-    }
-    // 패스 없으면 광고 모달 띄우기
-    pendingNavRef.current = -1;
-    normalizeScrollAfterAdPrompt();
-    setAdPromptVisible(true);
-  }, [rewardPassUntil, goBy, isYearMode]);
+  const now = Date.now();
+  if (rewardPassUntil && rewardPassUntil > now) {
+    goBy(-1);
+    return;
+  }
 
-  // [확인/교체] 내일 보기
-  const handleNextDay = useCallback(() => {
-    if (isYearMode) return;
+  pendingNavRef.current = -1;
+  normalizeScrollAfterAdPrompt();
+  setAdPromptVisible(true);
+}, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
 
-    showNavMiniPopup("right");
-    const now = Date.now();
-    if (rewardPassUntil && rewardPassUntil > now) {
-      goBy(+1);
-      return;
-    }
-    // 패스 없으면 광고 모달 띄우기
-    pendingNavRef.current = +1;
-    normalizeScrollAfterAdPrompt();
-    setAdPromptVisible(true);
-  }, [rewardPassUntil, goBy, isYearMode]);
+// [확인/교체] 내일 보기
+const handleNextDay = useCallback(() => {
+  if (isYearMode) return;
+
+  
+
+  const now = Date.now();
+  if (rewardPassUntil && rewardPassUntil > now) {
+    goBy(+1);
+    return;
+  }
+
+  pendingNavRef.current = +1;
+  normalizeScrollAfterAdPrompt();
+  setAdPromptVisible(true);
+}, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
 
 
   // World 모드: 오늘(isoDate) 기준 무료 새로고침 카운트 복원
@@ -6520,32 +6489,6 @@ export default function Home() {
         </>
       )}
 
-      {navMiniPopup.visible && (
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            bottom: 100, // 👈 하단 중앙 근처
-            left: 0,
-            right: 0,
-            alignItems: "center",
-            zIndex: 999,
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "rgba(0,0,0,0.85)",
-              paddingHorizontal: 14,
-              paddingVertical: 8,
-              borderRadius: 999,
-            }}
-          >
-            <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}>
-              {navMiniPopup.text}
-            </Text>
-          </View>
-        </View>
-      )}
     </SafeAreaView>
   );
 }
