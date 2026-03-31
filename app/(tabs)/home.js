@@ -4483,12 +4483,12 @@ const handleNextDay = useCallback(() => {
     // ✅ 최신 요청 아니면 시작도 안 함
     if (reqId !== bannerReqIdRef.current) return;
 
+    setBannerStatus("loading");
+    setBannerImageUrl(null);
+
     // ✅ debounce: 연속 effect 실행 시 마지막 요청만 실제 HTTP 요청 보내도록
     await new Promise(r => setTimeout(r, 300));
     if (reqId !== bannerReqIdRef.current) return;
-
-    setBannerStatus("loading");
-    setBannerImageUrl(null);
 
     try {
       const cid = row?.cid || 'world';
