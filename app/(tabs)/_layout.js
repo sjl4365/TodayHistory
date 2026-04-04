@@ -145,6 +145,19 @@ function TabLayoutContent() {
   const [isCjkTab, setIsCjkTab] = useState(false);
 
 
+  useEffect(() => {
+  const off = onCountriesChanged((cid) => {
+    setIsCjkTab(
+      cid === "korea" ||
+      cid === "china" ||
+      cid === "japan"
+    );
+  });
+
+  return () => {
+    if (typeof off === "function") off();
+  };
+}, []);
 
   const MAX_CLUSTER_W = 340;
   const BASE_ITEM_W = 57;

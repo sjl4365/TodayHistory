@@ -85,6 +85,8 @@ import * as Notifications from 'expo-notifications';
 import StrokeText from '../../lib/stroketext';
 import { useCapsuleToast } from "../../components/CapsuleToastProvider";
 
+// 광고 테스트
+// const ADS_ENABLED = false;
 
 // AsyncStorage wrapper (routes everything through lib/storageSafe.js)
 // - 기존 코드의 AsyncStorage.getItem/setItem/multiGet/multiSet 호출은 유지
@@ -604,6 +606,10 @@ const REWARDED_AD_UNIT_ID = __DEV__
 
 const HAS_BANNER_AD = Boolean(BANNER_AD_UNIT_ID);
 const HAS_REWARDED_AD = Boolean(REWARDED_AD_UNIT_ID);
+
+//광고 테스트
+// const HAS_BANNER_AD = ADS_ENABLED && Boolean(BANNER_AD_UNIT_ID);
+// const HAS_REWARDED_AD = ADS_ENABLED && Boolean(REWARDED_AD_UNIT_ID);
 
 if (!__DEV__) {
   if (!HAS_BANNER_AD) {
@@ -2383,6 +2389,8 @@ function WikipediaBanner({
             />
           </Animated.View>
         </ScrollView>
+      
+
       </View>
     );
   }
@@ -3014,6 +3022,8 @@ function scheduleMidnightWarmup({
 // 홈 화면
 export default function Home() {
 
+
+
   const toast = useCapsuleToast();
 
  
@@ -3047,9 +3057,12 @@ export default function Home() {
     china: 0,
   });
   // ✅ World/Year 공통 리워드 패스 (광고를 어디서 보든 동일하게 적용)
+  //광고 테스트
   const [rewardPassUntil, setRewardPassUntil] = useState(0);
+  //const [rewardPassUntil, setRewardPassUntil] = useState(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const [yearAdPromptVisible, setYearAdPromptVisible] = useState(false);
   const [notificationEventKey, setNotificationEventKey] = useState(null);
+
 
 
   // 초기 데이터 복원 (패스, 본 횟수, +보고 있던 연도)
@@ -3160,6 +3173,83 @@ export default function Home() {
     rewardPassUntil,
     yearSeenGroups,
   ]);
+
+// yesterday,tomorrow toast
+
+const ANDROID_EXTRA_BOTTOM =
+  Platform.OS === "android" ? (insets?.bottom ?? 20) : 0;
+
+const [navToast, setNavToast] = useState({
+  visible: false,
+  text: "",
+  side: null,
+});
+
+const navToastTimerRef = useRef(null);
+
+const didShowNavToastRef = useRef({
+  left: false,
+  right: false,
+});
+
+
+const latestUiLangRef = useRef(uiLang);
+const latestCidRef = useRef(currentCid);
+
+useEffect(() => {
+  latestUiLangRef.current = uiLang;
+}, [uiLang]);
+
+useEffect(() => {
+  latestCidRef.current = currentCid;
+}, [currentCid]);
+
+const NAV_POPUP_TEXT = {
+  prev: { ko: "어제", en: "Yesterday", ja: "昨日", sc: "昨天", tc: "昨天" },
+  next: { ko: "내일", en: "Tomorrow", ja: "明日", sc: "明天", tc: "明天" },
+};
+
+function getPopupLangByCountry(_cid, uiLang) {
+  return uiLang || "en";
+}
+
+const showNavToast = async (side) => {
+  if (didShowNavToastRef.current[side]) return;
+
+  didShowNavToastRef.current[side] = true;
+
+  let storedLang = "en";
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY_UI_LANG);
+    storedLang = normalizeUiLang(raw, latestUiLangRef.current || "en");
+  } catch {
+    storedLang = normalizeUiLang(latestUiLangRef.current, "en");
+  }
+
+  const lang = storedLang || "en";
+
+  const text =
+    side === "left"
+      ? (NAV_POPUP_TEXT.prev[lang] || NAV_POPUP_TEXT.prev.en)
+      : (NAV_POPUP_TEXT.next[lang] || NAV_POPUP_TEXT.next.en);
+
+  if (navToastTimerRef.current) {
+    clearTimeout(navToastTimerRef.current);
+    navToastTimerRef.current = null;
+  }
+
+  setNavToast({
+    visible: true,
+    text,
+    side,
+  });
+
+  navToastTimerRef.current = setTimeout(() => {
+    setNavToast((prev) => ({ ...prev, visible: false }));
+    navToastTimerRef.current = null;
+  }, 1200);
+};
+
 
 
 
@@ -4095,6 +4185,8 @@ export default function Home() {
 const handlePrevDay = useCallback(() => {
   if (isYearMode) return;
 
+   showNavToast("left");
+
   const now = Date.now();
   if (rewardPassUntil && rewardPassUntil > now) {
     goBy(-1);
@@ -4110,7 +4202,7 @@ const handlePrevDay = useCallback(() => {
 const handleNextDay = useCallback(() => {
   if (isYearMode) return;
 
-  
+  showNavToast("right");  
 
   const now = Date.now();
   if (rewardPassUntil && rewardPassUntil > now) {
@@ -6486,8 +6578,30 @@ const handleNextDay = useCallback(() => {
             </View>
           </Modal>
 
+          {navToast.visible && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                left: navToast.side === "left" ? 10 : undefined,
+                right: navToast.side === "right" ? 220 : undefined,
+                bottom: 0,
+                backgroundColor: "rgba(0,0,0,0.8)",
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 999,
+                zIndex: 9999,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "700" }}>
+                {navToast.text}
+              </Text>
+            </View>
+          )}
+
         </>
       )}
+
 
     </SafeAreaView>
   );
