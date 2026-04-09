@@ -2389,7 +2389,7 @@ function WikipediaBanner({
             />
           </Animated.View>
         </ScrollView>
-      
+
 
       </View>
     );
@@ -3026,7 +3026,7 @@ export default function Home() {
 
   const toast = useCapsuleToast();
 
- 
+
 
   // ✅ Pull-to-refresh로 화면이 내려간 채로 남는 문제 방지용
   const mainScrollRef = useRef(null);
@@ -3045,9 +3045,9 @@ export default function Home() {
     setSoftRefreshing(false);
     scrollMainToTop(false);
   }, [scrollMainToTop]);
-  
 
-  
+
+
 
   // 연도 모드 시청 카운트 & 패스
   // 나라별로 몇 개 봤는지 저장
@@ -3174,81 +3174,82 @@ export default function Home() {
     yearSeenGroups,
   ]);
 
-// yesterday,tomorrow toast
+  // yesterday,tomorrow toast
 
-const ANDROID_EXTRA_BOTTOM =
-  Platform.OS === "android" ? (insets?.bottom ?? 20) : 0;
+  const ANDROID_EXTRA_BOTTOM =
+    Platform.OS === "android" ? (insets?.bottom ?? 20) : 0;
 
-const [navToast, setNavToast] = useState({
-  visible: false,
-  text: "",
-  side: null,
-});
-
-const navToastTimerRef = useRef(null);
-
-const didShowNavToastRef = useRef({
-  left: false,
-  right: false,
-});
-
-
-const latestUiLangRef = useRef(uiLang);
-const latestCidRef = useRef(currentCid);
-
-useEffect(() => {
-  latestUiLangRef.current = uiLang;
-}, [uiLang]);
-
-useEffect(() => {
-  latestCidRef.current = currentCid;
-}, [currentCid]);
-
-const NAV_POPUP_TEXT = {
-  prev: { ko: "어제", en: "Yesterday", ja: "昨日", sc: "昨天", tc: "昨天" },
-  next: { ko: "내일", en: "Tomorrow", ja: "明日", sc: "明天", tc: "明天" },
-};
-
-function getPopupLangByCountry(_cid, uiLang) {
-  return uiLang || "en";
-}
-
-const showNavToast = async (side) => {
-  if (didShowNavToastRef.current[side]) return;
-
-  didShowNavToastRef.current[side] = true;
-
-  let storedLang = "en";
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY_UI_LANG);
-    storedLang = normalizeUiLang(raw, latestUiLangRef.current || "en");
-  } catch {
-    storedLang = normalizeUiLang(latestUiLangRef.current, "en");
-  }
-
-  const lang = storedLang || "en";
-
-  const text =
-    side === "left"
-      ? (NAV_POPUP_TEXT.prev[lang] || NAV_POPUP_TEXT.prev.en)
-      : (NAV_POPUP_TEXT.next[lang] || NAV_POPUP_TEXT.next.en);
-
-  if (navToastTimerRef.current) {
-    clearTimeout(navToastTimerRef.current);
-    navToastTimerRef.current = null;
-  }
-
-  setNavToast({
-    visible: true,
-    text,
-    side,
+  const [navToast, setNavToast] = useState({
+    visible: false,
+    text: "",
+    side: null,
   });
 
-  navToastTimerRef.current = setTimeout(() => {
-    setNavToast((prev) => ({ ...prev, visible: false }));
-    navToastTimerRef.current = null;
-  }, 1200);
-};
+  const navToastTimerRef = useRef(null);
+
+
+
+
+  const latestUiLangRef = useRef(uiLang);
+  const latestCidRef = useRef(currentCid);
+
+  useEffect(() => {
+    latestUiLangRef.current = uiLang;
+  }, [uiLang]);
+
+  useEffect(() => {
+    latestCidRef.current = currentCid;
+  }, [currentCid]);
+
+  const NAV_POPUP_TEXT = {
+    prev: { ko: "어제", en: "Yesterday", ja: "昨日", sc: "昨天", tc: "昨天" },
+    next: { ko: "내일", en: "Tomorrow", ja: "明日", sc: "明天", tc: "明天" },
+  };
+
+  function getPopupLangByCountry(_cid, uiLang) {
+    return uiLang || "en";
+  }
+
+  const showNavToast = async (side) => {
+    const now = Date.now();
+
+    // 광고 이미 봤으면 토스트 안 띄움
+    if (rewardPassUntil && rewardPassUntil > now) {
+      setNavToast((prev) => ({ ...prev, visible: false }));
+      return;
+    }
+
+    let storedLang = "en";
+    try {
+      const raw = await AsyncStorage.getItem(STORAGE_KEY_UI_LANG);
+      storedLang = normalizeUiLang(raw, latestUiLangRef.current || "en");
+    } catch {
+      storedLang = normalizeUiLang(latestUiLangRef.current, "en");
+    }
+
+    const lang = storedLang || "en";
+
+    const text =
+      side === "left"
+        ? (NAV_POPUP_TEXT.prev[lang] || NAV_POPUP_TEXT.prev.en)
+        : (NAV_POPUP_TEXT.next[lang] || NAV_POPUP_TEXT.next.en);
+
+    if (navToastTimerRef.current) {
+      clearTimeout(navToastTimerRef.current);
+      navToastTimerRef.current = null;
+    }
+
+    setNavToast({
+      visible: true,
+      text,
+      side,
+    });
+
+    navToastTimerRef.current = setTimeout(() => {
+      setNavToast((prev) => ({ ...prev, visible: false }));
+      navToastTimerRef.current = null;
+    }, 1200);
+  };
 
 
 
@@ -4182,38 +4183,38 @@ const showNavToast = async (side) => {
 
 
   // [확인/교체] 어제 보기
-const handlePrevDay = useCallback(() => {
-  if (isYearMode) return;
+  const handlePrevDay = useCallback(() => {
+    if (isYearMode) return;
 
-   showNavToast("left");
+    showNavToast("left");
 
-  const now = Date.now();
-  if (rewardPassUntil && rewardPassUntil > now) {
-    goBy(-1);
-    return;
-  }
+    const now = Date.now();
+    if (rewardPassUntil && rewardPassUntil > now) {
+      goBy(-1);
+      return;
+    }
 
-  pendingNavRef.current = -1;
-  normalizeScrollAfterAdPrompt();
-  setAdPromptVisible(true);
-}, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
+    pendingNavRef.current = -1;
+    normalizeScrollAfterAdPrompt();
+    setAdPromptVisible(true);
+  }, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
 
-// [확인/교체] 내일 보기
-const handleNextDay = useCallback(() => {
-  if (isYearMode) return;
+  // [확인/교체] 내일 보기
+  const handleNextDay = useCallback(() => {
+    if (isYearMode) return;
 
-  showNavToast("right");  
+    showNavToast("right");
 
-  const now = Date.now();
-  if (rewardPassUntil && rewardPassUntil > now) {
-    goBy(+1);
-    return;
-  }
+    const now = Date.now();
+    if (rewardPassUntil && rewardPassUntil > now) {
+      goBy(+1);
+      return;
+    }
 
-  pendingNavRef.current = +1;
-  normalizeScrollAfterAdPrompt();
-  setAdPromptVisible(true);
-}, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
+    pendingNavRef.current = +1;
+    normalizeScrollAfterAdPrompt();
+    setAdPromptVisible(true);
+  }, [rewardPassUntil, goBy, isYearMode, normalizeScrollAfterAdPrompt]);
 
 
   // World 모드: 오늘(isoDate) 기준 무료 새로고침 카운트 복원
@@ -4288,6 +4289,12 @@ const handleNextDay = useCallback(() => {
           AsyncStorage.setItem(STORAGE_KEY_REWARD_PASS_UNTIL, String(until)).catch(() => { });
           // (마이그레이션) 구버전 키는 굳이 유지할 필요 없음
           AsyncStorage.removeItem(STORAGE_KEY_YEAR_PASS_UNTIL).catch(() => { });
+        }
+        setNavToast((prev) => ({ ...prev, visible: false }));
+
+        if (navToastTimerRef.current) {
+          clearTimeout(navToastTimerRef.current);
+          navToastTimerRef.current = null;
         }
       }
     );
@@ -6584,12 +6591,15 @@ const handleNextDay = useCallback(() => {
               style={{
                 position: "absolute",
                 left: navToast.side === "left" ? 10 : undefined,
-                right: navToast.side === "right" ? 220 : undefined,
+                right: navToast.side === "right" ? 147 : undefined,
                 bottom: 0,
-                backgroundColor: "rgba(0,0,0,0.8)",
-                paddingHorizontal: 12,
-                paddingVertical: 6,
-                borderRadius: 999,
+                backgroundColor: "#343030",
+                paddingHorizontal: 12,   // 👉 너비는 텍스트 기준 유지
+                paddingVertical: 10,     // 👉 높이 키우는 핵심
+
+                minHeight: 36,           // 👉 최소 높이 보장 (중요)
+
+                borderRadius: 20,        // 👉 네 디자인값 맞춤
                 zIndex: 9999,
               }}
             >
