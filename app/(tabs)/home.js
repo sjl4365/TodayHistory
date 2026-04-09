@@ -6594,12 +6594,12 @@ export default function Home() {
                 right: navToast.side === "right" ? 147 : undefined,
                 bottom: 0,
                 backgroundColor: "#343030",
-                paddingHorizontal: 12,   // 👉 너비는 텍스트 기준 유지
-                paddingVertical: 10,     // 👉 높이 키우는 핵심
+                paddingHorizontal: 12,   
+                paddingVertical: 10,     
 
-                minHeight: 36,           // 👉 최소 높이 보장 (중요)
+                minHeight: 36,           
 
-                borderRadius: 20,        // 👉 네 디자인값 맞춤
+                borderRadius: 20,        
                 zIndex: 9999,
               }}
             >
