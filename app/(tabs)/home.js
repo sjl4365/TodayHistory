@@ -3943,10 +3943,23 @@ export default function Home() {
 
   const [uiLang, setUiLang] = useState(resolveUiLangFromDevice());
 
+  const clearBadge = async () => {
+    try {
+      await Notifications.setBadgeCountAsync(0);
+      console.log("[BADGE] cleared");
+    } catch (e) {
+      console.warn("[BADGE] clear failed:", e);
+    }
+  };
+
+
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       async (response) => {
+
+        await clearBadge();
+
         console.log('📱 [NOTIFICATION] App opened from notification');
 
         try {
@@ -3975,6 +3988,18 @@ export default function Home() {
 
     return () => subscription.remove();
   }, [isoDate]);
+
+    useEffect(() => {
+    clearBadge(); // 앱 처음 화면 들어왔을 때
+
+    const sub = AppState.addEventListener("change", async (state) => {
+      if (state === "active") {
+        await clearBadge();
+      }
+    });
+
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     console.log("[LANG DEBUG] deviceLang =", deviceLang);
@@ -6594,12 +6619,12 @@ export default function Home() {
                 right: navToast.side === "right" ? 147 : undefined,
                 bottom: 0,
                 backgroundColor: "#343030",
-                paddingHorizontal: 12,   
-                paddingVertical: 10,     
+                paddingHorizontal: 12,
+                paddingVertical: 10,
 
-                minHeight: 36,           
+                minHeight: 36,
 
-                borderRadius: 20,        
+                borderRadius: 20,
                 zIndex: 9999,
               }}
             >
