@@ -310,7 +310,7 @@ export default function SettingsIndex() {
           <SettingItem
             title={t('appVersion')}
             rightComponent={
-              <Text style={[styles.selectedLanguageText, { fontSize: scale(16) }]}>v 1.0.19</Text>
+              <Text style={[styles.selectedLanguageText, { fontSize: scale(16) }]}>v 1.0.20</Text>
             }
             showArrow={false}
           />
