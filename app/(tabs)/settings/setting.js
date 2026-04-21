@@ -1,11 +1,11 @@
 // app/(tabs)/settings/setting.js
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
   ScrollView,
   Linking,
   Alert,
@@ -25,7 +25,7 @@ import { BackHandler } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
 import * as NavigationBar from 'expo-navigation-bar';
-import { emitUiLangChanged  } from '../../../lib/bus'; 
+import { emitUiLangChanged } from '../../../lib/bus';
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -44,22 +44,22 @@ function useUIScale() {
 }
 
 const languages = [
-  { name: 'English',   code: 'en' },
-  { name: '한국어',    code: 'ko' },
-  { name: '日本語',    code: 'ja' },
-  { name: '簡体中文',  code: 'zh-Hans' },
-  { name: '繁體中文',  code: 'zh-Hant' },
+  { name: 'English', code: 'en' },
+  { name: '한국어', code: 'ko' },
+  { name: '日本語', code: 'ja' },
+  { name: '簡体中文', code: 'zh-Hans' },
+  { name: '繁體中文', code: 'zh-Hant' },
 ];
 
 // currentLanguage(내부 코드) → languages 배열의 표시 이름 변환
 // home.js는 'sc'/'tc', languageContext는 'zh-Hans'/'zh-Hant' 혼용 → 둘 다 처리
 function getDisplayName(langCode) {
   const codeMap = {
-    en:        'en',
-    ko:        'ko',
-    ja:        'ja',
-    sc:        'zh-Hans',
-    tc:        'zh-Hant',
+    en: 'en',
+    ko: 'ko',
+    ja: 'ja',
+    sc: 'zh-Hans',
+    tc: 'zh-Hant',
     'zh-Hans': 'zh-Hans',
     'zh-Hant': 'zh-Hant',
   };
@@ -89,16 +89,16 @@ export default function SettingsIndex() {
       headerLeft: () => (
         <TouchableOpacity
           onPress={() => router.replace('/home')}
-          style={{
-            width: scale(60),
-            height: scale(50),
-            marginLeft: scale(-14),
-          }}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          style={{
+            width: scale(44),
+            height: scale(44),
+            marginLeft: scale(-6),
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
         >
-          <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: scale(3) }}>
-            <Ionicons name="chevron-back" size={scale(28)} color="white" />
-          </View>
+          <Ionicons name="chevron-back" size={scale(26)} color="white" />
         </TouchableOpacity>
       ),
     });
@@ -146,7 +146,7 @@ export default function SettingsIndex() {
           return;
         }
       }
-    } catch {}
+    } catch { }
     setNotificationTime(null);
   };
 
@@ -178,7 +178,7 @@ export default function SettingsIndex() {
       const supported = await Linking.canOpenURL(instagramUrl);
       await Linking.openURL(supported ? instagramUrl : webUrl);
     } catch {
-      try { await Linking.openURL(webUrl); } catch {}
+      try { await Linking.openURL(webUrl); } catch { }
     }
   };
 
