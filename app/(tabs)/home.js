@@ -430,7 +430,7 @@ const AD_MODAL_TEXT = {
 
   ja: {
     title: "Histree Pro を12時間無料で利用",
-    subTitle: "広告1回視聴時の特典:",
+    subTitle: "広告1回視聴時の特典",
     description:
       "- 動画広告なしで利用可能\n" +
       "- 日・中・韓のより多くの歴史的出来事を探索\n" +
@@ -440,7 +440,7 @@ const AD_MODAL_TEXT = {
 
   sc: {
     title: "免费使用 Histree Pro 12 小时",
-    subTitle: "观看1次广告的奖励：",
+    subTitle: "观看1次广告的奖励",
     description:
       "- 无视频广告\n" +
       "- 探索更多中日韩的历史事件\n" +
@@ -450,7 +450,7 @@ const AD_MODAL_TEXT = {
 
   tc: {
     title: "免費使用 Histree Pro 12 小時",
-    subTitle: "觀看廣告 1 次的獎勵：",
+    subTitle: "觀看廣告 1 次的獎勵",
     description:
       "- 無影片廣告\n" +
       "- 探索更多中日韓的歷史事件\n" +
