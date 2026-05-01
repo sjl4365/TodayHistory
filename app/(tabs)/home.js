@@ -429,33 +429,33 @@ const AD_MODAL_TEXT = {
   },
 
   ja: {
-    title: "Histree Pro を12時間無料で利用",
-    subTitle: "広告1回視聴時の特典",
+    title: "Histree Proを12時間無料で利用",
+    subTitle: "広告を1回視聴すると受け取れる特典",
     description:
       "- 動画広告なしで利用可能\n" +
-      "- 日・韓・中のより多くの歴史的出来事を探索\n" +
+      "- 日・中・韓のより多くの歴史的出来事を探索\n" +
       "- 世界史の「昨日・明日」を利用可能",
     cta: "広告を見る",
   },
 
   sc: {
     title: "免费使用 Histree Pro 12 小时",
-    subTitle: "广告观看 1 次的奖励",
+    subTitle: "观看一次广告即可获得奖励",
     description:
       "- 无视频广告\n" +
-      "- 探索更多日韩中的历史事件\n" +
+      "- 探索更多中日韩历史事件\n" +
       "- 可查看世界历史的昨天与明天",
-    cta: "看广告",
+    cta: "观看广告",
   },
 
   tc: {
     title: "免費使用 Histree Pro 12 小時",
-    subTitle: "觀看廣告 1 次的獎勵",
+    subTitle: "觀看一次廣告即可獲得獎勵",
     description:
       "- 無影片廣告\n" +
-      "- 探索更多日韓中的歷史事件\n" +
+      "- 探索更多中日韓歷史事件\n" +
       "- 可查看世界歷史的昨天與明天",
-    cta: "看廣告",
+    cta: "觀看廣告",
   },
 
   es: {
@@ -3989,7 +3989,7 @@ export default function Home() {
     return () => subscription.remove();
   }, [isoDate]);
 
-    useEffect(() => {
+  useEffect(() => {
     clearBadge(); // 앱 처음 화면 들어왔을 때
 
     const sub = AppState.addEventListener("change", async (state) => {
