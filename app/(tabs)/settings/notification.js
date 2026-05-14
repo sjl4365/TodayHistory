@@ -10,6 +10,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
 import { refreshTodayFeed } from '../home';
 import { PICK_RESULT_CACHE } from '../home';
+import AppText from "../../../components/AppText";
+
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -576,7 +578,7 @@ const handleToggleNotification = async (value) => {
     return (
       <View style={styles.notificationSection}>
         <View className="header" style={styles.notificationHeader}>
-          <Text style={styles.notificationTitle}>{title}</Text>
+          <AppText style={styles.notificationTitle}>{title}</AppText>
           <Switch
             value={value}
             onValueChange={onToggle}
@@ -604,10 +606,10 @@ const handleToggleNotification = async (value) => {
                     style={{ paddingVertical: 12 }}
                     onPress={() => setShowTimePicker(true)}
                   >
-                    <Text style={{ fontSize: 16 }}>
+                    <AppText style={{ fontSize: 16 }}>
                       {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
-                    </Text>
-                    <Text style={{ color: '#8B5CF6', marginTop: 6 }}>{t('change_time')}</Text>
+                    </AppText>
+                    <AppText style={{ color: '#8B5CF6', marginTop: 6 }}>{t('change_time')}</AppText>
                   </TouchableOpacity>
 
                   {showTimePicker && (
@@ -627,7 +629,7 @@ const handleToggleNotification = async (value) => {
             </View>
 
             <TouchableOpacity style={styles.doneButton} onPress={handleSaveTime}>
-              <Text style={styles.doneButtonText}>Done</Text>
+              <AppText style={styles.doneButtonText}>Done</AppText>
             </TouchableOpacity>
           </View>
         )}

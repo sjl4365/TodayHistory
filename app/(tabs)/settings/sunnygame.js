@@ -1,9 +1,10 @@
 // app/(tabs)/settings/sunnygame.js
 
 import React, { useEffect, useMemo } from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Alert, useWindowDimensions} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Alert, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
+import AppText from "../../../components/AppText";
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -20,7 +21,7 @@ export default function SunnyGame() {
   useEffect(() => {
     navigation.setOptions({
       headerTitle: () => (
-        <Text
+        <AppText
           style={{
             color: 'white',
             fontSize: scale(19),
@@ -31,7 +32,7 @@ export default function SunnyGame() {
           minimumFontScale={0.7}
         >
           {t('sunnyGames')}
-        </Text>
+        </AppText>
       ),
     });
   }, [navigation, t, currentLanguage, scale]);
@@ -91,6 +92,12 @@ export default function SunnyGame() {
       icon: require('../../../assets/images/decibella.png'),
       url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
     },
+    {
+      id: 10,
+      name: "Scanatory",
+      icon: require('../../../assets/images/scanatory.png'),
+      url: 'https://scanatory.onelink.me/zzpK/2tr21jtp',
+    },
   ], []);
 
   const openAppLink = async (url, appName) => {
@@ -142,15 +149,15 @@ export default function SunnyGame() {
           />
 
           <View style={{ flex: 1, marginRight: scale(10) }}>
-            <Text style={[styles.appName, { fontSize: scale(16) }]}>
+            <AppText style={[styles.appName, { fontSize: scale(16) }]}>
               {app.name}
-            </Text>
+            </AppText>
           </View>
 
           <View style={{ paddingHorizontal: scale(12) }}>
-            <Text style={[styles.linkText, { fontSize: scale(14) }]}>
+            <AppText style={[styles.linkText, { fontSize: scale(14) }]}>
               {t('link')}
-            </Text>
+            </AppText>
           </View>
         </View>
       </TouchableOpacity>
@@ -212,17 +219,17 @@ export default function SunnyGame() {
 
             <View style={styles.footerLinksContainer}>
               <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
-                <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                <AppText style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                   {t('termsOfService')}
-                </Text>
+                </AppText>
               </TouchableOpacity>
-              <Text style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>
+              <AppText style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>
                 |
-              </Text>
+              </AppText>
               <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
-                <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                <AppText style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                   {t('privacyPolicy')}
-                </Text>
+                </AppText>
               </TouchableOpacity>
             </View>
           </View>

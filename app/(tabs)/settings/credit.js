@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../../lib/translations';
 import { Stack } from 'expo-router';
+import AppText from "../../../components/AppText";
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -62,12 +63,12 @@ export default function CreditScreen() {
                 gap: scale(12),
               }
             ]}>
-              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+              <AppText style={[styles.roleLabel, { fontSize: scale(16) }]}>
                 Producer
-              </Text>
-              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+              </AppText>
+              <AppText style={[styles.nameValue, { fontSize: scale(16) }]}>
                 R.S.
-              </Text>
+              </AppText>
             </View>
 
             <View style={[
@@ -77,12 +78,12 @@ export default function CreditScreen() {
                 gap: scale(12),
               }
             ]}>
-              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+              <AppText style={[styles.roleLabel, { fontSize: scale(16) }]}>
                 Programmers
-              </Text>
-              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+              </AppText>
+              <AppText style={[styles.nameValue, { fontSize: scale(16) }]}>
                 Kwanyeob Jung, Sam Lee, TK
-              </Text>
+              </AppText>
             </View>
 
             <View style={[
@@ -92,12 +93,12 @@ export default function CreditScreen() {
                 gap: scale(12),
               }
             ]}>
-              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+              <AppText style={[styles.roleLabel, { fontSize: scale(16) }]}>
                 UIUX Designer
-              </Text>
-              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+              </AppText>
+              <AppText style={[styles.nameValue, { fontSize: scale(16) }]}>
                 Chloe Kim
-              </Text>
+              </AppText>
             </View>
 
             <View style={[
@@ -107,12 +108,12 @@ export default function CreditScreen() {
                 gap: scale(12),
               }
             ]}>
-              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+              <AppText style={[styles.roleLabel, { fontSize: scale(16) }]}>
                 QA Testers
-              </Text>
-              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+              </AppText>
+              <AppText style={[styles.nameValue, { fontSize: scale(16) }]}>
                 YC, SJ
-              </Text>
+              </AppText>
             </View>
 
             <View style={[
@@ -122,12 +123,12 @@ export default function CreditScreen() {
                 gap: scale(12),
               }
             ]}>
-              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+              <AppText style={[styles.roleLabel, { fontSize: scale(16) }]}>
                 Localization Managers
-              </Text>
-              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+              </AppText>
+              <AppText style={[styles.nameValue, { fontSize: scale(16) }]}>
                 Mary, Carol
-              </Text>
+              </AppText>
             </View>
 
             <View style={[
@@ -138,12 +139,12 @@ export default function CreditScreen() {
                 gap: scale(12),
               }
             ]}>
-              <Text style={[styles.roleLabel, { fontSize: scale(16) }]}>
+              <AppText style={[styles.roleLabel, { fontSize: scale(16) }]}>
                 Special Thanks
-              </Text>
-              <Text style={[styles.nameValue, { fontSize: scale(16) }]}>
+              </AppText>
+              <AppText style={[styles.nameValue, { fontSize: scale(16) }]}>
                 Toronto Korean Developers, JA
-              </Text>
+              </AppText>
             </View>
           </View>
 
@@ -187,7 +188,7 @@ export default function CreditScreen() {
                     )
                   }
                 >
-                  <Text style={[
+                  <AppText style={[
                     styles.linkText, 
                     { 
                       fontSize: scale(13),
@@ -195,10 +196,10 @@ export default function CreditScreen() {
                     }
                   ]}>
                     Terms
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
                 
-                <Text style={[
+                <AppText style={[
                   styles.separator, 
                   { 
                     fontSize: scale(13),
@@ -206,7 +207,7 @@ export default function CreditScreen() {
                   }
                 ]}>
                   |
-                </Text>
+                </AppText>
                 
                 <TouchableOpacity
                   onPress={() =>
@@ -215,7 +216,7 @@ export default function CreditScreen() {
                     )
                   }
                 >
-                  <Text style={[
+                  <AppText style={[
                     styles.linkText, 
                     { 
                       fontSize: scale(13),
@@ -223,7 +224,7 @@ export default function CreditScreen() {
                     }
                   ]}>
                     Privacy
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               </View>
             </View>

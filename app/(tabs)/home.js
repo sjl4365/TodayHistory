@@ -9,6 +9,7 @@ import React, {
 import {
   ActivityIndicator,
   Text,
+  TextInput,
   View,
   Pressable,
   ScrollView,
@@ -84,6 +85,21 @@ import { BlurView } from "expo-blur";
 import * as Notifications from 'expo-notifications';
 import StrokeText from '../../lib/stroketext';
 import { useCapsuleToast } from "../../components/CapsuleToastProvider";
+import AppText from "../../components/AppText";
+
+if (Text.defaultProps == null) {
+  Text.defaultProps = {};
+}
+
+if (TextInput.defaultProps == null) {
+  TextInput.defaultProps = {};
+}
+
+Text.defaultProps.allowFontScaling = false;
+TextInput.defaultProps.allowFontScaling = false;
+
+Text.defaultProps.maxFontSizeMultiplier = 1;
+TextInput.defaultProps.maxFontSizeMultiplier = 1;
 
 // 광고 테스트
 // const ADS_ENABLED = false;
@@ -1645,7 +1661,9 @@ function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, cu
 
   console.log('❌ [RENDER] Using regular Text');
   return (
-    <Text
+    <AppText
+      allowFontScaling={false}
+      maxFontSizeMultiplier={1}
       style={{
         marginTop: 4,
         marginBottom: 14,
@@ -1657,7 +1675,7 @@ function renderHistoryText(text, fontSize, fontColor, fontFamily, lineHeight, cu
       }}
     >
       {text}
-    </Text>
+    </AppText>
   );
 }
 
@@ -1820,7 +1838,9 @@ function SegmentedCountrySelector({
                 />
               )}
 
-              <Text
+              <AppText
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1}
                 style={{
                   fontFamily,
                   fontSize: 13,
@@ -1832,7 +1852,7 @@ function SegmentedCountrySelector({
                 numberOfLines={1}
               >
                 {label}
-              </Text>
+              </AppText>
             </Pressable>
           );
         })}
@@ -2004,12 +2024,18 @@ function WebViewModal({ visible, url, title, onClose }) {
                 backgroundColor: "#F3F4F6",
               }}
             >
-              <Text style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
+              <AppText
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1}
+                style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
                 ✕
-              </Text>
+              </AppText>
             </Pressable>
 
-            <Text
+            <AppText
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1}
+
               style={{
                 flex: 1,
                 fontSize: scale(16),
@@ -2022,7 +2048,9 @@ function WebViewModal({ visible, url, title, onClose }) {
             >
 
               {title || ""}
-            </Text>
+            </AppText>
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1}
 
             <View style={{ width: scale(8) + scale(16) }} />
           </View>
@@ -2088,7 +2116,9 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
           }}
         >
           <ActivityIndicator color="#fff" />
-          <Text
+          <AppText
+            allowFontScaling={false}
+            maxFontSizeMultiplier={1}
             style={{
               marginTop: 8,
               color: "#fff",
@@ -2097,7 +2127,7 @@ function HeaderHero({ height, bgSource, imageUrl, uiLang }) {
           >
             {UI_STR.imageLoading[uiLang] ||
               UI_STR.imageLoading.en}
-          </Text>
+          </AppText>
         </View>
       )}
       <View
@@ -2238,9 +2268,12 @@ function WikipediaBanner({
         }}
       >
         <ActivityIndicator size="small" color="#999" />
-        <Text style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
+        <AppText
+          allowFontScaling={false}
+          maxFontSizeMultiplier={1}
+          style={{ marginTop: 8, fontSize: 12, color: "#999" }}>
           Loading...
-        </Text>
+        </AppText>
       </View>
     );
   }
@@ -2824,7 +2857,9 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
               marginBottom: 10,
             }}
           >
-            <Text
+            <AppText
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1}
               style={{
                 fontSize: FS,
                 fontWeight: "700",
@@ -2834,7 +2869,7 @@ function AnchorList({ anchors, onLinkPress, fontSize }) {
               numberOfLines={1}
             >
               {text}
-            </Text>
+            </AppText>
           </Pressable>
         );
       })}
@@ -6040,7 +6075,7 @@ export default function Home() {
                     alignItems: "center",
                   }}
                 >
-                  {/* <Text
+                  {/* <AppText
                     style={{
                       fontSize: 20,
                       fontWeight: "800",
@@ -6054,8 +6089,10 @@ export default function Home() {
                       selectedCountries,
                       yearDeltaForTitle
                     )}
-                  </Text> */}
-                  <Text
+                  </AppText> */}
+                  <AppText
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                     style={{
                       marginTop: 4,
                       fontSize: 13,
@@ -6063,7 +6100,7 @@ export default function Home() {
                       textAlign: "center",
                     }}
                   >
-                  </Text>
+                  </AppText>
                 </View>
 
                 <View
@@ -6074,7 +6111,9 @@ export default function Home() {
                   }}
                 >
                   {list.length === 0 ? (
-                    <Text
+                    <AppText
+                      allowFontScaling={false}
+                      maxFontSizeMultiplier={1}
                       style={{
                         color: "#6b7280",
                       }}
@@ -6083,7 +6122,7 @@ export default function Home() {
                         ? "..."
                         : UI_STR.empty[uiLang || "en"] ||
                         UI_STR.empty.en}
-                    </Text>
+                    </AppText>
                   ) : (
                     list.map((p) => {
                       const label =
@@ -6136,7 +6175,7 @@ export default function Home() {
                               marginBottom: 8,
                             }}
                           >
-                            {/* <Text
+                            {/* <AppText
                               style={{
                                 fontSize: locationFontSize,
                                 fontWeight: "600",
@@ -6144,14 +6183,14 @@ export default function Home() {
                               }}
                             >
                               {fieldLabels.location}:{" "}
-                              <Text
+                              <AppText
                                 style={{
                                   color: customFontColor, 
                                 }}
                               >
                                 {label}
-                              </Text>
-                            </Text> */}
+                              </AppText>
+                            </AppText> */}
                             {renderHistoryText(
                               `${fieldLabels.location}: ${label}`,
                               locationFontSize,
@@ -6162,7 +6201,7 @@ export default function Home() {
                             )}
 
                             {/* {!!dateLabel && (
-                              <Text
+                              <AppText
                                 style={{
                                   marginTop: 4,
                                   fontSize: dateFontSize,
@@ -6171,7 +6210,7 @@ export default function Home() {
                               >
                                 {fieldLabels.date}:{" "}
                                 {dateLabel}
-                              </Text>
+                              </AppText>
                             )}
                           </View> */}
                             {!!dateLabel && (
@@ -6260,13 +6299,15 @@ export default function Home() {
                 borderRadius: 8,
               }}
             >
-              <Text
+              <AppText
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1}
                 style={{
                   color: "#b91c1c",
                 }}
               >
                 Error: {err}
-              </Text>
+              </AppText>
             </View>
           )}
 
@@ -6320,7 +6361,10 @@ export default function Home() {
                 {/* Close (유지) */}
                 <View style={{ alignItems: "flex-end" }}>
                   <Pressable onPress={() => { setAdPromptVisible(false); normalizeScrollAfterAdPrompt(); }} hitSlop={10}>
-                    <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
+                    <AppText
+                      allowFontScaling={false}
+                      maxFontSizeMultiplier={1}
+                      style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</AppText>
                   </Pressable>
                 </View>
 
@@ -6331,7 +6375,9 @@ export default function Home() {
                     style={{ width: 12, height: 12, marginRight: 8 }}
                     resizeMode="contain"
                   />
-                  <Text
+                  <AppText
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontWeight: "900", // Inter Black
@@ -6342,11 +6388,13 @@ export default function Home() {
                     }}
                   >
                     {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
-                  </Text>
+                  </AppText>
                 </View>
 
                 {/* 2) subtitle */}
-                <Text
+                <AppText
+                  allowFontScaling={false}
+                  maxFontSizeMultiplier={1}
                   style={{
                     fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                     fontWeight: "900", // Inter Black (원하면 700으로 바꿔도 됨)
@@ -6357,7 +6405,7 @@ export default function Home() {
                   }}
                 >
                   {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).subTitle}
-                </Text>
+                </AppText>
 
                 {/* 3) icon + description 리스트 */}
                 {(() => {
@@ -6401,7 +6449,10 @@ export default function Home() {
                             </View>
 
                             {/* Description text */}
-                            <Text
+                            <AppText
+                              allowFontScaling={false}
+                              maxFontSizeMultiplier={1}
+
                               style={{
                                 fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                                 fontWeight: "400", // Inter Regular
@@ -6412,7 +6463,7 @@ export default function Home() {
                               }}
                             >
                               {clean}
-                            </Text>
+                            </AppText>
                           </View>
                         );
                       })}
@@ -6432,7 +6483,9 @@ export default function Home() {
                     justifyContent: "center",
                   }}
                 >
-                  <Text
+                  <AppText
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontSize: 14,
@@ -6441,7 +6494,7 @@ export default function Home() {
                     }}
                   >
                     {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
-                  </Text>
+                  </AppText>
                 </Pressable>
 
               </View>
@@ -6500,7 +6553,10 @@ export default function Home() {
                 {/* Close */}
                 <View style={{ alignItems: "flex-end" }}>
                   <Pressable onPress={handleCloseYearAdPrompt} hitSlop={10}>
-                    <Text style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</Text>
+                    <AppText
+                      allowFontScaling={false}
+                      maxFontSizeMultiplier={1}
+                      style={{ fontSize: 18, fontWeight: "700", color: "#9CA3AF" }}>✕</AppText>
                   </Pressable>
                 </View>
 
@@ -6511,7 +6567,9 @@ export default function Home() {
                     style={{ width: 12, height: 12, marginRight: 8 }}
                     resizeMode="contain"
                   />
-                  <Text
+                  <AppText
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontWeight: "900",
@@ -6522,11 +6580,13 @@ export default function Home() {
                     }}
                   >
                     {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).title}
-                  </Text>
+                  </AppText>
                 </View>
 
                 {/* 2) subtitle (원하면 17 그대로, 더 작게 원하면 10으로 낮춰도 됨) */}
-                <Text
+                <AppText
+                  allowFontScaling={false}
+                  maxFontSizeMultiplier={1}
                   style={{
                     fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                     fontWeight: "900",
@@ -6537,7 +6597,7 @@ export default function Home() {
                   }}
                 >
                   {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).subTitle}
-                </Text>
+                </AppText>
 
                 {/* 3) icon + description 리스트 */}
                 {(() => {
@@ -6564,7 +6624,9 @@ export default function Home() {
                               <RNImage source={iconSrc} style={{ width: 32, height: 32 }} resizeMode="contain" />
                             </View>
 
-                            <Text
+                            <AppText
+                              allowFontScaling={false}
+                              maxFontSizeMultiplier={1}
                               style={{
                                 fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                                 fontWeight: "400",
@@ -6575,7 +6637,7 @@ export default function Home() {
                               }}
                             >
                               {clean}
-                            </Text>
+                            </AppText>
                           </View>
                         );
                       })}
@@ -6595,7 +6657,9 @@ export default function Home() {
                     justifyContent: "center",
                   }}
                 >
-                  <Text
+                  <AppText
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontSize: 14,
@@ -6604,7 +6668,7 @@ export default function Home() {
                     }}
                   >
                     {(AD_MODAL_TEXT[uiLang] || AD_MODAL_TEXT.en).cta}
-                  </Text>
+                  </AppText>
                 </Pressable>
               </View>
             </View>
@@ -6628,9 +6692,12 @@ export default function Home() {
                 zIndex: 9999,
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>
+              <AppText
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1}
+                style={{ color: "#fff", fontWeight: "700" }}>
                 {navToast.text}
-              </Text>
+              </AppText>
             </View>
           )}
 
