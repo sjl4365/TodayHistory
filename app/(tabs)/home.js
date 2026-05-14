@@ -2004,12 +2004,16 @@ function WebViewModal({ visible, url, title, onClose }) {
                 backgroundColor: "#F3F4F6",
               }}
             >
-              <Text style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
+              <Text
+                allowFontScaling={false}
+                style={{ fontSize: 18, fontWeight: "700", color: "#374151" }}>
                 ✕
               </Text>
             </Pressable>
 
             <Text
+              allowFontScaling={false}
+
               style={{
                 flex: 1,
                 fontSize: scale(16),
@@ -6332,6 +6336,8 @@ export default function Home() {
                     resizeMode="contain"
                   />
                   <Text
+                    allowFontScaling={false}
+
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontWeight: "900", // Inter Black
@@ -6347,6 +6353,8 @@ export default function Home() {
 
                 {/* 2) subtitle */}
                 <Text
+                  allowFontScaling={false}
+
                   style={{
                     fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                     fontWeight: "900", // Inter Black (원하면 700으로 바꿔도 됨)
@@ -6402,6 +6410,7 @@ export default function Home() {
 
                             {/* Description text */}
                             <Text
+                              allowFontScaling={false}
                               style={{
                                 fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                                 fontWeight: "400", // Inter Regular
@@ -6433,6 +6442,7 @@ export default function Home() {
                   }}
                 >
                   <Text
+                    allowFontScaling={false}
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontSize: 14,
@@ -6527,6 +6537,7 @@ export default function Home() {
 
                 {/* 2) subtitle (원하면 17 그대로, 더 작게 원하면 10으로 낮춰도 됨) */}
                 <Text
+                  allowFontScaling={false}
                   style={{
                     fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                     fontWeight: "900",
@@ -6565,6 +6576,8 @@ export default function Home() {
                             </View>
 
                             <Text
+                              allowFontScaling={false}
+
                               style={{
                                 fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                                 fontWeight: "400",
@@ -6596,6 +6609,8 @@ export default function Home() {
                   }}
                 >
                   <Text
+                    allowFontScaling={false}
+
                     style={{
                       fontFamily: Platform.OS === "ios" ? "Inter" : "sans-serif",
                       fontSize: 14,
