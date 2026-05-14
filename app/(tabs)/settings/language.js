@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AppText from "../../../components/AppText";
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -61,9 +62,9 @@ export default function Language() {
           ]}
           onPress={() => handleLanguageSelect(language)}
         >
-          <Text style={styles.languageText}>{language.name}</Text>
+          <AppText style={styles.languageText}>{language.name}</AppText>
           {selectedLanguage === language.name && (
-            <Text style={styles.checkmark}>✓</Text>
+            <AppText style={styles.checkmark}>✓</AppText>
           )}
         </TouchableOpacity>
       ))}

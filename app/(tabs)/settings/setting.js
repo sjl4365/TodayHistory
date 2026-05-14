@@ -26,6 +26,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
 import * as NavigationBar from 'expo-navigation-bar';
 import { emitUiLangChanged } from '../../../lib/bus';
+import AppText from "../../../components/AppText";
 
 const LANGUAGE_STORAGE_KEY = '@app_language';
 
@@ -213,7 +214,10 @@ export default function SettingsIndex() {
       style={[styles.settingItem, { paddingVertical: scale(20), paddingHorizontal: scale(10) }]}
       onPress={onPress}
     >
-      <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>{title}</Text>
+      <AppText
+        allowFontScaling={false}
+        maxFontSizeMultiplier={1}
+        style={[styles.settingTitle, { fontSize: scale(17) }]}>{title}</AppText>
       <View style={[styles.rightContainer, { gap: scale(8) }]}>
         {rightComponent}
         {showArrow && <Ionicons name="chevron-forward" size={scale(22)} color="grey" />}
@@ -238,7 +242,10 @@ export default function SettingsIndex() {
             onPress={() => router.push('/settings/notification')}
             rightComponent={
               notificationTime && (
-                <Text style={[styles.timeText, { fontSize: scale(16) }]}>{notificationTime}</Text>
+                <AppText
+                  allowFontScaling={false}
+                  maxFontSizeMultiplier={1}
+                  style={[styles.timeText, { fontSize: scale(16) }]}>{notificationTime}</AppText>
               )
             }
           />
@@ -249,11 +256,17 @@ export default function SettingsIndex() {
             style={[styles.settingItem, { paddingVertical: scale(20), paddingHorizontal: scale(10) }]}
             onPress={() => setIsLanguageExpanded(!isLanguageExpanded)}
           >
-            <Text style={[styles.settingTitle, { fontSize: scale(17) }]}>{t('language')}</Text>
+            <AppText
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1}
+              style={[styles.settingTitle, { fontSize: scale(17) }]}>{t('language')}</AppText>
             <View style={[styles.rightContainer, { gap: scale(8) }]}>
-              <Text style={[styles.selectedLanguageText, { fontSize: scale(16), marginRight: scale(4) }]}>
+              <AppText
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1}
+                style={[styles.selectedLanguageText, { fontSize: scale(16), marginRight: scale(4) }]}>
                 {selectedLanguage}
-              </Text>
+              </AppText>
               <Ionicons name={isLanguageExpanded ? "chevron-up" : "chevron-down"} size={scale(22)} color="grey" />
             </View>
           </TouchableOpacity>
@@ -266,7 +279,10 @@ export default function SettingsIndex() {
                   style={[styles.languageOption, { paddingVertical: scale(16), paddingHorizontal: scale(20) }]}
                   onPress={() => handleLanguageSelect(language)}
                 >
-                  <Text style={[styles.languageText, { fontSize: scale(16) }]}>{language.name}</Text>
+                  <AppText
+                    allowFontScaling={false}
+                    maxFontSizeMultiplier={1}
+                    style={[styles.languageText, { fontSize: scale(16) }]}>{language.name}</AppText>
                   {selectedLanguage === language.name && (
                     <Ionicons name="checkmark" size={scale(22)} color="#007AFF" />
                   )}
@@ -280,7 +296,10 @@ export default function SettingsIndex() {
           <SettingItem
             title={t('instagram')}
             onPress={openInstagram}
-            rightComponent={<Text style={[styles.linkText, { fontSize: scale(15) }]}>{t('link')}</Text>}
+            rightComponent={<AppText
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1}
+              style={[styles.linkText, { fontSize: scale(15) }]}>{t('link')}</AppText>}
             showArrow={false}
           />
         </View>
@@ -289,7 +308,10 @@ export default function SettingsIndex() {
           <SettingItem
             title={t('xTwitter')}
             onPress={openTwitter}
-            rightComponent={<Text style={[styles.linkText, { fontSize: scale(15) }]}>{t('link')}</Text>}
+            rightComponent={<AppText
+              allowFontScaling={false}
+              maxFontSizeMultiplier={1}
+              style={[styles.linkText, { fontSize: scale(15) }]}>{t('link')}</AppText>}
             showArrow={false}
           />
         </View>
@@ -310,7 +332,12 @@ export default function SettingsIndex() {
           <SettingItem
             title={t('appVersion')}
             rightComponent={
-              <Text style={[styles.selectedLanguageText, { fontSize: scale(16) }]}>v 1.0.20</Text>
+              <AppText
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1}
+                style={[styles.selectedLanguageText, { fontSize: scale(16) }]}>
+                v 1.0.20
+              </AppText>
             }
             showArrow={false}
           />
@@ -338,15 +365,26 @@ export default function SettingsIndex() {
 
             <View style={styles.footerLinksContainer}>
               <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
-                <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                <AppText
+                  allowFontScaling={false}
+                  maxFontSizeMultiplier={1}
+                  style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                   {t('termsOfService')}
-                </Text>
+                </AppText>
               </TouchableOpacity>
-              <Text style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>|</Text>
+              <AppText
+                allowFontScaling={false}
+                maxFontSizeMultiplier={1}
+                style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>
+                |
+              </AppText>
               <TouchableOpacity onPress={() => openExternalLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
-                <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                <AppText
+                  allowFontScaling={false}
+                  maxFontSizeMultiplier={1}
+                  style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                   {t('privacyPolicy')}
-                </Text>
+                </AppText>
               </TouchableOpacity>
             </View>
           </View>

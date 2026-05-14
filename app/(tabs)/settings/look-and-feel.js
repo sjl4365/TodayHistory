@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import StrokeText from '../../../lib/lookstroketext';
 import { useTranslation } from '../../../lib/translations';
 import { useNavigation } from 'expo-router';
+import AppText from "../../../components/AppText";
 
 const STORAGE_KEY_FONT = '@app_font';
 const STORAGE_KEY_FONT_SIZE = '@app_font_size';
@@ -115,7 +116,7 @@ export default function LookAndFeel() {
     }
     
     return (
-      <Text
+      <AppText
         style={[
           styles.previewText,
           {
@@ -126,7 +127,7 @@ export default function LookAndFeel() {
         ]}
       >
         {text}
-      </Text>
+      </AppText>
     );
   };
 
@@ -139,13 +140,13 @@ export default function LookAndFeel() {
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent,{padding: scale(20),borderRadius: scale(16),}]}>
           <View style={[styles.modalHeader, { marginBottom: scale(20) }]}>
-            <Text style={[styles.modalTitle, { fontSize: scale(18) }]}>
+            <AppText style={[styles.modalTitle, { fontSize: scale(18) }]}>
               {t('selectFont')}
-            </Text>
+            </AppText>
             <TouchableOpacity onPress={onClose}>
-              <Text style={[styles.closeButton, { fontSize: scale(20) }]}>
+              <AppText style={[styles.closeButton, { fontSize: scale(20) }]}>
                 ✕
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
           
@@ -163,7 +164,7 @@ export default function LookAndFeel() {
                   onClose();
                 }}
               >
-                <Text
+                <AppText
                   style={[
                     styles.fontDropdownText,
                     { fontSize: scale(16) },
@@ -172,11 +173,11 @@ export default function LookAndFeel() {
                   ]}
                 >
                   {font}
-                </Text>
+                </AppText>
                 {selectedFont === font && (
-                  <Text style={[styles.fontCheckmark, { fontSize: scale(16) }]}>
+                  <AppText style={[styles.fontCheckmark, { fontSize: scale(16) }]}>
                     ✓
-                  </Text>
+                  </AppText>
                 )}
               </TouchableOpacity>
             ))}
@@ -251,9 +252,9 @@ export default function LookAndFeel() {
 
   const FontColorPalette = ({ title, selectedColor }) => (
     <View style={[styles.section, { marginBottom: scale(24) }]}>
-      <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+      <AppText style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
         {title}
-      </Text>
+      </AppText>
       <View style={styles.inlineColorContainer}>
         {fontcolorOptions.map((color, index) => renderFontColorButton(color, index))}
       </View>
@@ -262,9 +263,9 @@ export default function LookAndFeel() {
 
   const BackColorPalette = ({ title, selectedColor, onColorChange }) => (
     <View style={[styles.section, { marginBottom: scale(24) }]}>
-      <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+      <AppText style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
         {title}
-      </Text>
+      </AppText>
       <View style={styles.inlineColorContainer}>
         {backcolorOptions.map((color) => (
           <TouchableOpacity
@@ -305,9 +306,9 @@ export default function LookAndFeel() {
           ]}
           onPress={pickImage}
         >
-          <Text style={[styles.uploadImageIcon, { fontSize: scale(18) }]}>
+          <AppText style={[styles.uploadImageIcon, { fontSize: scale(18) }]}>
             📷
-          </Text>
+          </AppText>
         </TouchableOpacity>
       </View>
     </View>
@@ -417,9 +418,9 @@ export default function LookAndFeel() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.section, { marginBottom: scale(24) }]}>
-          <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+          <AppText style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
             {t('font')}
-          </Text>
+          </AppText>
           <TouchableOpacity 
             style={[
               styles.fontDropdownButton,
@@ -432,7 +433,7 @@ export default function LookAndFeel() {
             onPress={() => setShowFontModal(true)}
           >
             <View style={styles.fontDropdownContent}>
-              <Text
+              <AppText
                 style={[
                   styles.fontDropdownButtonText,
                   { fontSize: scale(16) },
@@ -440,26 +441,26 @@ export default function LookAndFeel() {
                 ]}
               >
                 {selectedFont}
-              </Text>
-              <Text style={[styles.dropdownArrow, { fontSize: scale(12) }]}>
+              </AppText>
+              <AppText style={[styles.dropdownArrow, { fontSize: scale(12) }]}>
                 ▼
-              </Text>
+              </AppText>
             </View>
           </TouchableOpacity>
-          <Text style={[styles.fontNote, { fontSize: scale(12), marginTop: scale(8) }]}>
+          <AppText style={[styles.fontNote, { fontSize: scale(12), marginTop: scale(8) }]}>
             {t('fontAppliedNote')}
-          </Text>
+          </AppText>
         </View>
 
         {/* Size Slider */}
         <View style={[styles.section, { marginBottom: scale(24) }]}>
-          <Text style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
+          <AppText style={[styles.sectionTitle, { fontSize: scale(14), marginBottom: scale(12) }]}>
             {t('fontSize')}
-          </Text>
+          </AppText>
           <View style={[styles.sliderContainer, { gap: scale(12) }]}>
-            <Text style={[styles.sizeLabel, { fontSize: scale(12) }]}>
+            <AppText style={[styles.sizeLabel, { fontSize: scale(12) }]}>
               12
-            </Text>
+            </AppText>
             <Slider
               style={[styles.slider, { height: scale(40) }]}
               minimumValue={12}
@@ -470,13 +471,13 @@ export default function LookAndFeel() {
               minimumTrackTintColor="#006AFF"
               maximumTrackTintColor="#D1D1D1"
             />
-            <Text style={[styles.sizeLabel, { fontSize: scale(12) }]}>
+            <AppText style={[styles.sizeLabel, { fontSize: scale(12) }]}>
               48
-            </Text>
+            </AppText>
           </View>
-          <Text style={[styles.currentSize, { fontSize: scale(12), marginTop: scale(4) }]}>
+          <AppText style={[styles.currentSize, { fontSize: scale(12), marginTop: scale(4) }]}>
             {Math.round(fontSize)}pt
-          </Text>
+          </AppText>
         </View>
 
         {/* Font Color Palette */}

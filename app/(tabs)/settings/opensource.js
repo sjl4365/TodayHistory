@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from '../../../lib/translations';
 import { Stack } from 'expo-router';
+import AppText from "../../../components/AppText";
 
 function useUIScale() {
   const { width } = useWindowDimensions();
@@ -84,12 +85,12 @@ export default function OpenSourceScreen() {
                   }
                 ]}
               >
-                <Text style={[styles.packageName, { fontSize: scale(16) }]}>
+                <AppText style={[styles.packageName, { fontSize: scale(16) }]}>
                   {pkg.name}
-                </Text>
-                <Text style={[styles.packageVersion, { fontSize: scale(16) }]}>
+                </AppText>
+                <AppText style={[styles.packageVersion, { fontSize: scale(16) }]}>
                   {pkg.version}
-                </Text>
+                </AppText>
               </View>
             ))}
           </View>
@@ -127,17 +128,17 @@ export default function OpenSourceScreen() {
 
               <View style={styles.footerLinksContainer}>
                 <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Terms-Conditions-c18656ce6c6045e590f652bf8291f28b?pvs=74')}>
-                  <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                  <AppText style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                     Terms
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
-                <Text style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>
+                <AppText style={[styles.footerSeparator, { fontSize: scale(13), marginHorizontal: scale(4) }]}>
                   |
-                </Text>
+                </AppText>
                 <TouchableOpacity onPress={() => openLink('https://marmalade-neptune-dbe.notion.site/Privacy-Policy-ced8ead72ced4d8791ca4a71a289dd6b')}>
-                  <Text style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
+                  <AppText style={[styles.footerLink, { fontSize: scale(13), paddingHorizontal: scale(4) }]}>
                     Privacy
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               </View>
             </View>
