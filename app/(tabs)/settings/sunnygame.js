@@ -1,7 +1,7 @@
 // app/(tabs)/settings/sunnygame.js
 
 import React, { useEffect, useMemo } from 'react';
-import {View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Alert, useWindowDimensions} from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Alert, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useTranslation } from '../../../lib/translations';
 
@@ -90,6 +90,12 @@ export default function SunnyGame() {
       name: "Decibella",
       icon: require('../../../assets/images/decibella.png'),
       url: 'https://decibella.onelink.me/Ve6i/vydwhkh4',
+    },
+    {
+      id: 10,
+      name: "Scanatory",
+      icon: require('../../../assets/images/scanatory.png'),
+      url: 'https://scanatory.onelink.me/zzpK/2tr21jtp',
     },
   ], []);
 
