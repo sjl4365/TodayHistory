@@ -5958,7 +5958,7 @@ export default function Home() {
     TOP_PX +
     SEGMENT_H +
     BOTTOM_PX;
-  const CONTENT_W = 340;
+  const CONTENT_W = Math.min(340, screenW - 32);
 
   const modalLang = AD_MODAL_TEXT[uiLang] ? uiLang : 'en';
   const tModal = AD_MODAL_TEXT[modalLang];
@@ -6053,6 +6053,7 @@ export default function Home() {
               style={{ flex: 1 }}
               contentContainerStyle={{
                 flexGrow: 1,
+                paddingTop: 28,
                 paddingHorizontal: 16,
                 paddingBottom: 24 + tabBarHeight,
               }}
@@ -6071,7 +6072,7 @@ export default function Home() {
               >
                 <View
                   style={{
-                    paddingVertical: 10,
+                    paddingTop: 4,
                     alignItems: "center",
                   }}
                 >
